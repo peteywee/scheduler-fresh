@@ -1,0 +1,11 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "1",
+      "description": "A vibrant and modern office environment, suggesting efficiency and collaboration for the hero section.",
+      "imageUrl": "https://picsum.photos/seed/scheduleApp1/600/400",
+      "imageHint": "modern office"
+    }
+  ]
+}
