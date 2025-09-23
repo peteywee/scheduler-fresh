@@ -122,6 +122,46 @@ setup_gcp() {
   echo ""
 }
 
+# Function to setup GCP project with creation
+setup_gcp_new() {
+  log_header "Setting up Google Cloud Platform (with new project creation)"
+  
+  local project_id="${1:-}"
+  
+  if [[ -z "$project_id" ]]; then
+    log_error "Project ID is required for new project setup"
+    return 1
+  fi
+  
+  # Run GCP setup script with new project creation
+  ./scripts/setup-gcp.sh setup-new "$project_id"
+  
+  # Get the configured project ID
+  PROJECT_ID=$(gcloud config get-value project)
+  log_success "GCP project configured: $PROJECT_ID"
+  echo ""
+}
+
+# Function to create GCP project only
+create_gcp_project_only() {
+  log_header "Creating new Google Cloud Platform project"
+  
+  local project_id="${1:-}"
+  
+  if [[ -z "$project_id" ]]; then
+    log_error "Project ID is required for project creation"
+    return 1
+  fi
+  
+  # Run GCP project creation script
+  ./scripts/setup-gcp.sh create-project "$project_id"
+  
+  # Get the configured project ID
+  PROJECT_ID=$(gcloud config get-value project)
+  log_success "GCP project created and configured: $PROJECT_ID"
+  echo ""
+}
+
 # Function to setup Firebase
 setup_firebase() {
   log_header "Setting up Firebase"
@@ -320,6 +360,25 @@ run_full_setup() {
   show_next_steps
 }
 
+# Function to run full setup with new project creation
+run_full_setup_new() {
+  log_header "Running Full Setup with New Project Creation"
+  
+  local project_id="${1:-}"
+  
+  if [[ -z "$project_id" ]]; then
+    log_error "Project ID is required for new project setup"
+    return 1
+  fi
+  
+  setup_gcp_new "$project_id"
+  setup_firebase
+  setup_service_accounts
+  setup_secrets
+  validate_setup
+  show_next_steps
+}
+
 # Function to show current status
 show_status() {
   log_header "Configuration Status"
@@ -354,6 +413,7 @@ make_scripts_executable() {
 # Main function
 main() {
   local command="${1:-interactive}"
+  local project_id="${2:-}"
   
   # Make scripts executable
   make_scripts_executable
@@ -362,11 +422,38 @@ main() {
     "full"|"setup")
       show_welcome
       check_prerequisites
-      run_full_setup
+      if [[ -n "$project_id" ]]; then
+        run_full_setup_new "$project_id"
+      else
+        run_full_setup
+      fi
+      ;;
+    "full-new")
+      if [[ -z "$project_id" ]]; then
+        log_error "Project ID is required for full-new command"
+        log_info "Usage: $0 full-new PROJECT_ID"
+        exit 1
+      fi
+      show_welcome
+      check_prerequisites
+      run_full_setup_new "$project_id"
+      ;;
+    "create-project")
+      if [[ -z "$project_id" ]]; then
+        log_error "Project ID is required for create-project command"
+        log_info "Usage: $0 create-project PROJECT_ID"
+        exit 1
+      fi
+      check_prerequisites
+      create_gcp_project_only "$project_id"
       ;;
     "gcp")
       check_prerequisites
-      setup_gcp
+      if [[ -n "$project_id" ]]; then
+        setup_gcp_new "$project_id"
+      else
+        setup_gcp
+      fi
       ;;
     "firebase")
       check_prerequisites
@@ -394,16 +481,23 @@ main() {
       ;;
     *)
       log_error "Unknown command: $command"
-      log_info "Usage: $0 [full|gcp|firebase|service-accounts|secrets|validate|status|interactive]"
+      log_info "Usage: $0 [full|full-new|create-project|gcp|firebase|service-accounts|secrets|validate|status|interactive] [project-id]"
       log_info "Commands:"
-      log_info "  full              - Run complete setup process"
-      log_info "  gcp               - Setup Google Cloud Platform only"
+      log_info "  full              - Run complete setup process (with optional project-id for new project)"
+      log_info "  full-new          - Run complete setup with new project creation (requires project-id)"
+      log_info "  create-project    - Create new GCP project only (requires project-id)"
+      log_info "  gcp               - Setup Google Cloud Platform only (with optional project-id for new project)"
       log_info "  firebase          - Setup Firebase only"
       log_info "  service-accounts  - Setup service accounts only"
       log_info "  secrets           - Setup secrets management only"
       log_info "  validate          - Validate existing setup"
       log_info "  status            - Show current configuration status"
       log_info "  interactive       - Show interactive menu (default)"
+      log_info ""
+      log_info "Examples:"
+      log_info "  $0 full-new 9697in              # Create and setup new project '9697in'"
+      log_info "  $0 full 9697in                  # Setup with project '9697in' (create if needed)"
+      log_info "  $0 create-project my-project     # Just create a new project"
       exit 1
       ;;
   esac
