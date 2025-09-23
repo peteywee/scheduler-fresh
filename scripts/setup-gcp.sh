@@ -50,9 +50,49 @@ list_gcp_projects() {
   gcloud projects list --format="table(projectId,name,projectNumber)"
 }
 
+# Function to create a new GCP project
+create_gcp_project() {
+  local project_id="$1"
+  local project_name="${2:-$project_id}"
+  
+  log_info "Creating new GCP project: $project_id"
+  
+  # Check if project ID is available
+  if gcloud projects describe "$project_id" >/dev/null 2>&1; then
+    log_warn "Project $project_id already exists. Using existing project."
+    return 0
+  fi
+  
+  # Create the project
+  if gcloud projects create "$project_id" --name="$project_name"; then
+    log_success "Project $project_id created successfully!"
+    
+    # Set billing account if available (optional - will warn if not set)
+    local billing_accounts
+    billing_accounts=$(gcloud billing accounts list --format="value(name)" | head -n 1)
+    if [[ -n "$billing_accounts" ]]; then
+      log_info "Setting up billing for project $project_id..."
+      if gcloud billing projects link "$project_id" --billing-account="$billing_accounts"; then
+        log_success "Billing enabled for project $project_id"
+      else
+        log_warn "Failed to enable billing. You may need to enable it manually in the GCP Console."
+      fi
+    else
+      log_warn "No billing account found. Please enable billing manually in the GCP Console."
+      log_info "Visit: https://console.cloud.google.com/billing/linkedaccount?project=$project_id"
+    fi
+    
+    return 0
+  else
+    log_error "Failed to create project $project_id"
+    return 1
+  fi
+}
+
 # Function to setup GCP project
 setup_gcp_project() {
   local project_id="${1:-}"
+  local create_new="${2:-false}"
   
   if [[ -z "$project_id" ]]; then
     log_info "Please provide a project ID or select from the list above:"
@@ -66,12 +106,29 @@ setup_gcp_project() {
   
   log_info "Setting up GCP project: $project_id"
   
+  # Check if we need to create the project
+  if [[ "$create_new" == "true" ]] || ! gcloud projects describe "$project_id" >/dev/null 2>&1; then
+    if [[ "$create_new" == "true" ]]; then
+      log_info "Creating new project as requested..."
+      create_gcp_project "$project_id" || return 1
+    else
+      log_warn "Project $project_id does not exist or is not accessible."
+      read -p "Would you like to create this project? (y/N): " create_confirm
+      if [[ "$create_confirm" =~ ^[Yy]$ ]]; then
+        create_gcp_project "$project_id" || return 1
+      else
+        log_error "Cannot proceed without access to project $project_id"
+        return 1
+      fi
+    fi
+  fi
+  
   # Set the project as default
   gcloud config set project "$project_id"
   
   # Verify project access
   if ! gcloud projects describe "$project_id" >/dev/null 2>&1; then
-    log_error "Cannot access project $project_id. Check permissions."
+    log_error "Cannot access project $project_id after setup. Check permissions."
     return 1
   fi
   
@@ -199,6 +256,7 @@ show_gcp_config() {
 main() {
   local command="${1:-setup}"
   local project_id="${2:-}"
+  local create_new="false"
   
   case "$command" in
     "setup")
@@ -234,6 +292,77 @@ main() {
       log_info "1. Run 'scripts/service-accounts.sh $project_id' to create service accounts"
       log_info "2. Run 'scripts/secrets-management.sh $project_id' to manage secrets"
       ;;
+    "create-project")
+      log_info "=== Creating New GCP Project ==="
+      
+      # Check prerequisites
+      check_gcloud_cli || exit 1
+      
+      # Authenticate with GCP
+      gcp_login
+      
+      if [[ -z "$project_id" ]]; then
+        log_error "Project ID is required for create-project command"
+        log_info "Usage: $0 create-project PROJECT_ID"
+        exit 1
+      fi
+      
+      # Create the project
+      create_gcp_project "$project_id"
+      
+      # Set as default
+      gcloud config set project "$project_id"
+      
+      # Enable APIs
+      enable_gcp_apis "$project_id"
+      
+      # Setup Secret Manager
+      setup_secret_manager "$project_id"
+      
+      # Configure for development
+      configure_gcloud_dev "$project_id"
+      
+      log_success "=== New GCP project $project_id created and configured! ==="
+      log_info "Next steps:"
+      log_info "1. Run 'scripts/service-accounts.sh create $project_id' to create service accounts"
+      log_info "2. Run 'scripts/setup-firebase.sh $project_id' to configure Firebase"
+      ;;
+    "setup-new")
+      log_info "=== Google Cloud Platform Setup with New Project ==="
+      
+      # Check prerequisites
+      check_gcloud_cli || exit 1
+      
+      # Authenticate with GCP
+      gcp_login
+      
+      if [[ -z "$project_id" ]]; then
+        log_error "Project ID is required for setup-new command"
+        log_info "Usage: $0 setup-new PROJECT_ID"
+        exit 1
+      fi
+      
+      # Setup project with creation if needed
+      project_id=$(setup_gcp_project "$project_id" "true")
+      
+      # Enable APIs
+      enable_gcp_apis "$project_id"
+      
+      # Check permissions
+      check_iam_permissions "$project_id"
+      
+      # Setup Secret Manager
+      setup_secret_manager "$project_id"
+      
+      # Configure for development
+      configure_gcloud_dev "$project_id"
+      
+      log_success "=== GCP setup complete with new project! ==="
+      log_info "Project ID: $project_id"
+      log_info "Next steps:"
+      log_info "1. Run 'scripts/service-accounts.sh create $project_id' to create service accounts"
+      log_info "2. Run 'scripts/setup-firebase.sh $project_id' to configure Firebase"
+      ;;
     "config")
       show_gcp_config
       ;;
@@ -248,7 +377,14 @@ main() {
       ;;
     *)
       log_error "Unknown command: $command"
-      log_info "Usage: $0 [setup|config|login|enable-apis] [project-id]"
+      log_info "Usage: $0 [setup|setup-new|create-project|config|login|enable-apis] [project-id]"
+      log_info "Commands:"
+      log_info "  setup           - Setup existing GCP project"
+      log_info "  setup-new       - Setup GCP project (create if needed)"
+      log_info "  create-project  - Create new GCP project only"
+      log_info "  config          - Show current GCP configuration"
+      log_info "  login           - Login to GCP"
+      log_info "  enable-apis     - Enable required APIs"
       exit 1
       ;;
   esac
