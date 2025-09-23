@@ -8,7 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
       - uses: gitleaks/gitleaks-action@v2
         with:
           args: detect --redact --verbose --config=.gitleaks.toml

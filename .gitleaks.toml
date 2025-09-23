@@ -4,5 +4,13 @@ title = "scheduler gitleaks config"
 useDefault = true
 
 [allowlist]
-files = [ ".env.example" ]
+files = [
+  ".env.example",
+  ".next/**/*",
+  "**/.next/**/*"
+]
 regexes = [ "(?i)dummy|example|placeholder|test_key" ]
+paths = [
+  ".*\\.next/.*",
+  ".*/\\.next/.*"
+]
