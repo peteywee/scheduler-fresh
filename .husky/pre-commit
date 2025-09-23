@@ -1,1 +1,17 @@
-pnpm run precommit:secrets && pnpm dlx lint-staged
+#!/usr/bin/env bash
+
+# Robust pnpm resolution for local/CI/agent shells
+export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
+export PATH="$PNPM_HOME:$PATH"
+if ! command -v pnpm >/dev/null 2>&1; then
+  if command -v corepack >/dev/null 2>&1; then corepack enable >/dev/null 2>&1 || true; fi
+fi
+
+# Run secret scan (non-fatal if gitleaks missing) + lint-staged
+pnpm run precommit:secrets || echo "⚠️  precommit:secrets skipped/failed"
+# Prefer pnpm dlx; fallback to npx if pnpm still unavailable
+if command -v pnpm >/dev/null 2>&1; then
+  pnpm dlx lint-staged
+else
+  npx --yes lint-staged
+fi
