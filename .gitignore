@@ -6,15 +6,16 @@ out/
 dist/
 coverage/
 
-# Package locks (pick one manager; this keeps npm)
-# If you switch to pnpm, remove the next line and ignore pnpm-lock.yaml instead.
-package-lock.json
+# Package manager locks (pnpm is used; if you switch, update accordingly)
+pnpm-lock.yaml
+# yarn.lock
+# package-lock.json
 
 # Env & local config
 .env*
 !.env.example
 
-# Firebase emulator logs/state
+# Firebase emulator state/logs
 .firebase/
 firebase-debug.log
 firestore-debug.log
@@ -23,9 +24,9 @@ ui-debug.log
 # Editors
 .vscode/*
 !.vscode/settings.json
-!.vscode/extensions.json
 !.vscode/tasks.json
 !.vscode/launch.json
+!.vscode/extensions.json
 .idea/
 
 # OS junk

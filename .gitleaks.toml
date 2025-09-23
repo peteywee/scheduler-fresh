@@ -1,0 +1,8 @@
+title = "scheduler gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+files = [ ".env.example" ]
+regexes = [ "(?i)dummy|example|placeholder|test_key" ]
