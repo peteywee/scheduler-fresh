@@ -1,9 +1,4 @@
-import Link from "next/link";
-import {
-  Menu,
-  CircleUser,
-  Search,
-} from "lucide-react";
+import { Menu, CircleUser, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
