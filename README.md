@@ -44,6 +44,8 @@ This project includes a complete CLI-based configuration system for Firebase and
 
 For detailed instructions, see [Firebase & GCP CLI Setup Guide](docs/firebase-gcp-cli-setup.md).
 
-## Copilot Agent Operating Instructions
+## Documentation
 
-See `.github/copilot-instructions.md` for concise, up-to-date guidance tailored to this repo (architecture map, workflows, security, and patterns with file references).
+- **AI Agent Instructions:** See [`.github/copilot-instructions.md`](.github/copilot-instructions.md) for concise, up-to-date guidance tailored to this repo (architecture map, workflows, security, and patterns with file references)
+- **Architecture Overview:** See [`docs/blueprint.md`](docs/blueprint.md) for app features and design guidelines
+- **CLI Setup Guide:** See [`docs/firebase-gcp-cli-setup.md`](docs/firebase-gcp-cli-setup.md) for detailed Firebase & GCP configuration
