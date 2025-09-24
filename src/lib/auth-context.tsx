@@ -66,7 +66,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => unsubscribe();
+    // Lightweight heartbeat: refresh session cookie every ~50 minutes if signed in
+    const interval = setInterval(
+      async () => {
+        try {
+          const u = auth.currentUser;
+          if (!u) return;
+          const idToken = await u.getIdToken(true);
+          await fetch("/api/auth/session", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-csrf-token": (await getCsrfTokenFromCookie()) || "",
+            },
+            credentials: "include",
+            body: JSON.stringify({ idToken }),
+          });
+        } catch {
+          // ignore background refresh errors
+        }
+      },
+      50 * 60 * 1000,
+    );
+
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
 
   const signInWithGoogle = async () => {
