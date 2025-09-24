@@ -1,5 +1,3 @@
-"use server";
-
 import {
   cert,
   getApps,
