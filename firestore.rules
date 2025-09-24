@@ -10,46 +10,60 @@ service cloud.firestore {
 		return exists(/databases/$(database)/documents/orgs/$(orgId)/members/$(uid()));
 	}
 
+	// Defense-in-depth: ensure the custom claim orgId matches the users/{uid} document
+	function claimMatchesUserDoc(orgId) {
+		return exists(/databases/$(database)/documents/users/$(uid())) &&
+		  get(/databases/$(database)/documents/users/$(uid())).data.orgId == userOrg() &&
+		  userOrg() == orgId;
+	}
+
 	match /databases/{database}/documents {
 		// Organization root documents
 		match /orgs/{orgId} {
 			// Bootstrap: allow creating an org if requester becomes owner
 			allow create: if isSignedIn() && request.resource.data.ownerUid == uid();
 			allow read: if isSignedIn() && (isMember(orgId) || isAdmin(orgId));
-			allow update, delete: if isAdmin(orgId) && (userOrg() == orgId);
+			allow update, delete: if isAdmin(orgId) && (userOrg() == orgId) && claimMatchesUserDoc(orgId);
 
 			// Members
 			match /members/{memberId} {
 				allow read: if isSignedIn() && (userOrg() == orgId) && (memberId == uid() || isAdmin(orgId));
-				allow create, update, delete: if isAdmin(orgId) && (userOrg() == orgId);
+				allow create, update, delete: if isAdmin(orgId) && (userOrg() == orgId) && claimMatchesUserDoc(orgId);
 			}
 
 			// Schedules
 			match /schedules/{scheduleId} {
 				allow read: if isSignedIn() && (isMember(orgId) || isAdmin(orgId));
-				allow create: if isSignedIn() && userOrg() == orgId
+				allow create: if isSignedIn() && userOrg() == orgId && isMember(orgId) && claimMatchesUserDoc(orgId)
 					&& request.resource.data.orgId == orgId
 					&& request.resource.data.createdBy == uid();
-				allow update: if isSignedIn() && userOrg() == orgId
+				allow update: if isSignedIn() && userOrg() == orgId && isMember(orgId) && claimMatchesUserDoc(orgId)
 					&& request.resource.data.orgId == orgId
 					&& request.resource.data.updatedBy == uid()
 					&& unchanged('createdAt') && unchanged('createdBy') && unchanged('orgId')
-					&& (isAdmin(orgId) || onlyChanges(['title','notes','shifts','updatedAt','updatedBy']));
-				allow delete: if isAdmin(orgId) && userOrg() == orgId;
+					&& (
+					  // Admins constrained to a safe whitelist too
+					  (isAdmin(orgId) && onlyChanges(['title','notes','shifts','updatedAt','updatedBy'])) ||
+					  onlyChanges(['title','notes','shifts','updatedAt','updatedBy'])
+					);
+				allow delete: if isAdmin(orgId) && userOrg() == orgId && claimMatchesUserDoc(orgId);
 			}
 
 			// Shifts under schedules (if modeled)
 			match /schedules/{scheduleId}/shifts/{shiftId} {
 				allow read: if isSignedIn() && (isMember(orgId) || isAdmin(orgId));
-				allow create: if isSignedIn() && userOrg() == orgId
+				allow create: if isSignedIn() && userOrg() == orgId && isMember(orgId) && claimMatchesUserDoc(orgId)
 					&& request.resource.data.orgId == orgId
 					&& request.resource.data.createdBy == uid();
-				allow update: if isSignedIn() && userOrg() == orgId
+				allow update: if isSignedIn() && userOrg() == orgId && isMember(orgId) && claimMatchesUserDoc(orgId)
 					&& request.resource.data.orgId == orgId
 					&& request.resource.data.updatedBy == uid()
 					&& unchanged('createdAt') && unchanged('createdBy') && unchanged('orgId')
-					&& (isAdmin(orgId) || onlyChanges(['start','end','employeeId','updatedAt','updatedBy','notes']));
-				allow delete: if isAdmin(orgId) && userOrg() == orgId;
+					&& (
+					  (isAdmin(orgId) && onlyChanges(['start','end','employeeId','updatedAt','updatedBy','notes'])) ||
+					  onlyChanges(['start','end','employeeId','updatedAt','updatedBy','notes'])
+					);
+				allow delete: if isAdmin(orgId) && userOrg() == orgId && claimMatchesUserDoc(orgId);
 			}
 		}
 
