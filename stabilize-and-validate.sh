@@ -3,25 +3,26 @@
 set -euo pipefail
 
 echo "==> Ensure pnpm is available on PATH (local & agents)"
-if ! command -v pnpm >/dev/null 2>&1; then
-  if command -v corepack >/dev/null 2>&1; then
-    corepack enable >/dev/null 2>&1 || true
-    corepack prepare pnpm@10 --activate >/dev/null 2>&1 || true
-  fi
-fi
-# Common per-user location used by agents (GitHub runners, Codespaces, etc.)
-export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
-export PATH="$PNPM_HOME:$PATH"
 
-# Fallback install if still missing
-if ! command -v pnpm >/dev/null 2>&1; then
-  echo "==> Installing pnpm (user-scoped)…"
-  curl -fsSL https://get.pnpm.io/install.sh | sh -
+resolve_pnpm() {
   export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
   export PATH="$PNPM_HOME:$PATH"
-fi
-echo "pnpm version: $(pnpm --version)"
+  if ! command -v pnpm >/dev/null 2>&1; then
+    if command -v corepack >/dev/null 2>&1; then
+      corepack enable >/dev/null 2>&1 || true
+      corepack prepare pnpm@10 --activate >/dev/null 2>&1 || true
+    fi
+  fi
+  # Fallback install if still missing
+  if ! command -v pnpm >/dev/null 2>&1; then
+    echo "==> Installing pnpm (user-scoped)…"
+    curl -fsSL https://get.pnpm.io/install.sh | sh -
+    export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
+    export PATH="$PNPM_HOME:$PATH"
+  fi
+}
 
+resolve_pnpm
 echo "==> Harden Husky hooks to be pnpm-robust"
 mkdir -p .husky
 # pre-commit: secret scan + lint-staged; robust PNPM resolution
@@ -33,8 +34,35 @@ cat > .husky/pre-commit <<'SH'
 export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
 export PATH="$PNPM_HOME:$PATH"
 if ! command -v pnpm >/dev/null 2>&1; then
-  if command -v corepack >/dev/null 2>&1; then corepack enable >/dev/null 2>&1 || true; fi
+  if command -v corepack >/dev/null 2>&1; then
+    corepack enable >/dev/null 2>&1 || true
+    corepack prepare pnpm@10 --activate >/dev/null 2>&1 || true
+  fi
+  # Fallback install if still missing
+  if ! command -v pnpm >/dev/null 2>&1; then
+    echo "==> Installing pnpm (user-scoped)…"
+    curl -fsSL https://get.pnpm.io/install.sh | sh -
+    export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
+    export PATH="$PNPM_HOME:$PATH"
+  fi
 fi
+
+# Run secret scan (non-fatal if gitleaks missing) + lint-staged
+pnpm run precommit:secrets || echo "⚠️  precommit:secrets skipped/failed"
+# Prefer pnpm dlx; fallback to npx if pnpm still unavailable
+if command -v pnpm >/dev/null 2>&1; then
+  pnpm dlx lint-staged
+else
+  npx --yes lint-staged
+fi
+SH
+chmod +x .husky/pre-commit
+    export PATH="$PNPM_HOME:$PATH"
+  fi
+}
+
+export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
+resolve_pnpm
 
 # Run secret scan (non-fatal if gitleaks missing) + lint-staged
 pnpm run precommit:secrets || echo "⚠️  precommit:secrets skipped/failed"

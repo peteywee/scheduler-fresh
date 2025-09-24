@@ -21,7 +21,9 @@
     "gitleaks:scan": "gitleaks detect --redact --no-git --verbose || (echo '⚠️ gitleaks not found or secrets detected.' && exit 1)",
     "gitleaks:protect": "gitleaks protect --staged --redact --verbose",
     "precommit:secrets": "pnpm run gitleaks:protect || echo '⚠️ gitleaks skipped (not installed) or failed'",
-    "prepare": "husky"
+    "prepare": "husky",
+    "emu": "pnpm dlx firebase-tools emulators:start --only auth,firestore,ui",
+    "emu:kill": "pkill -f 'firebase emulators' || true"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
