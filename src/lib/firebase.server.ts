@@ -13,7 +13,14 @@ let adminApp: AdminApp | undefined;
 
 function getServiceAccountFromEnv() {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  if (!raw) throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON is not set");
+  if (!raw) {
+    // During build time, we might not have credentials
+    if (process.env.NODE_ENV === 'production' || process.env.NEXT_PHASE === 'phase-production-build') {
+      console.warn("FIREBASE_SERVICE_ACCOUNT_JSON is not set during build");
+      return null;
+    }
+    throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON is not set");
+  }
   try {
     // Support base64-encoded or raw JSON
     const json = raw.trim().startsWith("{")
@@ -27,7 +34,13 @@ function getServiceAccountFromEnv() {
 
 export function adminInit(): AdminApp {
   if (adminApp) return adminApp;
+  
   const sa = getServiceAccountFromEnv();
+  if (!sa) {
+    // Create a mock app for build time
+    throw new Error("Firebase Admin SDK not properly configured");
+  }
+  
   const apps = getApps();
   if (apps.length) {
     adminApp = apps[0];
