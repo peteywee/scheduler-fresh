@@ -41,72 +41,45 @@ pnpm run stop         # Kill all dev processes and ports
 ```bash
 pnpm run typecheck    # TypeScript validation
 pnpm run lint         # ESLint with --max-warnings=0
-pnpm run format       # Prettier formatting
-pnpm run gitleaks:scan # Security scanning for secrets
-```
+# Copilot Instructions · Scheduler Fresh
 
-## Key Conventions
+Purpose: help agents be productive immediately in this Next.js + Firebase + Genkit app with opinionated security/dev workflows.
 
-### Styling & UI
+Architecture map
+- Routing (Next.js 15): `(app)` authenticated app at `src/app/(app)/**`; `(auth)` public auth at `src/app/(auth)/**`.
+- API routes: `src/app/api/**` (no Cloud Functions). Auth endpoints at `src/app/api/auth/{session,me}/route.ts`.
+- Server actions: `src/app/actions/**` bridge forms → AI flows (e.g., `detectConflictsAction` calls `flagConflicts`).
+- AI: Genkit configured in `src/ai/genkit.ts`; flows in `src/ai/flows/**` (see `conflict-flagging.ts` with zod IO + `ai.defineFlow`).
+- UI: shadcn/ui primitives in `src/components/ui/**`; business components in `src/components/**` (e.g., `conflict-detector/conflict-detector.tsx`).
 
-- **Tailwind CSS** with custom color variables in `src/app/globals.css`
-- **shadcn/ui** components with `cn()` utility for className merging
-- **Font stack**: Roboto (headlines), Open Sans (body text)
-- **Theme colors**: Teal primary (#008080), light cyan background, olive green accents
+Auth model (Firebase Web + Admin)
+- Client config: `src/lib/firebase.ts` initializes Auth/Firestore/Storage and connects emulators in dev.
+- Admin SDK: `src/lib/firebase.server.ts` reads `FIREBASE_SERVICE_ACCOUNT_JSON` (raw JSON or base64) to verify session cookies.
+- Sessions: POST `/api/auth/session` mints a revocable Firebase session cookie from an ID token; DELETE clears it. CSRF is enforced via a double-submit header; origin is checked against `NEXT_PUBLIC_BASE_URL`. Use `/api/auth/me` on the server to get the user.
 
-### State Management
+Patterns to copy
+- AI flow (server):
+  - File: `src/ai/flows/conflict-flagging.ts`
+  - Shape: zod schemas → `ai.definePrompt(...)` → `ai.defineFlow(...)` → exported wrapper `flagConflicts(input)`.
+- Server action (form → AI): `src/app/actions/conflict-actions.ts` reads `FormData`, validates, calls `flagConflicts`, returns `{result,error}`.
+- Client usage: `src/components/conflict-detector/conflict-detector.tsx` uses `useFormState(detectConflictsAction, initialState)` and renders results.
 
-- **Server actions** for forms and AI interactions (use `'use server'` directive)
-- **Zod schemas** for AI flow input/output validation
-- **Real-time updates** via Firestore listeners (planned)
+Developer workflows (pnpm-only)
+- Web: `pnpm run dev:web` (Next on 3000).
+- API: `pnpm run dev:api` (Firebase emulators: auth 9099, firestore 8080, storage 9199, UI 4000).
+- Both: `pnpm run dev` • Stop: `pnpm run stop`.
+- Quality gates: `pnpm run typecheck`, `pnpm run lint --max-warnings=0`, `pnpm run build`, `pnpm run gitleaks:scan`.
+- VS Code tasks: “Start All (Web + API)”, “Complete: Stabilize & Validate”, plus Cloud tasks (GCP/Firebase setup, service accounts, secrets sync). Use the Tasks palette to run them.
 
-### Security Practices
+Env & secrets
 
-- **Firebase emulators** for local development (no cloud functions)
-- **Gitleaks** scanning in pre-commit hooks and CI/CD
-- **Environment variables** in `.env.local` (never commit `.env` files)
+Conventions & guardrails
+- Import aliases: `@/components`, `@/lib`, `@/hooks`, `@/ai`.
+- Next build is lenient (see `next.config.ts`), but CI uses strict lint/typecheck before PRs.
+- Security-first: Husky runs lint-staged + gitleaks; CI runs gitleaks. Prefer emulator-first development; keep server logic in route handlers.
 
-## Critical File Patterns
-
-### AI Flow Structure
-
-```typescript
-// src/ai/flows/example-flow.ts
-'use server';
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-
-const InputSchema = z.object({...});
-const OutputSchema = z.object({...});
-
-export async function myFlow(input: Input): Promise<Output> {
-  return myFlowGenkit(input);
-}
-
-const myFlowGenkit = ai.defineFlow({...});
-```
-
-### Server Action Pattern
-
-```typescript
-// src/app/actions/example-actions.ts
-"use server";
-export async function myAction(prevState: any, formData: FormData) {
-  // Validate input, call AI flows, return {result, error}
+When adding features
+- Follow the flow: zod schema (if AI), server action, component wiring. Keep API logic in `src/app/api/**` and enforce CSRF/origin on mutating endpoints.
+- Before commit/PR: run typecheck + lint + build + gitleaks; prefer VS Code task “Validate: Full Pipeline”.
 }
 ```
-
-### Component Import Aliases
-
-- `@/components` - Components directory
-- `@/lib` - Utilities and shared logic
-- `@/hooks` - Custom React hooks
-- `@/ai` - AI flows and Genkit configuration
-
-## Notes for AI Agents
-
-- **Always use pnpm** (never npm/yarn) - enforced by packageManager field
-- **TypeScript/ESLint errors ignored** in Next.js config for faster development
-- **Firebase emulators** replace cloud functions - all server logic in Next.js API routes
-- **Responsive design** with mobile-first approach using Tailwind breakpoints
-- **Security scanning** is mandatory - gitleaks must pass before commits

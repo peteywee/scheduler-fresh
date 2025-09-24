@@ -35,8 +35,7 @@ export default function AppHeader() {
     } catch (error) {
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to sign out",
+        description: (error as Error).message || "Failed to sign out",
         variant: "destructive",
       });
     }
