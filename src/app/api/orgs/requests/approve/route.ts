@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json(
       { success: false, error: "Authentication required" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -48,38 +48,38 @@ export async function POST(req: NextRequest) {
     // Parse request body
     const body = await req.json().catch(() => ({}));
     const parseResult = ApproveRequestSchema.safeParse(body);
-    
+
     if (!parseResult.success) {
       return NextResponse.json(
         { success: false, error: "Invalid request data" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const { requestId, approved, role, notes } = parseResult.data;
+    const {
+      requestId,
+      approved,
+      role,
+      notes,
+      orgId: requestOrgId,
+    } = parseResult.data;
 
-    // Find the join request
-    let requestDoc;
-    let orgId: string;
-    
-    // Search across all orgs for the request (this is a bit inefficient but works for the prototype)
-    // In production, you'd want to include orgId in the request or maintain a separate index
-    const orgsSnapshot = await db.collection("orgs").get();
-    
-    for (const orgDoc of orgsSnapshot.docs) {
-      const requestRef = db.doc(`orgs/${orgDoc.id}/joinRequests/${requestId}`);
-      const doc = await requestRef.get();
-      if (doc.exists) {
-        requestDoc = doc;
-        orgId = orgDoc.id;
-        break;
-      }
+    // Require orgId to avoid inefficient scans
+    if (!requestOrgId) {
+      return NextResponse.json(
+        { success: false, error: "orgId is required" },
+        { status: 400 },
+      );
     }
 
-    if (!requestDoc || !orgId) {
+    const orgId: string = requestOrgId;
+    const requestRef = db.doc(`orgs/${orgId}/joinRequests/${requestId}`);
+    const requestDoc = await requestRef.get();
+
+    if (!requestDoc.exists) {
       return NextResponse.json(
         { success: false, error: "Join request not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
     if (!isAdmin) {
       return NextResponse.json(
         { success: false, error: "Admin access required" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     if (requestData.status !== "pending") {
       return NextResponse.json(
         { success: false, error: "Request has already been processed" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Update request status
-    await requestDoc.ref.update({
+    await requestRef.update({
       status: approved ? "approved" : "rejected",
       reviewedAt: now,
       reviewedBy: uid,
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
     console.error("Error processing join request:", error);
     return NextResponse.json(
       { success: false, error: "Failed to process request" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

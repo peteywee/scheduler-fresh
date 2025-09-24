@@ -10,7 +10,6 @@ import {
 import {
   generateInviteCode,
   generateQRCodeUrl,
-  getUserCustomClaims,
   isUserOrgAdmin,
 } from "@/lib/auth-utils";
 
@@ -47,7 +46,7 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json<CreateInviteResponse>(
       { success: false, error: "Authentication required" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -58,11 +57,11 @@ export async function POST(req: NextRequest) {
     // Parse request body
     const body = await req.json().catch(() => ({}));
     const parseResult = CreateInviteRequestSchema.safeParse(body);
-    
+
     if (!parseResult.success) {
       return NextResponse.json<CreateInviteResponse>(
         { success: false, error: "Invalid request data" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,7 +72,7 @@ export async function POST(req: NextRequest) {
     if (!isAdmin) {
       return NextResponse.json<CreateInviteResponse>(
         { success: false, error: "Admin access required" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -82,14 +81,16 @@ export async function POST(req: NextRequest) {
     if (!orgDoc.exists) {
       return NextResponse.json<CreateInviteResponse>(
         { success: false, error: "Organization not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Generate invite code
     const code = generateInviteCode();
     const now = new Date();
-    const expiresAt = expiresIn ? new Date(now.getTime() + expiresIn * 24 * 60 * 60 * 1000) : undefined;
+    const expiresAt = expiresIn
+      ? new Date(now.getTime() + expiresIn * 24 * 60 * 60 * 1000)
+      : undefined;
 
     const inviteData: InviteCode = {
       code,
@@ -125,7 +126,7 @@ export async function POST(req: NextRequest) {
     console.error("Error creating invite:", error);
     return NextResponse.json<CreateInviteResponse>(
       { success: false, error: "Failed to create invite" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

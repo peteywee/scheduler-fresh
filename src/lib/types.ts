@@ -20,10 +20,12 @@ export const OrganizationSchema = z.object({
   description: z.string().optional(),
   ownerUid: z.string(),
   isPublic: z.boolean().default(false), // For org directory
-  settings: z.object({
-    allowPublicJoinRequests: z.boolean().default(true),
-    requireApprovalForJoin: z.boolean().default(true),
-  }).optional(),
+  settings: z
+    .object({
+      allowPublicJoinRequests: z.boolean().default(true),
+      requireApprovalForJoin: z.boolean().default(true),
+    })
+    .optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
   createdBy: z.string(),
@@ -110,6 +112,7 @@ export const ApproveRequestSchema = z.object({
   approved: z.boolean(),
   role: z.enum(["admin", "manager", "employee"]).default("employee"),
   notes: z.string().optional(),
+  orgId: z.string().optional(),
 });
 
 export const SwitchOrgRequestSchema = z.object({
@@ -162,10 +165,12 @@ export interface OrgSearchResponse {
 }
 
 // Utility functions for validation
-export function validateInviteCode(code: string): { orgId: string; inviteCode: string } | null {
+export function validateInviteCode(
+  code: string,
+): { orgId: string; inviteCode: string } | null {
   const match = code.match(/^([a-zA-Z0-9_-]+)-([a-zA-Z0-9]+)$/);
   if (!match) return null;
-  
+
   return {
     orgId: match[1],
     inviteCode: match[2],
@@ -179,8 +184,8 @@ export function generateShortCode(orgId: string, inviteCode: string): string {
 export function sanitizeOrgId(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replace(/[^a-z0-9]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
     .substring(0, 20);
 }

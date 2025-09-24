@@ -24,20 +24,23 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 50);
 
     // Get public organizations from directory
-    let directoryQuery = db.collection("directory/orgs").limit(limit);
-    
+    const directoryQuery = db.collection("directory/orgs").limit(limit);
+
     // Basic text search (in production, you'd use a proper search service)
     const directorySnapshot = await directoryQuery.get();
-    
+
     const organizations = [];
-    
+
     for (const doc of directorySnapshot.docs) {
       const orgData = doc.data();
       const orgId = doc.id;
-      
+
       // Filter by search query if provided
-      if (query && !orgData.name?.toLowerCase().includes(query.toLowerCase()) &&
-          !orgData.description?.toLowerCase().includes(query.toLowerCase())) {
+      if (
+        query &&
+        !orgData.name?.toLowerCase().includes(query.toLowerCase()) &&
+        !orgData.description?.toLowerCase().includes(query.toLowerCase())
+      ) {
         continue;
       }
 
@@ -46,7 +49,7 @@ export async function GET(req: NextRequest) {
         .collection(`orgs/${orgId}/members`)
         .count()
         .get();
-      
+
       // Get organization details
       const orgDoc = await db.doc(`orgs/${orgId}`).get();
       const fullOrgData = orgDoc.data();
@@ -56,7 +59,8 @@ export async function GET(req: NextRequest) {
         name: orgData.name || fullOrgData?.name || "Unknown Organization",
         description: orgData.description || fullOrgData?.description,
         memberCount: membersSnapshot.data().count,
-        allowsRequests: fullOrgData?.settings?.allowPublicJoinRequests !== false,
+        allowsRequests:
+          fullOrgData?.settings?.allowPublicJoinRequests !== false,
       });
     }
 
@@ -68,7 +72,7 @@ export async function GET(req: NextRequest) {
     console.error("Error searching organizations:", error);
     return NextResponse.json<OrgSearchResponse>(
       { success: false, error: "Failed to search organizations" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
