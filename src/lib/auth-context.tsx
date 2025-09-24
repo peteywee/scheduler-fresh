@@ -11,6 +11,20 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 
+async function seedCsrf() {
+  try {
+    await fetch("/api/auth/csrf", { method: "GET", credentials: "include" });
+  } catch {
+    // ignore
+  }
+}
+
+async function getCsrfTokenFromCookie(): Promise<string | null> {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -27,9 +41,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    // Seed CSRF token early
+    seedCsrf();
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
+      setUser(u);
       setLoading(false);
+      try {
+        const csrf = await getCsrfTokenFromCookie();
+        if (!csrf) await seedCsrf();
+        const idToken = u ? await u.getIdToken(/* forceRefresh */ true) : null;
+        if (idToken) {
+          await fetch("/api/auth/session", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-csrf-token": (await getCsrfTokenFromCookie()) || "",
+            },
+            credentials: "include",
+            body: JSON.stringify({ idToken }),
+          });
+        }
+      } catch {
+        // ignore session sync errors; client auth still works
+      }
     });
 
     return () => unsubscribe();
@@ -64,6 +98,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      // Try to revoke server session first
+      const csrf = (await getCsrfTokenFromCookie()) || "";
+      await fetch("/api/auth/session", {
+        method: "DELETE",
+        headers: { "x-csrf-token": csrf },
+        credentials: "include",
+      }).catch(() => {});
       await firebaseSignOut(auth);
     } catch (error) {
       console.error("Error signing out:", error);

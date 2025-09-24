@@ -1,2 +1,58 @@
-# (rules file content — exactly as in my last message)
-# ...
+rules_version = '2';
+service cloud.firestore {
+	function isSignedIn() { return request.auth != null; }
+	function uid() { return request.auth.uid; }
+	function userOrg() { return isSignedIn() ? request.auth.token.orgId : null; }
+	function isAdmin(orgId) { return isSignedIn() && (request.auth.token.admin == true || request.auth.token.orgRole == 'admin' || request.auth.token.orgRoles[orgId] == 'admin'); }
+	function onlyChanges(keys) { return request.resource.data.diff(resource.data).changedKeys().hasOnly(keys); }
+	function unchanged(f) { return resource.data[f] == request.resource.data[f]; }
+
+	match /databases/{database}/documents {
+		// Organization root documents
+		match /orgs/{orgId} {
+			// Bootstrap: allow creating an org if requester becomes owner
+			allow create: if isSignedIn() && request.resource.data.ownerUid == uid();
+			allow read: if isSignedIn() && (userOrg() == orgId || isAdmin(orgId));
+			allow update, delete: if isAdmin(orgId);
+
+			// Members
+			match /members/{memberId} {
+				allow read: if isSignedIn() && (userOrg() == orgId) && (memberId == uid() || isAdmin(orgId));
+				allow create, update, delete: if isAdmin(orgId) && (userOrg() == orgId);
+			}
+
+			// Schedules
+			match /schedules/{scheduleId} {
+				allow read: if isSignedIn() && userOrg() == orgId;
+				allow create: if isSignedIn() && userOrg() == orgId
+					&& request.resource.data.orgId == orgId
+					&& request.resource.data.createdBy == uid();
+				allow update: if isSignedIn() && userOrg() == orgId
+					&& request.resource.data.orgId == orgId
+					&& request.resource.data.updatedBy == uid()
+					&& unchanged('createdAt') && unchanged('createdBy') && unchanged('orgId')
+					&& (isAdmin(orgId) || onlyChanges(['title','notes','shifts','updatedAt','updatedBy']));
+				allow delete: if isAdmin(orgId) && userOrg() == orgId;
+			}
+
+			// Shifts under schedules (if modeled)
+			match /schedules/{scheduleId}/shifts/{shiftId} {
+				allow read: if isSignedIn() && userOrg() == orgId;
+				allow create: if isSignedIn() && userOrg() == orgId
+					&& request.resource.data.orgId == orgId
+					&& request.resource.data.createdBy == uid();
+				allow update: if isSignedIn() && userOrg() == orgId
+					&& request.resource.data.orgId == orgId
+					&& request.resource.data.updatedBy == uid()
+					&& unchanged('createdAt') && unchanged('createdBy') && unchanged('orgId')
+					&& (isAdmin(orgId) || onlyChanges(['start','end','employeeId','updatedAt','updatedBy','notes']));
+				allow delete: if isAdmin(orgId) && userOrg() == orgId;
+			}
+		}
+
+		// Default deny
+		match /{document=**} {
+			allow read, write: if false;
+		}
+	}
+}

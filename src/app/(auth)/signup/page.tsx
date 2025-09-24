@@ -77,8 +77,7 @@ export default function SignupPage() {
     } catch (error) {
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to create account",
+        description: (error as Error).message || "Failed to create account",
         variant: "destructive",
       });
     } finally {
@@ -99,9 +98,7 @@ export default function SignupPage() {
       toast({
         title: "Error",
         description:
-          error instanceof Error
-            ? error.message
-            : "Failed to sign up with Google",
+          (error as Error).message || "Failed to sign up with Google",
         variant: "destructive",
       });
     } finally {
