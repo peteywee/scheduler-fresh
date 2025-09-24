@@ -2,13 +2,24 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    function isSignedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function org() { return isSignedIn() ? request.auth.token.orgId : null; }
+
+    // Path pattern: orgs/{orgId}/users/{uid}/... or orgs/{orgId}/public/...
+    match /orgs/{orgId}/users/{userId}/{allPaths=**} {
+      allow write: if isSignedIn() && org() == orgId && uid() == userId;
+      allow read: if isSignedIn() && org() == orgId && uid() == userId;
+    }
+
+    match /orgs/{orgId}/public/{allPaths=**} {
+      allow read: if true; // public assets per org
+      allow write: if false; // only via backend/admin if needed
+    }
+
+    // Default deny
     match /{allPaths=**} {
-      // Only allow users to access files in a folder named after their UID
-      allow read, write: if request.auth != null && resource != null && resource.name.matches('/b/' + bucket + '/o/' + request.auth.uid + '/.*');
-      // Allow upload to their own folder
-      allow write: if request.auth != null && request.resource.name.matches('/b/' + bucket + '/o/' + request.auth.uid + '/.*');
-      // Allow read from their own folder
-      allow read: if request.auth != null && resource != null && resource.name.matches('/b/' + bucket + '/o/' + request.auth.uid + '/.*');
+      allow read, write: if false;
     }
   }
 }
