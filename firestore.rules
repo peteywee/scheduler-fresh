@@ -6,14 +6,17 @@ service cloud.firestore {
 	function isAdmin(orgId) { return isSignedIn() && (request.auth.token.admin == true || request.auth.token.orgRole == 'admin' || request.auth.token.orgRoles[orgId] == 'admin'); }
 	function onlyChanges(keys) { return request.resource.data.diff(resource.data).changedKeys().hasOnly(keys); }
 	function unchanged(f) { return resource.data[f] == request.resource.data[f]; }
+	function isMember(orgId) {
+		return exists(/databases/$(database)/documents/orgs/$(orgId)/members/$(uid()));
+	}
 
 	match /databases/{database}/documents {
 		// Organization root documents
 		match /orgs/{orgId} {
 			// Bootstrap: allow creating an org if requester becomes owner
 			allow create: if isSignedIn() && request.resource.data.ownerUid == uid();
-			allow read: if isSignedIn() && (userOrg() == orgId || isAdmin(orgId));
-			allow update, delete: if isAdmin(orgId);
+			allow read: if isSignedIn() && (isMember(orgId) || isAdmin(orgId));
+			allow update, delete: if isAdmin(orgId) && (userOrg() == orgId);
 
 			// Members
 			match /members/{memberId} {
@@ -23,7 +26,7 @@ service cloud.firestore {
 
 			// Schedules
 			match /schedules/{scheduleId} {
-				allow read: if isSignedIn() && userOrg() == orgId;
+				allow read: if isSignedIn() && (isMember(orgId) || isAdmin(orgId));
 				allow create: if isSignedIn() && userOrg() == orgId
 					&& request.resource.data.orgId == orgId
 					&& request.resource.data.createdBy == uid();
@@ -37,7 +40,7 @@ service cloud.firestore {
 
 			// Shifts under schedules (if modeled)
 			match /schedules/{scheduleId}/shifts/{shiftId} {
-				allow read: if isSignedIn() && userOrg() == orgId;
+				allow read: if isSignedIn() && (isMember(orgId) || isAdmin(orgId));
 				allow create: if isSignedIn() && userOrg() == orgId
 					&& request.resource.data.orgId == orgId
 					&& request.resource.data.createdBy == uid();
