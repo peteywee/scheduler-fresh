@@ -6,10 +6,15 @@ useDefault = true
 [allowlist]
 files = [
   ".env.example",
+  ".env.local",
   ".next/**/*",
   "**/.next/**/*"
 ]
-regexes = [ "(?i)dummy|example|placeholder|test_key" ]
+regexes = [ 
+  "(?i)dummy|example|placeholder|test_key",
+  "NEXT_PUBLIC_FIREBASE_API_KEY=AIza.*",
+  "AIzaSy.*"
+]
 paths = [
   ".*\\.next/.*",
   ".*/\\.next/.*"
