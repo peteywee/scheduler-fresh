@@ -1,6 +1,7 @@
 import { adminAuth } from "@/lib/firebase.server";
-import { CustomClaims, Organization, OrgMember } from "@/lib/types";
+import { CustomClaims, Organization } from "@/lib/types";
 import { getFirestore } from "firebase-admin/firestore";
+import { randomBytes } from "crypto";
 
 // Lazy initialize Firestore to avoid build-time errors
 let db: FirebaseFirestore.Firestore | null = null;
@@ -17,7 +18,7 @@ function getFirestore_() {
  */
 export async function setUserCustomClaims(
   uid: string,
-  claims: CustomClaims
+  claims: CustomClaims,
 ): Promise<void> {
   await adminAuth().setCustomUserClaims(uid, claims);
 }
@@ -37,9 +38,8 @@ export async function addUserToOrg(
   uid: string,
   orgId: string,
   role: "admin" | "manager" | "employee",
-  addedBy: string
+  addedBy: string,
 ): Promise<void> {
-  
   const batch = getFirestore_().batch();
   const now = new Date();
 
@@ -91,7 +91,10 @@ export async function addUserToOrg(
 /**
  * Remove user from organization and update custom claims
  */
-export async function removeUserFromOrg(uid: string, orgId: string): Promise<void> {
+export async function removeUserFromOrg(
+  uid: string,
+  orgId: string,
+): Promise<void> {
   const batch = getFirestore_().batch();
 
   // Remove member document
@@ -100,11 +103,11 @@ export async function removeUserFromOrg(uid: string, orgId: string): Promise<voi
 
   // Update user's custom claims
   const currentClaims = await getUserCustomClaims(uid);
-  const orgIds = (currentClaims.orgIds || []).filter(id => id !== orgId);
+  const orgIds = (currentClaims.orgIds || []).filter((id) => id !== orgId);
   const orgRoles = { ...currentClaims.orgRoles };
   delete orgRoles[orgId];
 
-  let newClaims: CustomClaims = {
+  const newClaims: CustomClaims = {
     ...currentClaims,
     orgIds,
     orgRoles,
@@ -138,9 +141,12 @@ export async function removeUserFromOrg(uid: string, orgId: string): Promise<voi
 /**
  * Switch user's primary organization
  */
-export async function switchUserPrimaryOrg(uid: string, orgId: string): Promise<void> {
+export async function switchUserPrimaryOrg(
+  uid: string,
+  orgId: string,
+): Promise<void> {
   const currentClaims = await getUserCustomClaims(uid);
-  
+
   // Verify user belongs to the org
   if (!currentClaims.orgIds?.includes(orgId)) {
     throw new Error("User is not a member of the specified organization");
@@ -171,30 +177,38 @@ export async function switchUserPrimaryOrg(uid: string, orgId: string): Promise<
 /**
  * Get organizations user belongs to
  */
-export async function getUserOrganizations(uid: string): Promise<Organization[]> {
+export async function getUserOrganizations(
+  uid: string,
+): Promise<Organization[]> {
   const claims = await getUserCustomClaims(uid);
   const orgIds = claims.orgIds || [];
 
   if (orgIds.length === 0) return [];
 
-  const orgPromises = orgIds.map(orgId => 
-    getFirestore_().doc(`orgs/${orgId}`).get()
+  const orgPromises = orgIds.map((orgId) =>
+    getFirestore_().doc(`orgs/${orgId}`).get(),
   );
 
   const orgDocs = await Promise.all(orgPromises);
-  
+
   return orgDocs
-    .filter(doc => doc.exists)
-    .map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    } as Organization));
+    .filter((doc) => doc.exists)
+    .map(
+      (doc) =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        }) as Organization,
+    );
 }
 
 /**
  * Check if user is admin of an organization
  */
-export async function isUserOrgAdmin(uid: string, orgId: string): Promise<boolean> {
+export async function isUserOrgAdmin(
+  uid: string,
+  orgId: string,
+): Promise<boolean> {
   const claims = await getUserCustomClaims(uid);
   return claims.orgRoles?.[orgId] === "admin" || claims.admin === true;
 }
@@ -202,7 +216,10 @@ export async function isUserOrgAdmin(uid: string, orgId: string): Promise<boolea
 /**
  * Get user's role in an organization
  */
-export async function getUserOrgRole(uid: string, orgId: string): Promise<string | null> {
+export async function getUserOrgRole(
+  uid: string,
+  orgId: string,
+): Promise<string | null> {
   const claims = await getUserCustomClaims(uid);
   return claims.orgRoles?.[orgId] || null;
 }
@@ -212,7 +229,7 @@ export async function getUserOrgRole(uid: string, orgId: string): Promise<string
  */
 export async function createOrganization(
   orgData: Omit<Organization, "id" | "createdAt" | "updatedAt">,
-  ownerUid: string
+  ownerUid: string,
 ): Promise<string> {
   const orgRef = getFirestore_().collection("orgs").doc();
   const orgId = orgRef.id;
@@ -239,12 +256,7 @@ export async function createOrganization(
  * Generate a secure invite code
  */
 export function generateInviteCode(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "";
-  for (let i = 0; i < 12; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  return randomBytes(6).toString("hex"); // Generates a 12-character hex string
 }
 
 /**

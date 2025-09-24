@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase.server";
-import { getFirestore } from "firebase-admin/firestore";
 import { AuthMeResponse, Organization } from "@/lib/types";
 import { getUserOrganizations, getUserCustomClaims } from "@/lib/auth-utils";
 
@@ -16,21 +15,21 @@ function allowOrigin(req: NextRequest): boolean {
 export async function GET(req: NextRequest) {
   if (!allowOrigin(req))
     return new NextResponse("Forbidden origin", { status: 403 });
-  
+
   const session = req.cookies.get("__session")?.value;
   if (!session) {
     return NextResponse.json<AuthMeResponse>(
-      { authenticated: false }, 
-      { status: 401 }
+      { authenticated: false },
+      { status: 401 },
     );
   }
 
   try {
     const decoded = await adminAuth().verifySessionCookie(session, true);
     const user = await adminAuth().getUser(decoded.uid);
-    
+
     // During build time, don't try to access Firestore
-    if (process.env.NEXT_PHASE === 'phase-production-build') {
+    if (process.env.NEXT_PHASE === "phase-production-build") {
       return NextResponse.json<AuthMeResponse>({
         authenticated: true,
         uid: user.uid,
@@ -38,19 +37,19 @@ export async function GET(req: NextRequest) {
         emailVerified: user.emailVerified,
         displayName: user.displayName,
         photoURL: user.photoURL,
-        customClaims: user.customClaims as any,
+        customClaims: {},
       });
     }
-    
+
     const customClaims = await getUserCustomClaims(decoded.uid);
-    
+
     // Get user's organizations
     const organizations = await getUserOrganizations(decoded.uid);
-    
+
     // Get primary organization details
     let primaryOrg: Organization | undefined;
     if (customClaims.orgId) {
-      primaryOrg = organizations.find(org => org.id === customClaims.orgId);
+      primaryOrg = organizations.find((org) => org.id === customClaims.orgId);
     }
 
     return NextResponse.json<AuthMeResponse>({
@@ -67,8 +66,8 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error("Error fetching user data:", error);
     return NextResponse.json<AuthMeResponse>(
-      { authenticated: false }, 
-      { status: 401 }
+      { authenticated: false },
+      { status: 401 },
     );
   }
 }
