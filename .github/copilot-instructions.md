@@ -1,85 +1,48 @@
-# Copilot Instructions for Fresh Schedules
+## Copilot Instructions · Scheduler Fresh
 
-## Project Overview
-
-This is a **security-first scheduling app** built with Next.js 15, Firebase, and AI-powered conflict detection using Google's Genkit. The app manages employee schedules with automated conflict flagging and real-time updates.
-
-## Architecture Patterns
-
-### Route Structure
-
-- `src/app/(app)/` - Main authenticated app pages (dashboard, conflict-detector, requests, settings)
-- `src/app/(auth)/` - Authentication pages (login, signup)
-- `src/app/api/auth/` - API routes for authentication
-- `src/app/actions/` - Server actions for form handling and AI integration
-
-### AI Integration
-
-- **Genkit flows** in `src/ai/flows/` - Server-side AI functions with structured input/output schemas
-- **Server actions** in `src/app/actions/` - Bridge between UI forms and AI flows
-- Example: `flagConflicts()` analyzes schedule conflicts using employee availability docs
-
-### Component Organization
-
-- **shadcn/ui components** in `src/components/ui/` - Pre-built, customizable UI primitives
-- **Business components** in `src/components/` - App-specific components (conflict-detector, schedule, layout)
-- **Custom hooks** in `src/hooks/` - Reusable React hooks (use-mobile, use-toast)
-
-## Development Workflows
-
-### Required Commands (use pnpm only)
-
-```bash
-pnpm run dev:web      # Next.js dev server (port 3000)
-pnpm run dev:api      # Firebase emulators (auth, firestore, storage)
-pnpm run dev          # Start both web + API concurrently
-pnpm run stop         # Kill all dev processes and ports
-```
-
-### Pre-commit Checks
-
-```bash
-pnpm run typecheck    # TypeScript validation
-pnpm run lint         # ESLint with --max-warnings=0
-# Copilot Instructions · Scheduler Fresh
-
-Purpose: help agents be productive immediately in this Next.js + Firebase + Genkit app with opinionated security/dev workflows.
+Goal: get productive fast in this Next.js 15 + Firebase app with AI (Genkit) and security-first workflows.
 
 Architecture map
-- Routing (Next.js 15): `(app)` authenticated app at `src/app/(app)/**`; `(auth)` public auth at `src/app/(auth)/**`.
-- API routes: `src/app/api/**` (no Cloud Functions). Auth endpoints at `src/app/api/auth/{session,me}/route.ts`.
-- Server actions: `src/app/actions/**` bridge forms → AI flows (e.g., `detectConflictsAction` calls `flagConflicts`).
-- AI: Genkit configured in `src/ai/genkit.ts`; flows in `src/ai/flows/**` (see `conflict-flagging.ts` with zod IO + `ai.defineFlow`).
-- UI: shadcn/ui primitives in `src/components/ui/**`; business components in `src/components/**` (e.g., `conflict-detector/conflict-detector.tsx`).
+
+- Routes: `src/app/(app)/**` (auth-required UI: dashboard, conflict-detector, requests, settings); `src/app/(auth)/**` (public: login, signup).
+- API (no Cloud Functions): `src/app/api/**`. Key auth endpoints: `api/auth/session`, `api/auth/me`.
+- AI: `src/ai/genkit.ts` config; flows in `src/ai/flows/**` (e.g., `conflict-flagging.ts` with zod IO, `ai.definePrompt/defineFlow`).
+- Server actions: `src/app/actions/**` bridge forms → AI flows (`detectConflictsAction` → `flagConflicts`).
+- UI: shadcn/ui in `src/components/ui/**`; app components in `src/components/**`.
 
 Auth model (Firebase Web + Admin)
-- Client config: `src/lib/firebase.ts` initializes Auth/Firestore/Storage and connects emulators in dev.
+
+- Client SDK: `src/lib/firebase.ts` initializes Auth/Firestore/Storage and connects emulators in dev.
 - Admin SDK: `src/lib/firebase.server.ts` reads `FIREBASE_SERVICE_ACCOUNT_JSON` (raw JSON or base64) to verify session cookies.
-- Sessions: POST `/api/auth/session` mints a revocable Firebase session cookie from an ID token; DELETE clears it. CSRF is enforced via a double-submit header; origin is checked against `NEXT_PUBLIC_BASE_URL`. Use `/api/auth/me` on the server to get the user.
+- Sessions: POST `/api/auth/session` creates a Firebase session cookie from an ID token; DELETE clears it. CSRF via `x-csrf-token`; Origin checked against `NEXT_PUBLIC_APP_URL`. GET `/api/auth/me` verifies session cookie (revocation enabled).
 
 Patterns to copy
-- AI flow (server):
-  - File: `src/ai/flows/conflict-flagging.ts`
-  - Shape: zod schemas → `ai.definePrompt(...)` → `ai.defineFlow(...)` → exported wrapper `flagConflicts(input)`.
-- Server action (form → AI): `src/app/actions/conflict-actions.ts` reads `FormData`, validates, calls `flagConflicts`, returns `{result,error}`.
-- Client usage: `src/components/conflict-detector/conflict-detector.tsx` uses `useFormState(detectConflictsAction, initialState)` and renders results.
 
-Developer workflows (pnpm-only)
-- Web: `pnpm run dev:web` (Next on 3000).
-- API: `pnpm run dev:api` (Firebase emulators: auth 9099, firestore 8080, storage 9199, UI 4000).
-- Both: `pnpm run dev` • Stop: `pnpm run stop`.
+- AI flow: define zod schemas → `ai.definePrompt` → `ai.defineFlow` → export wrapper. See `src/ai/flows/conflict-flagging.ts`.
+- Form → action → AI: `src/components/conflict-detector/conflict-detector.tsx` → `detectConflictsAction` → `flagConflicts`.
+- Protected UI: wrap app pages in `(app)` group; auth pages in `(auth)`; client auth context in `src/lib/auth-context.tsx`.
+
+Developer workflows (pnpm only)
+
+- Start: `pnpm run dev` (web+emulators) or tasks: Start All (Web + API).
+- Web: `pnpm run dev:web` (3000). API/Emulators: `pnpm run dev:api` (auth 9099, firestore 8080, storage 9199, UI 4000).
 - Quality gates: `pnpm run typecheck`, `pnpm run lint --max-warnings=0`, `pnpm run build`, `pnpm run gitleaks:scan`.
-- VS Code tasks: “Start All (Web + API)”, “Complete: Stabilize & Validate”, plus Cloud tasks (GCP/Firebase setup, service accounts, secrets sync). Use the Tasks palette to run them.
+- One-click validation: VS Code task “Complete: Stabilize & Validate”.
 
 Env & secrets
 
-Conventions & guardrails
-- Import aliases: `@/components`, `@/lib`, `@/hooks`, `@/ai`.
-- Next build is lenient (see `next.config.ts`), but CI uses strict lint/typecheck before PRs.
-- Security-first: Husky runs lint-staged + gitleaks; CI runs gitleaks. Prefer emulator-first development; keep server logic in route handlers.
+- `.env.local` holds Firebase web config; service account JSON is provided via `FIREBASE_SERVICE_ACCOUNT_JSON` (raw or base64).
+- Use scripts: `./scripts/setup-cli-config.sh full|interactive`, `./scripts/secrets-management.sh` to sync with Secret Manager.
 
-When adding features
-- Follow the flow: zod schema (if AI), server action, component wiring. Keep API logic in `src/app/api/**` and enforce CSRF/origin on mutating endpoints.
-- Before commit/PR: run typecheck + lint + build + gitleaks; prefer VS Code task “Validate: Full Pipeline”.
-}
-```
+Conventions & guardrails
+
+- Import aliases: `@/*` (see `tsconfig.json`). Keep server logic in route handlers; prefer emulator-first development.
+- Next build is lenient (see `next.config.ts`), but CI enforces lint/typecheck and gitleaks.
+
+Example: add a new AI flow
+
+1. Create `src/ai/flows/my-flow.ts` with zod input/output; define prompt + flow; export wrapper.
+2. Add a server action in `src/app/actions/**` that validates input (FormData or JSON) and calls the flow.
+3. Wire a client component to call the action and render result.
+
+More details: see `docs/architecture.md` for data flows, security (CSRF, sessions), and CLI setup tasks.
