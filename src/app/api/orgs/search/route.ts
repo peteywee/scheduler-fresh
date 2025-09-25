@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { adminInit } from "@/lib/firebase.server";
 import { getFirestore } from "firebase-admin/firestore";
 import { OrgSearchResponse } from "@/lib/types";
 
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
       }
 
       // Get member count
-      const membersSnapshot = await db
+      const membersSnapshot = await getDb()
         .collection(`orgs/${orgId}/members`)
         .count()
         .get();

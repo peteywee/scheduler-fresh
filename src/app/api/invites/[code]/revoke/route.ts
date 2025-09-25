@@ -29,8 +29,9 @@ function allowOrigin(req: NextRequest): boolean {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
+  const { code } = await params;
   if (!allowOrigin(req)) {
     return new NextResponse("Forbidden origin", { status: 403 });
   }
@@ -68,7 +69,7 @@ export async function POST(
       );
     }
 
-    const code = params.code;
+    // code is already destructured at the top
 
     // Update invite to set isActive = false
     const inviteRef = getDb().doc(`orgs/${orgId}/invites/${code}`);

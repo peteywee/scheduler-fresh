@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user already has a pending request
-    const existingRequestQuery = await db
+    const existingRequestQuery = await getDb()
       .collection(`orgs/${orgId}/joinRequests`)
       .where("requestedBy", "==", uid)
       .where("status", "==", "pending")

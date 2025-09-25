@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Only allow direct join if no members exist (bootstrap)
-      const membersSnapshot = await db
+      const membersSnapshot = await getDb()
         .collection(`orgs/${orgId}/members`)
         .limit(1)
         .get();
