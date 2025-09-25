@@ -3,7 +3,15 @@ import { adminAuth } from "@/lib/firebase.server";
 import { getFirestore } from "firebase-admin/firestore";
 import { RequestAccessSchema, JoinRequest } from "@/lib/types";
 
-const db = getFirestore();
+// Lazy initialize Firestore to avoid build-time errors
+let db: FirebaseFirestore.Firestore | null = null;
+
+function getFirestore_() {
+  if (!db) {
+    db = getFirestore();
+  }
+  return db;
+}
 
 function getAllowedOrigins(): string[] {
   const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
@@ -59,7 +67,7 @@ export async function POST(req: NextRequest) {
     const { orgId, message } = parseResult.data;
 
     // Verify organization exists and allows join requests
-    const orgDoc = await db.doc(`orgs/${orgId}`).get();
+    const orgDoc = await getFirestore_().doc(`orgs/${orgId}`).get();
     if (!orgDoc.exists) {
       return NextResponse.json(
         { success: false, error: "Organization not found" },
@@ -76,7 +84,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user is already a member
-    const memberDoc = await db.doc(`orgs/${orgId}/members/${uid}`).get();
+    const memberDoc = await getFirestore_().doc(`orgs/${orgId}/members/${uid}`).get();
     if (memberDoc.exists) {
       return NextResponse.json(
         { success: false, error: "You are already a member of this organization" },
@@ -100,7 +108,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create join request
-    const requestRef = db.collection(`orgs/${orgId}/joinRequests`).doc();
+    const requestRef = getFirestore_().collection(`orgs/${orgId}/joinRequests`).doc();
     const now = new Date();
     
     const joinRequest: JoinRequest = {
