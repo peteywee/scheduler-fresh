@@ -104,7 +104,7 @@ export async function removeUserFromOrg(uid: string, orgId: string): Promise<voi
   const orgRoles = { ...currentClaims.orgRoles };
   delete orgRoles[orgId];
 
-  let newClaims: CustomClaims = {
+  const newClaims: CustomClaims = {
     ...currentClaims,
     orgIds,
     orgRoles,
