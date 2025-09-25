@@ -4,7 +4,15 @@ import { getFirestore } from "firebase-admin/firestore";
 import { ApproveRequestSchema, JoinRequest } from "@/lib/types";
 import { addUserToOrg, isUserOrgAdmin } from "@/lib/auth-utils";
 
-const db = getFirestore();
+// Lazy initialize Firestore to avoid build-time errors
+let db: FirebaseFirestore.Firestore | null = null;
+
+function getFirestore_() {
+  if (!db) {
+    db = getFirestore();
+  }
+  return db;
+}
 
 function getAllowedOrigins(): string[] {
   const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
@@ -64,10 +72,10 @@ export async function POST(req: NextRequest) {
 
     // Search across all orgs for the request (this is a bit inefficient but works for the prototype)
     // In production, you'd want to include orgId in the request or maintain a separate index
-    const orgsSnapshot = await db.collection("orgs").get();
+    const orgsSnapshot = await getFirestore_().collection("orgs").get();
 
     for (const orgDoc of orgsSnapshot.docs) {
-      const requestRef = db.doc(`orgs/${orgDoc.id}/joinRequests/${requestId}`);
+      const requestRef = getFirestore_().doc(`orgs/${orgDoc.id}/joinRequests/${requestId}`);
       const doc = await requestRef.get();
       if (doc.exists) {
         requestDoc = doc;

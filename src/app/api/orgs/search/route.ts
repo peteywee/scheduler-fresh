@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getFirestore } from "firebase-admin/firestore";
 import { OrgSearchResponse } from "@/lib/types";
 
-const db = getFirestore();
+// Lazy initialize Firestore to avoid build-time errors
+let db: FirebaseFirestore.Firestore | null = null;
+
+function getFirestore_() {
+  if (!db) {
+    db = getFirestore();
+  }
+  return db;
+}
 
 function allowOrigin(req: NextRequest): boolean {
   const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
@@ -24,7 +32,7 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 50);
 
     // Get public organizations from directory
-    let directoryQuery = db.collection("directory/orgs").limit(limit);
+    let directoryQuery = getFirestore_().collection("directory/orgs").limit(limit);
     
     // Basic text search (in production, you'd use a proper search service)
     const directorySnapshot = await directoryQuery.get();
@@ -48,7 +56,7 @@ export async function GET(req: NextRequest) {
         .get();
       
       // Get organization details
-      const orgDoc = await db.doc(`orgs/${orgId}`).get();
+      const orgDoc = await getFirestore_().doc(`orgs/${orgId}`).get();
       const fullOrgData = orgDoc.data();
 
       organizations.push({

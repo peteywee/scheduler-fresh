@@ -14,7 +14,15 @@ import {
   isUserOrgAdmin,
 } from "@/lib/auth-utils";
 
-const db = getFirestore();
+// Lazy initialize Firestore to avoid build-time errors
+let db: FirebaseFirestore.Firestore | null = null;
+
+function getFirestore_() {
+  if (!db) {
+    db = getFirestore();
+  }
+  return db;
+}
 
 function getAllowedOrigins(): string[] {
   const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
@@ -78,7 +86,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify organization exists
-    const orgDoc = await db.doc(`orgs/${orgId}`).get();
+    const orgDoc = await getFirestore_().doc(`orgs/${orgId}`).get();
     if (!orgDoc.exists) {
       return NextResponse.json<CreateInviteResponse>(
         { success: false, error: "Organization not found" },
@@ -105,7 +113,7 @@ export async function POST(req: NextRequest) {
     };
 
     // Save invite to Firestore
-    await db.doc(`orgs/${orgId}/invites/${code}`).set(inviteData);
+    await getFirestore_().doc(`orgs/${orgId}/invites/${code}`).set(inviteData);
 
     // Generate response data
     const shortCode = generateShortCode(orgId, code);

@@ -9,7 +9,15 @@ import {
 } from "@/lib/types";
 import { addUserToOrg } from "@/lib/auth-utils";
 
-const db = getFirestore();
+// Lazy initialize Firestore to avoid build-time errors
+let db: FirebaseFirestore.Firestore | null = null;
+
+function getFirestore_() {
+  if (!db) {
+    db = getFirestore();
+  }
+  return db;
+}
 
 function getAllowedOrigins(): string[] {
   const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
@@ -80,7 +88,7 @@ export async function POST(req: NextRequest) {
       const code = parsed.inviteCode;
 
       // Get invite document
-      const inviteDoc = await db.doc(`orgs/${orgId}/invites/${code}`).get();
+      const inviteDoc = await getFirestore_().doc(`orgs/${orgId}/invites/${code}`).get();
       if (!inviteDoc.exists) {
         return NextResponse.json<JoinOrgResponse>(
           { success: false, error: "Invite code not found" },
@@ -123,7 +131,7 @@ export async function POST(req: NextRequest) {
       orgId = directOrgId;
       
       // Verify organization exists and allows direct joining
-      const orgDoc = await db.doc(`orgs/${orgId}`).get();
+      const orgDoc = await getFirestore_().doc(`orgs/${orgId}`).get();
       if (!orgDoc.exists) {
         return NextResponse.json<JoinOrgResponse>(
           { success: false, error: "Organization not found" },
@@ -132,7 +140,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Only allow direct join if no members exist (bootstrap)
-      const membersSnapshot = await db.collection(`orgs/${orgId}/members`).limit(1).get();
+      const membersSnapshot = await getFirestore_().collection(`orgs/${orgId}/members`).limit(1).get();
       if (!membersSnapshot.empty) {
         return NextResponse.json<JoinOrgResponse>(
           { success: false, error: "Organization requires an invite code" },
@@ -149,7 +157,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify organization exists
-    const orgDoc = await db.doc(`orgs/${orgId}`).get();
+    const orgDoc = await getFirestore_().doc(`orgs/${orgId}`).get();
     if (!orgDoc.exists) {
       return NextResponse.json<JoinOrgResponse>(
         { success: false, error: "Organization not found" },
@@ -160,7 +168,7 @@ export async function POST(req: NextRequest) {
     const orgData = orgDoc.data();
 
     // Check if user is already a member
-    const memberDoc = await db.doc(`orgs/${orgId}/members/${uid}`).get();
+    const memberDoc = await getFirestore_().doc(`orgs/${orgId}/members/${uid}`).get();
     if (memberDoc.exists) {
       return NextResponse.json<JoinOrgResponse>(
         { success: false, error: "You are already a member of this organization" },
