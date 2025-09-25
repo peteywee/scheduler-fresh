@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase.server";
-import { getFirestore } from "firebase-admin/firestore";
 import { AuthMeResponse, Organization } from "@/lib/types";
 import { getUserOrganizations, getUserCustomClaims } from "@/lib/auth-utils";
 
@@ -38,7 +37,7 @@ export async function GET(req: NextRequest) {
         emailVerified: user.emailVerified,
         displayName: user.displayName,
         photoURL: user.photoURL,
-        customClaims: user.customClaims as any,
+        customClaims: {},
       });
     }
     

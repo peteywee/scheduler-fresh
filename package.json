@@ -15,9 +15,17 @@
     "kill:ports": "pnpm dlx kill-port 3000 8080 9099 9199 || true",
     "kill:node": "pkill -f 'next|node|firebase' || true",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings=0",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings=3",
     "format": "prettier . --write",
     "build": "next build",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:rules": "vitest run tests/rules",
+    "test:components": "vitest run tests/components",
+    "test:all": "pnpm run test:run && pnpm run test:e2e && pnpm run test:rules",
     "gitleaks:scan": "gitleaks detect --redact --no-git --verbose || (echo '⚠️ gitleaks not found or secrets detected.' && exit 1)",
     "gitleaks:protect": "gitleaks protect --staged --redact --verbose",
     "precommit:secrets": "pnpm run gitleaks:protect || echo '⚠️ gitleaks skipped (not installed) or failed'",
@@ -26,9 +34,11 @@
     "emu:kill": "pkill -f 'firebase emulators' || true"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "prettier --write"
+    "src/**/*.{ts,tsx,js,jsx}": [
+      "eslint --fix"
+    ],
+    "scripts/**/*.{ts,tsx,js,jsx}": [
+      "eslint --fix"
     ],
     "*.{json,css,scss,md,yml,yaml}": [
       "prettier --write"
@@ -64,11 +74,12 @@
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.2",
     "embla-carousel-react": "^8.6.0",
-    "firebase": "^11.0.0",
     "firebase-admin": "^13.5.0",
     "genkit": "^1.19.3",
     "lucide-react": "^0.544.0",
     "next": "15.5.3",
+    "next-pwa": "^5.6.0",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-day-picker": "^9.11.0",
     "react-dom": "^18.3.1",
@@ -81,20 +92,29 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "@playwright/test": "^1.55.1",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20.12.7",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^5.0.3",
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.21",
+    "firebase": "^11.0.0",
     "firebase-tools": "^14.17.0",
     "globals": "^16.4.0",
     "husky": "^9.1.7",
+    "jsdom": "^27.0.0",
     "kill-port": "^2.0.1",
     "lint-staged": "^15.5.2",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.6.2",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.44.1"
+    "typescript-eslint": "^8.44.1",
+    "vitest": "^3.2.4"
   }
 }

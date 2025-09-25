@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase.server";
-import { OrganizationSchema } from "@/lib/types";
-import { createOrganization } from "@/lib/auth-utils";
+import { adminAuth, adminInit } from "@/lib/firebase.server";
+import { getFirestore } from "firebase-admin/firestore";
+import { isUserOrgAdmin } from "@/lib/auth-utils";
+
+// Lazy initialize to avoid build-time errors
+function getDb() {
+  adminInit();
+  return getFirestore();
+}
 
 function getAllowedOrigins(): string[] {
   const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
@@ -21,7 +27,11 @@ function allowOrigin(req: NextRequest): boolean {
   return getAllowedOrigins().includes(origin);
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ code: string }> }
+) {
+  const { code } = await params;
   if (!allowOrigin(req)) {
     return new NextResponse("Forbidden origin", { status: 403 });
   }
@@ -41,50 +51,50 @@ export async function POST(req: NextRequest) {
   try {
     const decoded = await adminAuth().verifySessionCookie(session, true);
     const uid = decoded.uid;
+    const orgId = decoded.org_id || decoded.orgId; // Support both claim formats
 
-    // Parse request body
-    const body = await req.json().catch(() => ({}));
-    
-    // Validate organization data using Zod schema
-    const parseResult = OrganizationSchema.pick({ 
-      name: true, 
-      description: true, 
-      isPublic: true 
-    }).safeParse(body);
-
-    if (!parseResult.success) {
+    if (!orgId) {
       return NextResponse.json(
-        { success: false, error: parseResult.error.issues[0]?.message || "Invalid organization data" },
+        { success: false, error: "No organization found" },
         { status: 400 }
       );
     }
 
-    const { name, description, isPublic } = parseResult.data;
+    // Verify user is admin of the organization
+    const isAdmin = await isUserOrgAdmin(uid, orgId);
+    if (!isAdmin) {
+      return NextResponse.json(
+        { success: false, error: "Admin access required" },
+        { status: 403 }
+      );
+    }
 
-    // Create organization
-    const orgData = {
-      name: name.trim(),
-      description: description?.trim() || undefined,
-      ownerUid: uid,
-      isPublic: Boolean(isPublic),
-      settings: {
-        allowPublicJoinRequests: Boolean(isPublic),
-        requireApprovalForJoin: true,
-      },
-      createdBy: uid,
-    };
+    // code is already destructured at the top
 
-    const orgId = await createOrganization(orgData, uid);
+    // Update invite to set isActive = false
+    const inviteRef = getDb().doc(`orgs/${orgId}/invites/${code}`);
+    const inviteDoc = await inviteRef.get();
+
+    if (!inviteDoc.exists) {
+      return NextResponse.json(
+        { success: false, error: "Invite not found" },
+        { status: 404 }
+      );
+    }
+
+    await inviteRef.update({
+      isActive: false,
+      revokedAt: new Date(),
+      revokedBy: uid,
+    });
 
     return NextResponse.json({
       success: true,
-      orgId,
-      orgName: orgData.name,
     });
   } catch (error) {
-    console.error("Error creating organization:", error);
+    console.error("Error revoking invite:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to create organization" },
+      { success: false, error: "Failed to revoke invite" },
       { status: 500 }
     );
   }

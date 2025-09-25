@@ -1,15 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase.server";
-import { getFirestore } from "firebase-admin/firestore";
-import { ApproveRequestSchema, JoinRequest } from "@/lib/types";
+import { adminAuth, adminInit } from "@/lib/firebase.server";
+import { getFirestore, Firestore } from "firebase-admin/firestore";
+import { ApproveRequestSchema } from "@/lib/types";
 import { addUserToOrg, isUserOrgAdmin } from "@/lib/auth-utils";
 
-const db = getFirestore();
+// Lazy init Firestore (avoids init at build)
+function db(): Firestore {
+  adminInit();
+  return getFirestore();
+}
 
-function getAllowedOrigins(): string[] {
-  const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
+const ALLOWED_ROLES = ["member", "manager", "admin"] as const;
+
+function allowedOrigins(): string[] {
+  const envOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, "");
   const defaults = ["http://localhost:3000", "http://127.0.0.1:3000"];
   return envOrigin ? [envOrigin, ...defaults] : defaults;
+}
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  return allowedOrigins().includes(origin.replace(/\/+$/, ""));
 }
 
 function validateCsrf(req: NextRequest): boolean {
@@ -18,114 +29,134 @@ function validateCsrf(req: NextRequest): boolean {
   return Boolean(header && cookie && header === cookie);
 }
 
-function allowOrigin(req: NextRequest): boolean {
-  const origin = req.headers.get("origin");
-  if (!origin) return true;
-  return getAllowedOrigins().includes(origin);
+interface ApiError {
+  code: string;
+  message: string;
+  details?: any;
+}
+
+function errorResponse(status: number, code: string, message: string, details?: any) {
+  return new NextResponse(JSON.stringify({ code, message, details }), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Vary": "Origin"
+    }
+  });
 }
 
 export async function POST(req: NextRequest) {
-  if (!allowOrigin(req)) {
-    return new NextResponse("Forbidden origin", { status: 403 });
-  }
-  if (!validateCsrf(req)) {
-    return new NextResponse("CSRF validation failed", { status: 403 });
+  const origin = req.headers.get("origin");
+  if (!isAllowedOrigin(origin)) {
+    return errorResponse(403, "forbidden-origin", "Origin is not allowed.");
   }
 
-  // Verify session
+  if (!validateCsrf(req)) {
+    return errorResponse(403, "csrf-failed", "CSRF validation failed.");
+  }
+
   const session = req.cookies.get("__session")?.value;
   if (!session) {
-    return NextResponse.json(
-      { success: false, error: "Authentication required" },
-      { status: 401 },
-    );
+    return errorResponse(401, "unauthenticated", "Authentication required.");
   }
+
+  let decoded;
+  try {
+    decoded = await adminAuth().verifySessionCookie(session, true);
+  } catch {
+    return errorResponse(401, "invalid-session", "Session is invalid or expired.");
+  }
+  const actorUid = decoded.uid;
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return errorResponse(400, "invalid-json", "Request body must be valid JSON.");
+  }
+
+  const parsed = ApproveRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return errorResponse(400, "validation-error", "Invalid request payload.", parsed.error.flatten());
+  }
+
+  const { requestId, approved, role, notes, orgId } = parsed.data;
+
+  if (!ALLOWED_ROLES.includes(role as any)) {
+    return errorResponse(400, "invalid-role", "Role not permitted.");
+  }
+
+  // Authorization (early)
+  const hasAdminRights = await isUserOrgAdmin(actorUid, orgId);
+  if (!hasAdminRights) {
+    return errorResponse(403, "forbidden", "Admin access required for this organization.");
+  }
+
+  const firestore = db();
+  const requestRef = firestore.doc(`orgs/${orgId}/joinRequests/${requestId}`);
 
   try {
-    const decoded = await adminAuth().verifySessionCookie(session, true);
-    const uid = decoded.uid;
-
-    // Parse request body
-    const body = await req.json().catch(() => ({}));
-    const parseResult = ApproveRequestSchema.safeParse(body);
-
-    if (!parseResult.success) {
-      return NextResponse.json(
-        { success: false, error: "Invalid request data" },
-        { status: 400 },
-      );
-    }
-
-    const { requestId, approved, role, notes } = parseResult.data;
-
-    // Find the join request
-    let requestDoc;
-    let orgId: string | undefined;
-
-    // Search across all orgs for the request (this is a bit inefficient but works for the prototype)
-    // In production, you'd want to include orgId in the request or maintain a separate index
-    const orgsSnapshot = await db.collection("orgs").get();
-
-    for (const orgDoc of orgsSnapshot.docs) {
-      const requestRef = db.doc(`orgs/${orgDoc.id}/joinRequests/${requestId}`);
-      const doc = await requestRef.get();
-      if (doc.exists) {
-        requestDoc = doc;
-        orgId = orgDoc.id;
-        break;
+    const result = await firestore.runTransaction(async (tx) => {
+      const snap = await tx.get(requestRef);
+      if (!snap.exists) {
+        return { status: 404 as const, error: errorResponse(404, "not-found", "Join request not found.") };
       }
-    }
 
-    if (!requestDoc || !orgId) {
-      return NextResponse.json(
-        { success: false, error: "Join request not found" },
-        { status: 404 },
-      );
-    }
+      const data = snap.data() as {
+        status: string;
+        requestedBy: string;
+        createdAt: FirebaseFirestore.Timestamp;
+      };
 
-    const requestData = requestDoc.data() as JoinRequest;
+      if (data.status !== "pending") {
+        return { status: 409 as const, error: errorResponse(409, "already-processed", "Request has already been processed.") };
+      }
 
-    // Verify user is admin of the organization
-    const isAdmin = await isUserOrgAdmin(uid, orgId);
-    if (!isAdmin) {
-      return NextResponse.json(
-        { success: false, error: "Admin access required" },
-        { status: 403 },
-      );
-    }
+      const reviewedAt = new Date();
 
-    // Verify request is still pending
-    if (requestData.status !== "pending") {
-      return NextResponse.json(
-        { success: false, error: "Request has already been processed" },
-        { status: 400 },
-      );
-    }
+      if (approved) {
+        // Add membership before marking approved (still inside transaction)
+        await addUserToOrg(data.requestedBy, orgId, role, actorUid);
+      }
 
-    const now = new Date();
+      tx.update(requestRef, {
+        status: approved ? "approved" : "rejected",
+        reviewedAt,
+        reviewedBy: actorUid,
+        reviewNotes: notes ?? null
+      });
 
-    if (approved) {
-      // Add user to organization
-      await addUserToOrg(requestData.requestedBy, orgId, role, uid);
-    }
-
-    // Update request status
-    await requestDoc.ref.update({
-      status: approved ? "approved" : "rejected",
-      reviewedAt: now,
-      reviewedBy: uid,
-      reviewNotes: notes,
+      return {
+        status: 200 as const,
+        success: {
+          status: approved ? "approved" : "rejected",
+          reviewedAt: reviewedAt.toISOString()
+        }
+      };
     });
 
-    return NextResponse.json({
-      success: true,
-      status: approved ? "approved" : "rejected",
+    if ("error" in result) {
+      return result.error;
+    }
+
+    return NextResponse.json(result.success, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Vary": "Origin"
+      }
     });
-  } catch (error) {
-    console.error("Error processing join request:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to process request" },
-      { status: 500 },
-    );
+  } catch (err: any) {
+    console.error(JSON.stringify({
+      event: "approve_join_request_failed",
+      orgId,
+      requestId,
+      actorUid,
+      error: err?.message || String(err)
+    }));
+    return errorResponse(500, "internal-error", "Failed to process request.");
   }
 }
+
+// (Optional) Explicit method handler: Next automatically rejects others, but can be added if needed.
+// export function GET() { return errorResponse(405, "method-not-allowed", "Use POST."); }

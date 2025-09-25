@@ -1,17 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { 
   Plus, 
   QrCode, 
   Copy, 
   ExternalLink, 
-  Calendar, 
   Users, 
-  Eye,
-  EyeOff,
-  Trash2,
   MoreHorizontal
 } from "lucide-react";
 
@@ -210,7 +206,7 @@ export default function InviteManager({ orgId, orgName, isAdmin }: InviteManager
                 <form onSubmit={handleCreateInvite} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="role">Role</Label>
-                    <Select value={createForm.role} onValueChange={(value: any) => setCreateForm({ ...createForm, role: value })}>
+                    <Select value={createForm.role} onValueChange={(value: "admin" | "manager" | "employee") => setCreateForm({ ...createForm, role: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
