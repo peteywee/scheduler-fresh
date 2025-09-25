@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminInit } from "@/lib/firebase.server";
 import { getFirestore } from "firebase-admin/firestore";
-import { ApproveRequestSchema, JoinRequest } from "@/lib/types";
-import { addUserToOrg, isUserOrgAdmin } from "@/lib/auth-utils";
+import { isUserOrgAdmin } from "@/lib/auth-utils";
 
 // Lazy initialize to avoid build-time errors
 function getDb() {
@@ -28,7 +27,10 @@ function allowOrigin(req: NextRequest): boolean {
   return getAllowedOrigins().includes(origin);
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { code: string } }
+) {
   if (!allowOrigin(req)) {
     return new NextResponse("Forbidden origin", { status: 403 });
   }
@@ -48,40 +50,14 @@ export async function POST(req: NextRequest) {
   try {
     const decoded = await adminAuth().verifySessionCookie(session, true);
     const uid = decoded.uid;
+    const orgId = decoded.org_id || decoded.orgId; // Support both claim formats
 
-    // Parse request body
-  const body = await req.json().catch(() => ({}));
-  const parseResult = ApproveRequestSchema.safeParse(body);
-    
-    if (!parseResult.success) {
+    if (!orgId) {
       return NextResponse.json(
-        { success: false, error: "Invalid request data" },
+        { success: false, error: "No organization found" },
         { status: 400 }
       );
     }
-
-  const { requestId, approved, role, notes, orgId: requestOrgId } = parseResult.data;
-
-    // Require orgId to avoid inefficient scans
-    if (!requestOrgId) {
-      return NextResponse.json(
-        { success: false, error: "orgId is required" },
-        { status: 400 }
-      );
-    }
-
-  const orgId: string = requestOrgId;
-  const requestRef = getDb().doc(`orgs/${orgId}/joinRequests/${requestId}`);
-  const requestDoc = await requestRef.get();
-
-    if (!requestDoc.exists) {
-      return NextResponse.json(
-        { success: false, error: "Join request not found" },
-        { status: 404 }
-      );
-    }
-
-    const requestData = requestDoc.data() as JoinRequest;
 
     // Verify user is admin of the organization
     const isAdmin = await isUserOrgAdmin(uid, orgId);
@@ -92,37 +68,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify request is still pending
-    if (requestData.status !== "pending") {
+    const code = params.code;
+
+    // Update invite to set isActive = false
+    const inviteRef = getDb().doc(`orgs/${orgId}/invites/${code}`);
+    const inviteDoc = await inviteRef.get();
+
+    if (!inviteDoc.exists) {
       return NextResponse.json(
-        { success: false, error: "Request has already been processed" },
-        { status: 400 }
+        { success: false, error: "Invite not found" },
+        { status: 404 }
       );
     }
 
-    const now = new Date();
-
-    if (approved) {
-      // Add user to organization
-      await addUserToOrg(requestData.requestedBy, orgId, role, uid);
-    }
-
-    // Update request status
-    await requestRef.update({
-      status: approved ? "approved" : "rejected",
-      reviewedAt: now,
-      reviewedBy: uid,
-      reviewNotes: notes,
+    await inviteRef.update({
+      isActive: false,
+      revokedAt: new Date(),
+      revokedBy: uid,
     });
 
     return NextResponse.json({
       success: true,
-      status: approved ? "approved" : "rejected",
     });
   } catch (error) {
-    console.error("Error processing join request:", error);
+    console.error("Error revoking invite:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to process request" },
+      { success: false, error: "Failed to revoke invite" },
       { status: 500 }
     );
   }

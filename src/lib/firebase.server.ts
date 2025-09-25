@@ -8,6 +8,10 @@ import {
   getAuth as getAdminAuth,
   Auth as AdminAuth,
 } from "firebase-admin/auth";
+import {
+  getFirestore as getAdminFirestore,
+  Firestore as AdminFirestore,
+} from "firebase-admin/firestore";
 
 let adminApp: AdminApp | undefined;
 
@@ -37,8 +41,20 @@ export function adminInit(): AdminApp {
   
   const sa = getServiceAccountFromEnv();
   if (!sa) {
-    // Create a mock app for build time
-    throw new Error("Firebase Admin SDK not properly configured");
+    // During build time or when no service account is available,
+    // initialize with minimal config to prevent build errors
+    const apps = getApps();
+    if (apps.length) {
+      adminApp = apps[0];
+      return adminApp;
+    }
+    
+    // Initialize with project ID only for build time
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-project';
+    adminApp = initializeApp({
+      projectId,
+    });
+    return adminApp;
   }
   
   const apps = getApps();
@@ -54,4 +70,8 @@ export function adminInit(): AdminApp {
 
 export function adminAuth(): AdminAuth {
   return getAdminAuth(adminInit());
+}
+
+export function adminDb(): AdminFirestore {
+  return getAdminFirestore(adminInit());
 }

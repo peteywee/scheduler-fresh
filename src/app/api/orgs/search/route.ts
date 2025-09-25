@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getFirestore } from "firebase-admin/firestore";
 import { OrgSearchResponse } from "@/lib/types";
 
-const db = getFirestore();
+// Lazy initialize to avoid build-time errors
+function getDb() {
+  adminInit();
+  return getFirestore();
+}
 
 function allowOrigin(req: NextRequest): boolean {
   const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
@@ -24,23 +28,20 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 50);
 
     // Get public organizations from directory
-    const directoryQuery = db.collection("directory/orgs").limit(limit);
-
+  const directoryQuery = getDb().collection("directory/orgs").limit(limit);
+    
     // Basic text search (in production, you'd use a proper search service)
     const directorySnapshot = await directoryQuery.get();
-
+    
     const organizations = [];
-
+    
     for (const doc of directorySnapshot.docs) {
       const orgData = doc.data();
       const orgId = doc.id;
-
+      
       // Filter by search query if provided
-      if (
-        query &&
-        !orgData.name?.toLowerCase().includes(query.toLowerCase()) &&
-        !orgData.description?.toLowerCase().includes(query.toLowerCase())
-      ) {
+      if (query && !orgData.name?.toLowerCase().includes(query.toLowerCase()) &&
+          !orgData.description?.toLowerCase().includes(query.toLowerCase())) {
         continue;
       }
 
@@ -49,9 +50,9 @@ export async function GET(req: NextRequest) {
         .collection(`orgs/${orgId}/members`)
         .count()
         .get();
-
+      
       // Get organization details
-      const orgDoc = await db.doc(`orgs/${orgId}`).get();
+      const orgDoc = await getDb().doc(`orgs/${orgId}`).get();
       const fullOrgData = orgDoc.data();
 
       organizations.push({
@@ -59,8 +60,7 @@ export async function GET(req: NextRequest) {
         name: orgData.name || fullOrgData?.name || "Unknown Organization",
         description: orgData.description || fullOrgData?.description,
         memberCount: membersSnapshot.data().count,
-        allowsRequests:
-          fullOrgData?.settings?.allowPublicJoinRequests !== false,
+        allowsRequests: fullOrgData?.settings?.allowPublicJoinRequests !== false,
       });
     }
 
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     console.error("Error searching organizations:", error);
     return NextResponse.json<OrgSearchResponse>(
       { success: false, error: "Failed to search organizations" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

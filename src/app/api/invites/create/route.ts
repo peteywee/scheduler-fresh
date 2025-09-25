@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase.server";
+import { adminAuth, adminInit } from "@/lib/firebase.server";
 import { getFirestore } from "firebase-admin/firestore";
 import {
   CreateInviteRequestSchema,
@@ -7,13 +7,13 @@ import {
   InviteCode,
   generateShortCode,
 } from "@/lib/types";
-import {
-  generateInviteCode,
-  generateQRCodeUrl,
-  isUserOrgAdmin,
-} from "@/lib/auth-utils";
+import { generateInviteCode, generateQRCodeUrl, isUserOrgAdmin } from "@/lib/auth-utils";
 
-const db = getFirestore();
+// Lazy initialize to avoid build-time errors
+function getDb() {
+  adminInit();
+  return getFirestore();
+}
 
 function getAllowedOrigins(): string[] {
   const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
@@ -46,22 +46,28 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json<CreateInviteResponse>(
       { success: false, error: "Authentication required" },
-      { status: 401 },
+      { status: 401 }
     );
   }
 
   try {
     const decoded = await adminAuth().verifySessionCookie(session, true);
     const uid = decoded.uid;
+    if (decoded.email_verified === false) {
+      return NextResponse.json<CreateInviteResponse>(
+        { success: false, error: "Email must be verified to create invites" },
+        { status: 403 }
+      );
+    }
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
     const parseResult = CreateInviteRequestSchema.safeParse(body);
-
+    
     if (!parseResult.success) {
       return NextResponse.json<CreateInviteResponse>(
         { success: false, error: "Invalid request data" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -72,25 +78,23 @@ export async function POST(req: NextRequest) {
     if (!isAdmin) {
       return NextResponse.json<CreateInviteResponse>(
         { success: false, error: "Admin access required" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
     // Verify organization exists
-    const orgDoc = await db.doc(`orgs/${orgId}`).get();
+    const orgDoc = await getDb().doc(`orgs/${orgId}`).get();
     if (!orgDoc.exists) {
       return NextResponse.json<CreateInviteResponse>(
         { success: false, error: "Organization not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     // Generate invite code
     const code = generateInviteCode();
     const now = new Date();
-    const expiresAt = expiresIn
-      ? new Date(now.getTime() + expiresIn * 24 * 60 * 60 * 1000)
-      : undefined;
+    const expiresAt = expiresIn ? new Date(now.getTime() + expiresIn * 24 * 60 * 60 * 1000) : undefined;
 
     const inviteData: InviteCode = {
       code,
@@ -106,11 +110,14 @@ export async function POST(req: NextRequest) {
     };
 
     // Save invite to Firestore
-    await db.doc(`orgs/${orgId}/invites/${code}`).set(inviteData);
+    await getDb().doc(`orgs/${orgId}/invites/${code}`).set(inviteData);
 
     // Generate response data
     const shortCode = generateShortCode(orgId, code);
     const qrCodeUrl = generateQRCodeUrl(shortCode);
+
+    // Update invite with QR code URL
+    await getDb().doc(`orgs/${orgId}/invites/${code}`).update({ qrCodeUrl });
 
     return NextResponse.json<CreateInviteResponse>({
       success: true,
@@ -126,7 +133,7 @@ export async function POST(req: NextRequest) {
     console.error("Error creating invite:", error);
     return NextResponse.json<CreateInviteResponse>(
       { success: false, error: "Failed to create invite" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

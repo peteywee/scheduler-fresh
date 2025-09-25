@@ -51,13 +51,13 @@ service cloud.firestore {
 			}
 
 			// Invite codes
-			match /invites/{inviteCode} {
+						match /invites/{inviteCode} {
 				allow read: if isSignedIn() && isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId);
 				allow create: if isSignedIn() && isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId)
 					&& request.resource.data.orgId == orgId && request.resource.data.createdBy == uid();
 				allow update: if isSignedIn() && isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId)
-					&& unchanged('code') && unchanged('orgId') && unchanged('createdBy') && unchanged('createdAt')
-					&& onlyChanges(['currentUses', 'isActive']);
+									&& unchanged('code') && unchanged('orgId') && unchanged('createdBy') && unchanged('createdAt')
+									&& onlyChanges(['currentUses', 'isActive', 'lastUsedAt']);
 				allow delete: if isSignedIn() && isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId);
 			}
 
@@ -111,6 +111,13 @@ service cloud.firestore {
 					  onlyChanges(['start','end','employeeId','updatedAt','updatedBy','notes'])
 					);
 				allow delete: if isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId);
+			}
+
+			// Public organization profile (opt-in per org)
+			match /public/{docId} {
+				allow read: if true; // public discovery
+				allow create, update: if isSignedIn() && isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId);
+				allow delete: if isSignedIn() && isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId);
 			}
 		}
 

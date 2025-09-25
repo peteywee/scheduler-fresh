@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase.server";
+import { adminAuth, adminInit } from "@/lib/firebase.server";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import {
   JoinOrgRequestSchema,
@@ -9,7 +9,11 @@ import {
 } from "@/lib/types";
 import { addUserToOrg } from "@/lib/auth-utils";
 
-const db = getFirestore();
+// Lazy initialize to avoid build-time errors
+function getDb() {
+  adminInit();
+  return getFirestore();
+}
 
 function getAllowedOrigins(): string[] {
   const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
@@ -79,51 +83,39 @@ export async function POST(req: NextRequest) {
       orgId = parsed.orgId;
       const code = parsed.inviteCode;
 
-      // Get invite document
-      const inviteDoc = await db.doc(`orgs/${orgId}/invites/${code}`).get();
-      if (!inviteDoc.exists) {
-        return NextResponse.json<JoinOrgResponse>(
-          { success: false, error: "Invite code not found" },
-          { status: 404 },
-        );
-      }
-
-      const invite = inviteDoc.data() as InviteCode;
-
-      // Validate invite
-      if (!invite.isActive) {
-        return NextResponse.json<JoinOrgResponse>(
-          { success: false, error: "Invite code is no longer active" },
-          { status: 400 },
-        );
-      }
-
-      if (invite.expiresAt && new Date() > invite.expiresAt) {
-        return NextResponse.json<JoinOrgResponse>(
-          { success: false, error: "Invite code has expired" },
-          { status: 400 },
-        );
-      }
-
-      if (invite.maxUses && invite.currentUses >= invite.maxUses) {
-        return NextResponse.json<JoinOrgResponse>(
-          { success: false, error: "Invite code has reached maximum uses" },
-          { status: 400 },
-        );
-      }
-
-      role = invite.role;
-
-      // Update invite usage atomically
-      await inviteDoc.ref.update({
-        currentUses: FieldValue.increment(1),
+      // Consume invite in a transaction: validate constraints then increment usage
+      await getDb().runTransaction(async (tx) => {
+        const ref = getDb().doc(`orgs/${orgId}/invites/${code}`);
+        const snap = await tx.get(ref);
+        if (!snap.exists) {
+          throw new Error("Invite code not found");
+        }
+        const invite = snap.data() as InviteCode;
+        if (!invite.isActive) {
+          throw new Error("Invite code is no longer active");
+        }
+        if (invite.orgId !== orgId) {
+          throw new Error("Invite code does not belong to this organization");
+        }
+        if (invite.expiresAt && new Date() > invite.expiresAt) {
+          throw new Error("Invite code has expired");
+        }
+        if (invite.maxUses && (invite.currentUses ?? 0) >= invite.maxUses) {
+          throw new Error("Invite code has reached maximum uses");
+        }
+        // Stash role for outer scope via closure capture
+        role = invite.role;
+        tx.update(ref, {
+          currentUses: FieldValue.increment(1),
+          lastUsedAt: new Date(),
+        });
       });
     } else if (directOrgId) {
       // Direct join (for bootstrap case)
       orgId = directOrgId;
 
       // Verify organization exists and allows direct joining
-      const orgDoc = await db.doc(`orgs/${orgId}`).get();
+      const orgDoc = await getDb().doc(`orgs/${orgId}`).get();
       if (!orgDoc.exists) {
         return NextResponse.json<JoinOrgResponse>(
           { success: false, error: "Organization not found" },
@@ -152,7 +144,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify organization exists
-    const orgDoc = await db.doc(`orgs/${orgId}`).get();
+    const orgDoc = await getDb().doc(`orgs/${orgId}`).get();
     if (!orgDoc.exists) {
       return NextResponse.json<JoinOrgResponse>(
         { success: false, error: "Organization not found" },
@@ -163,7 +155,7 @@ export async function POST(req: NextRequest) {
     const orgData = orgDoc.data();
 
     // Check if user is already a member
-    const memberDoc = await db.doc(`orgs/${orgId}/members/${uid}`).get();
+    const memberDoc = await getDb().doc(`orgs/${orgId}/members/${uid}`).get();
     if (memberDoc.exists) {
       return NextResponse.json<JoinOrgResponse>(
         {

@@ -3,24 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  CalendarCheck,
-  Building,
-  Users,
+import { 
+  CalendarCheck, 
+  Building, 
+  Users, 
   ArrowRight,
   ArrowLeft,
   CheckCircle,
-  Plus,
+  Plus
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,11 +42,10 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
       <CardContent className="space-y-6">
         <div className="text-center space-y-4">
           <p className="text-muted-foreground">
-            Fresh Schedules helps you manage employee schedules, coordinate
-            shifts, and keep your team organized with AI-powered conflict
-            detection.
+            Fresh Schedules helps you manage employee schedules, coordinate shifts, 
+            and keep your team organized with AI-powered conflict detection.
           </p>
-
+          
           <div className="grid md:grid-cols-2 gap-4 text-left">
             <div className="space-y-2">
               <h4 className="font-medium flex items-center gap-2">
@@ -69,8 +62,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
                 Team Collaboration
               </h4>
               <p className="text-sm text-muted-foreground">
-                Let staff request time off and swap shifts with approval
-                workflows
+                Let staff request time off and swap shifts with approval workflows
               </p>
             </div>
             <div className="space-y-2">
@@ -79,8 +71,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
                 AI Conflict Detection
               </h4>
               <p className="text-sm text-muted-foreground">
-                Automatically detect scheduling conflicts and availability
-                issues
+                Automatically detect scheduling conflicts and availability issues
               </p>
             </div>
             <div className="space-y-2">
@@ -106,27 +97,19 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
   );
 }
 
-function ChoiceStep({
-  onChoice,
-}: {
-  onChoice: (choice: "create" | "join") => void;
-}) {
+function ChoiceStep({ onChoice }: { onChoice: (choice: "create" | "join") => void }) {
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader className="text-center">
-        <CardTitle className="text-xl">
-          How would you like to get started?
-        </CardTitle>
+        <CardTitle className="text-xl">How would you like to get started?</CardTitle>
         <CardDescription>
           Choose whether to create a new organization or join an existing one.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid md:grid-cols-2 gap-4">
-          <Card
-            className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => onChoice("create")}
-          >
+      <Card className="cursor-pointer hover:shadow-md transition-shadow" 
+        onClick={() => onChoice("create")}>
             <CardHeader className="text-center">
               <Plus className="h-12 w-12 text-primary mx-auto mb-2" />
               <CardTitle className="text-lg">Create Organization</CardTitle>
@@ -141,14 +124,14 @@ function ChoiceStep({
                 <li>• Full control over settings</li>
                 <li>• Perfect for new teams</li>
               </ul>
-              <Button className="w-full mt-4">Create New Organization</Button>
+              <Button className="w-full mt-4">
+                Create New Organization
+              </Button>
             </CardContent>
           </Card>
 
-          <Card
-            className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => onChoice("join")}
-          >
+      <Card className="cursor-pointer hover:shadow-md transition-shadow" 
+        onClick={() => onChoice("join")}>
             <CardHeader className="text-center">
               <Users className="h-12 w-12 text-primary mx-auto mb-2" />
               <CardTitle className="text-lg">Join Organization</CardTitle>
@@ -174,18 +157,10 @@ function ChoiceStep({
   );
 }
 
-type CreateOrgFormData = {
-  name: string;
-  description: string;
-  isPublic: boolean;
-};
+type CreateOrgFormData = { name: string; description: string; isPublic: boolean }
 
-function CreateOrgStep({
-  onSubmit,
-  onBack,
-  isLoading,
-}: StepPropsBase & { onSubmit: (data: CreateOrgFormData) => void }) {
-  const [formData, setFormData] = useState({
+function CreateOrgStep({ onSubmit, onBack, isLoading }: StepPropsBase & { onSubmit: (data: CreateOrgFormData) => void }) {
+  const [formData, setFormData] = useState<CreateOrgFormData>({
     name: "",
     description: "",
     isPublic: false,
@@ -211,7 +186,7 @@ function CreateOrgStep({
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      onSubmit(formData);
+  onSubmit(formData);
     }
   };
 
@@ -234,9 +209,7 @@ function CreateOrgStep({
               id="orgName"
               placeholder="e.g., Acme Restaurant, Smith Medical Group"
               value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className={errors.name ? "border-red-500" : ""}
             />
             {errors.name && (
@@ -250,9 +223,7 @@ function CreateOrgStep({
               id="orgDescription"
               placeholder="Brief description of your organization..."
               value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className={errors.description ? "border-red-500" : ""}
               rows={3}
             />
@@ -265,9 +236,7 @@ function CreateOrgStep({
             <Switch
               id="isPublic"
               checked={formData.isPublic}
-              onCheckedChange={(checked) =>
-                setFormData({ ...formData, isPublic: checked })
-              }
+              onCheckedChange={(checked) => setFormData({ ...formData, isPublic: checked })}
             />
             <Label htmlFor="isPublic" className="space-y-1">
               <div>Make organization discoverable</div>
@@ -310,7 +279,7 @@ function SuccessStep({ orgName }: { orgName: string }) {
           <Badge variant="secondary" className="text-sm px-3 py-1">
             You are now the administrator
           </Badge>
-
+          
           <div className="space-y-3 text-left">
             <h4 className="font-medium">Next steps:</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
@@ -323,19 +292,11 @@ function SuccessStep({ orgName }: { orgName: string }) {
         </div>
 
         <div className="text-center space-y-3">
-          <Button
-            onClick={() => router.push("/dashboard")}
-            size="lg"
-            className="w-full"
-          >
+          <Button onClick={() => router.push("/dashboard")} size="lg" className="w-full">
             Go to Dashboard
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.push("/settings")}
-            className="w-full"
-          >
+          <Button variant="outline" onClick={() => router.push("/settings")} className="w-full">
             Organization Settings
           </Button>
         </div>
@@ -360,7 +321,7 @@ export default function OnboardingPage() {
     }
   };
 
-  const handleCreateOrg = async (formData: CreateOrgFormData) => {
+  const handleCreateOrg = async (formData: CreateOrgFormData): Promise<void> => {
     setIsLoading(true);
     setError("");
 
@@ -373,7 +334,7 @@ export default function OnboardingPage() {
 
       const csrfToken = document.cookie
         .split("; ")
-        .find((row) => row.startsWith("XSRF-TOKEN="))
+        .find(row => row.startsWith("XSRF-TOKEN="))
         ?.split("=")[1];
 
       if (!csrfToken) {
@@ -406,13 +367,13 @@ export default function OnboardingPage() {
     }
   };
 
-  const steps = [
+  const steps: React.ReactElement[] = [
     <WelcomeStep key="welcome" onNext={() => setStep(1)} />,
     <ChoiceStep key="choice" onChoice={handleChoice} />,
-    <CreateOrgStep
-      key="create"
-      onSubmit={handleCreateOrg}
-      onBack={() => setStep(1)}
+    <CreateOrgStep 
+      key="create" 
+      onSubmit={handleCreateOrg} 
+      onBack={() => setStep(1)} 
       isLoading={isLoading}
     />,
     <SuccessStep key="success" orgName={orgName} />,
@@ -427,20 +388,20 @@ export default function OnboardingPage() {
             <div className="flex items-center justify-center space-x-2">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center">
-                  <div
+                  <div 
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      i <= step
-                        ? "bg-primary text-primary-foreground"
+                      i <= step 
+                        ? "bg-primary text-primary-foreground" 
                         : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {i}
                   </div>
                   {i < 3 && (
-                    <div
+                    <div 
                       className={`w-12 h-0.5 mx-2 ${
                         i < step ? "bg-primary" : "bg-muted"
-                      }`}
+                      }`} 
                     />
                   )}
                 </div>
@@ -464,10 +425,7 @@ export default function OnboardingPage() {
         {/* Navigation help */}
         {step === 0 && (
           <div className="text-center mt-8 text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/login" className="text-primary hover:underline">
-              Sign In
-            </Link>
+            Already have an account? <Link href="/login" className="text-primary hover:underline">Sign In</Link>
           </div>
         )}
       </div>

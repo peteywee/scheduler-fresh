@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json(
       { success: false, error: "Authentication required" },
-      { status: 401 },
+      { status: 401 }
     );
   }
 
@@ -44,22 +44,18 @@ export async function POST(req: NextRequest) {
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
-
+    
     // Validate organization data using Zod schema
-    const parseResult = OrganizationSchema.pick({
-      name: true,
-      description: true,
-      isPublic: true,
+    const parseResult = OrganizationSchema.pick({ 
+      name: true, 
+      description: true, 
+      isPublic: true 
     }).safeParse(body);
 
     if (!parseResult.success) {
       return NextResponse.json(
-        {
-          success: false,
-          error:
-            parseResult.error.issues[0]?.message || "Invalid organization data",
-        },
-        { status: 400 },
+        { success: false, error: parseResult.error.issues[0]?.message || "Invalid organization data" },
+        { status: 400 }
       );
     }
 
@@ -89,7 +85,7 @@ export async function POST(req: NextRequest) {
     console.error("Error creating organization:", error);
     return NextResponse.json(
       { success: false, error: "Failed to create organization" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
