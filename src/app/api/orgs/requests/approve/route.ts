@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     // Find the join request
     let requestDoc;
-    let orgId: string;
+    let orgId: string | undefined;
 
     // Search across all orgs for the request (this is a bit inefficient but works for the prototype)
     // In production, you'd want to include orgId in the request or maintain a separate index
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (!requestDoc) {
+    if (!requestDoc || !orgId) {
       return NextResponse.json(
         { success: false, error: "Join request not found" },
         { status: 404 },
