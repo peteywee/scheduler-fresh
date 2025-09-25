@@ -7,6 +7,17 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Fresh Schedules",
   description: "Streamlined scheduling for modern teams.",
+  manifest: "/manifest.json",
+  themeColor: "#0ea5e9",
+  viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Fresh Schedules",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({

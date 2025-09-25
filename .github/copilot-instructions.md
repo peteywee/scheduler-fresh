@@ -1,6 +1,19 @@
-# Copilot Instructions · Scheduler Fresh
+# Copilot Instructions · Scheduler## Developer w## Conventions & guardrails
 
-Purpose: Make AI agents productive immediately in this Next.js 15 + Firebase (Web + Admin) + Genkit app, with security-first, pnpm-only workflows.
+- Import aliases: `@/components`, `@/lib`, `@/hooks`, `@/ai`
+- No Cloud Functions; keep server logic in route handlers under `src/app/api/**`
+- Enforce CSRF + allowed origins on ALL mutating routes; verify session cookie before privileged ops
+- Prefer emulator-first development; don't hardcode project IDs
+- Commit/PR gate: run typecheck + lint + build + gitleaks (husky + CI protect secrets)
+- Package manager: pnpm only (v10+), leverages frozen lockfile for reproducible buildss (pnpm-only)
+
+- Start web: `pnpm run dev:web` (Next on 3000)
+- Start emulators: `pnpm run dev:api` (auth 9099, firestore 8080, storage 9199, UI 4000)
+- Both: `pnpm run dev` • Stop: `pnpm run stop`
+- Quality gates: `pnpm run typecheck` • `pnpm run lint --max-warnings=0` • `pnpm run build` • `pnpm run gitleaks:scan`
+- Testing: `pnpm run test` (Vitest) • `pnpm run test:e2e` (Playwright) • `pnpm run test:rules` (Firebase rules)
+- VS Code tasks: "Start All (Web + API)", "Validate: Full Pipeline", and "Complete: Stabilize & Validate" mirror the above
+  Purpose: Make AI agents productive immediately in this Next.js 15 + Firebase (Web + Admin) + Genkit app, with security-first, pnpm-only workflows.
 
 ## Architecture map
 
@@ -10,6 +23,7 @@ Purpose: Make AI agents productive immediately in this Next.js 15 + Firebase (We
 - AI: Genkit in `src/ai/genkit.ts`; flows in `src/ai/flows/**` (zod schemas + `ai.definePrompt` + `ai.defineFlow`)
 - UI: shadcn/ui primitives `src/components/ui/**`; feature components under `src/components/**`
 - Data: Firebase Web SDK on client (`src/lib/firebase.ts`); Admin SDK on server (`src/lib/firebase.server.ts`)
+- PWA: next-pwa configured with service worker (`public/sw.js`), installable app with manifest
 
 ## Auth & security (copy these patterns)
 

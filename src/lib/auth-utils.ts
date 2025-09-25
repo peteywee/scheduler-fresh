@@ -8,6 +8,9 @@ let db: FirebaseFirestore.Firestore | null = null;
 
 function getFirestore_() {
   if (!db) {
+    // Import adminInit here to avoid circular dependencies
+    const { adminInit } = require("@/lib/firebase.server");
+    adminInit();
     db = getFirestore();
   }
   return db;
@@ -18,17 +21,33 @@ function getFirestore_() {
  */
 export async function setUserCustomClaims(
   uid: string,
-  claims: CustomClaims,
+  claims: CustomClaims
 ): Promise<void> {
-  await adminAuth().setCustomUserClaims(uid, claims);
+  try {
+    await adminAuth().setCustomUserClaims(uid, claims);
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development' || process.env.NEXT_PHASE === 'phase-production-build') {
+      console.warn('Firebase Admin SDK not fully initialized, skipping custom claims update');
+      return;
+    }
+    throw error;
+  }
 }
 
 /**
  * Get user's current custom claims
  */
 export async function getUserCustomClaims(uid: string): Promise<CustomClaims> {
-  const user = await adminAuth().getUser(uid);
-  return (user.customClaims as CustomClaims) || {};
+  try {
+    const user = await adminAuth().getUser(uid);
+    return (user.customClaims as CustomClaims) || {};
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development' || process.env.NEXT_PHASE === 'phase-production-build') {
+      console.warn('Firebase Admin SDK not fully initialized, returning empty claims');
+      return {};
+    }
+    throw error;
+  }
 }
 
 /**
@@ -38,8 +57,9 @@ export async function addUserToOrg(
   uid: string,
   orgId: string,
   role: "admin" | "manager" | "employee",
-  addedBy: string,
+  addedBy: string
 ): Promise<void> {
+  
   const batch = getFirestore_().batch();
   const now = new Date();
 
@@ -91,10 +111,7 @@ export async function addUserToOrg(
 /**
  * Remove user from organization and update custom claims
  */
-export async function removeUserFromOrg(
-  uid: string,
-  orgId: string,
-): Promise<void> {
+export async function removeUserFromOrg(uid: string, orgId: string): Promise<void> {
   const batch = getFirestore_().batch();
 
   // Remove member document
@@ -103,7 +120,7 @@ export async function removeUserFromOrg(
 
   // Update user's custom claims
   const currentClaims = await getUserCustomClaims(uid);
-  const orgIds = (currentClaims.orgIds || []).filter((id) => id !== orgId);
+  const orgIds = (currentClaims.orgIds || []).filter(id => id !== orgId);
   const orgRoles = { ...currentClaims.orgRoles };
   delete orgRoles[orgId];
 
@@ -141,12 +158,9 @@ export async function removeUserFromOrg(
 /**
  * Switch user's primary organization
  */
-export async function switchUserPrimaryOrg(
-  uid: string,
-  orgId: string,
-): Promise<void> {
+export async function switchUserPrimaryOrg(uid: string, orgId: string): Promise<void> {
   const currentClaims = await getUserCustomClaims(uid);
-
+  
   // Verify user belongs to the org
   if (!currentClaims.orgIds?.includes(orgId)) {
     throw new Error("User is not a member of the specified organization");
@@ -177,38 +191,30 @@ export async function switchUserPrimaryOrg(
 /**
  * Get organizations user belongs to
  */
-export async function getUserOrganizations(
-  uid: string,
-): Promise<Organization[]> {
+export async function getUserOrganizations(uid: string): Promise<Organization[]> {
   const claims = await getUserCustomClaims(uid);
   const orgIds = claims.orgIds || [];
 
   if (orgIds.length === 0) return [];
 
-  const orgPromises = orgIds.map((orgId) =>
-    getFirestore_().doc(`orgs/${orgId}`).get(),
+  const orgPromises = orgIds.map(orgId => 
+    getFirestore_().doc(`orgs/${orgId}`).get()
   );
 
   const orgDocs = await Promise.all(orgPromises);
-
+  
   return orgDocs
-    .filter((doc) => doc.exists)
-    .map(
-      (doc) =>
-        ({
-          id: doc.id,
-          ...doc.data(),
-        }) as Organization,
-    );
+    .filter(doc => doc.exists)
+    .map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    } as Organization));
 }
 
 /**
  * Check if user is admin of an organization
  */
-export async function isUserOrgAdmin(
-  uid: string,
-  orgId: string,
-): Promise<boolean> {
+export async function isUserOrgAdmin(uid: string, orgId: string): Promise<boolean> {
   const claims = await getUserCustomClaims(uid);
   return claims.orgRoles?.[orgId] === "admin" || claims.admin === true;
 }
@@ -216,10 +222,7 @@ export async function isUserOrgAdmin(
 /**
  * Get user's role in an organization
  */
-export async function getUserOrgRole(
-  uid: string,
-  orgId: string,
-): Promise<string | null> {
+export async function getUserOrgRole(uid: string, orgId: string): Promise<string | null> {
   const claims = await getUserCustomClaims(uid);
   return claims.orgRoles?.[orgId] || null;
 }
@@ -229,7 +232,7 @@ export async function getUserOrgRole(
  */
 export async function createOrganization(
   orgData: Omit<Organization, "id" | "createdAt" | "updatedAt">,
-  ownerUid: string,
+  ownerUid: string
 ): Promise<string> {
   const orgRef = getFirestore_().collection("orgs").doc();
   const orgId = orgRef.id;
@@ -256,7 +259,7 @@ export async function createOrganization(
  * Generate a secure invite code
  */
 export function generateInviteCode(): string {
-  return randomBytes(6).toString("hex"); // Generates a 12-character hex string
+  return randomBytes(6).toString('hex'); // Generates a 12-character hex string
 }
 
 /**

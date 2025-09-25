@@ -24,6 +24,14 @@ function JoinPageContent() {
 
   useEffect(() => {
     const code = searchParams.get("code");
+    const orgId = searchParams.get("orgId");
+    if (code && orgId) {
+      // Support QR links that pass separate orgId and code by combining to expected format
+      const combined = `${orgId}-${code}`;
+      setInviteCode(combined);
+      setOrgName(orgId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()));
+      return;
+    }
     if (code) {
       setInviteCode(code);
       // Parse org name from code if possible
