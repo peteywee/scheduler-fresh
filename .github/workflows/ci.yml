@@ -20,12 +20,6 @@ jobs:
           node-version: 20
           cache: "pnpm"
 
-      # Java is required for Firebase emulators
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
       - run: pnpm install --frozen-lockfile
 
       - name: Lint
