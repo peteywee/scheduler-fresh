@@ -7,7 +7,8 @@ import react from "eslint-plugin-react";
 export default tseslint.config(
   { ignores: [
     "dist", ".next", "node_modules", "next-env.d.ts",
-    "public/sw.js", "public/workbox-*.js", "public/**/*.min.js", "public/**/*.map"
+    "public/sw.js", "public/workbox-*.js", "public/**/*.min.js", "public/**/*.map",
+    "functions/lib"
   ] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
