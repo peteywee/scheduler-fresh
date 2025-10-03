@@ -7,7 +7,6 @@ dist/
 coverage/
 
 # Package manager locks (pnpm is used; if you switch, update accordingly)
-pnpm-lock.yaml
 # yarn.lock
 # package-lock.json
 
@@ -38,3 +37,7 @@ Thumbs.db
 *.tgz
 *.tar
 *.gz
+
+# Build artifacts
+tsconfig.tsbuildinfo
+
