@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json(
       { success: false, error: "Authentication required" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     console.error("Error creating organization:", error);
     return NextResponse.json(
       { success: false, error: "Failed to create organization" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

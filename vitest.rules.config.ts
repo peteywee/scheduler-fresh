@@ -1,16 +1,14 @@
 import { defineConfig } from 'vitest/config'
 import { resolve } from 'path'
-import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  plugins: [react()],
   test: {
     globals: true,
     environment: 'node',
-    // No global setup file required currently; add here if needed
-    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    exclude: ['node_modules', 'dist', '.next', '**/*.rules.{test,spec}.{js,ts}'],
-    testTimeout: 30000,
+    setupFiles: ['./src/test/rules-setup.ts'],
+    include: ['src/**/*.rules.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    exclude: ['node_modules', 'dist', '.next'],
+    testTimeout: 60000,
     hookTimeout: 30000,
   },
   resolve: {
