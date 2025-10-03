@@ -1,18 +1,24 @@
-/// <reference types="vitest" />
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
-import path from 'path';
+import { defineConfig } from 'vitest/config'
+import { resolve } from 'path'
 
 export default defineConfig({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   plugins: [react()] as any, // Type compatibility with mixed Rollup versions
   test: {
-    environment: 'jsdom',
-    globals: true
+    globals: true,
+    environment: 'node',
+    setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    exclude: ['node_modules', 'dist', '.next', '**/*.rules.{test,spec}.{js,ts}'],
+    testTimeout: 30000,
+    hookTimeout: 30000,
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
-    }
-  }
-});
+      '@': resolve(__dirname, './src'),
+    },
+  },
+  esbuild: {
+    target: 'node14',
+  },
+})
