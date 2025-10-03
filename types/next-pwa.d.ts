@@ -21,7 +21,7 @@ declare module 'next-pwa' {
     cacheStartUrl?: boolean;
     buildExcludes?: RegExp[];
     scope?: string;
-    workboxOptions?: Record<string, any>;
+    workboxOptions?: Record<string, unknown>;
   }
 
   function withPWA(pwaConfig: PWAConfig): (nextConfig?: NextConfig) => NextConfig;
