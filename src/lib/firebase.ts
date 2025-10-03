@@ -6,17 +6,26 @@ import {
   Auth,
 } from "firebase/auth";
 import {
-  getFirestore,
-  connectFirestoreEmulator,
   Firestore,
+  connectFirestoreEmulator,
+  getFirestore,
 } from "firebase/firestore";
 import {
-  getStorage,
-  connectStorageEmulator,
   FirebaseStorage,
+  connectStorageEmulator,
+  getStorage,
 } from "firebase/storage";
 
-const firebaseConfig = {
+type FirebaseClientConfig = {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+  appId: string;
+};
+
+const buildPhase = process.env.NEXT_PHASE === "phase-production-build";
+
+const fallbackConfig: FirebaseClientConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "demo-key",
   authDomain:
     process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ||
@@ -25,32 +34,25 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "demo-app-id",
 };
 
-// Only initialize Firebase if not in build phase
+const firebaseConfig: FirebaseClientConfig = fallbackConfig;
+
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 let storage: FirebaseStorage | null = null;
 let googleProvider: GoogleAuthProvider | null = null;
 
-if (process.env.NEXT_PHASE !== "phase-production-build") {
-  // Initialize Firebase
+if (!buildPhase) {
   app = initializeApp(firebaseConfig);
 
-  // Initialize Firebase Auth with Google provider
   auth = getAuth(app);
   googleProvider = new GoogleAuthProvider();
-
-  // Configure Google provider
   googleProvider.addScope("email");
   googleProvider.addScope("profile");
 
-  // Initialize Firestore
   db = getFirestore(app);
-
-  // Initialize Storage
   storage = getStorage(app);
 
-  // Connect to emulators in development
   if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
     try {
       connectAuthEmulator(auth, "http://127.0.0.1:9099", {
@@ -59,7 +61,6 @@ if (process.env.NEXT_PHASE !== "phase-production-build") {
       connectFirestoreEmulator(db, "127.0.0.1", 8080);
       connectStorageEmulator(storage, "127.0.0.1", 9199);
     } catch (error) {
-      // Emulators may already be connected, ignore errors
       console.log("Firebase emulators connection info:", error);
     }
   }

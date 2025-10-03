@@ -1,4 +1,4 @@
-import { adminAuth } from "@/lib/firebase.server";
+import { adminAuth, adminInit } from "@/lib/firebase.server";
 import { CustomClaims, Organization } from "@/lib/types";
 import { getFirestore } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
@@ -8,8 +8,6 @@ let db: FirebaseFirestore.Firestore | null = null;
 
 function getFirestore_() {
   if (!db) {
-    // Import adminInit here to avoid circular dependencies
-    const { adminInit } = require("@/lib/firebase.server");
     adminInit();
     db = getFirestore();
   }
@@ -59,11 +57,12 @@ export async function addUserToOrg(
   role: "admin" | "manager" | "employee",
   addedBy: string,
 ): Promise<void> {
-  const batch = getFirestore_().batch();
+  const firestore = getFirestore_();
+  const batch = firestore.batch();
   const now = new Date();
 
   // Add member document
-  const memberRef = getFirestore_().doc(`orgs/${orgId}/members/${uid}`);
+  const memberRef = firestore.doc(`orgs/${orgId}/members/${uid}`);
   batch.set(memberRef, {
     uid,
     orgId,
@@ -97,7 +96,7 @@ export async function addUserToOrg(
   await setUserCustomClaims(uid, newClaims);
 
   // Update user document with primary org if needed
-  const userRef = getFirestore_().doc(`users/${uid}`);
+  const userRef = firestore.doc(`users/${uid}`);
   const userDoc = await userRef.get();
   if (userDoc.exists && !userDoc.data()?.primaryOrgId) {
     await userRef.update({
@@ -114,10 +113,11 @@ export async function removeUserFromOrg(
   uid: string,
   orgId: string,
 ): Promise<void> {
-  const batch = getFirestore_().batch();
+  const firestore = getFirestore_();
+  const batch = firestore.batch();
 
   // Remove member document
-  const memberRef = getFirestore_().doc(`orgs/${orgId}/members/${uid}`);
+  const memberRef = firestore.doc(`orgs/${orgId}/members/${uid}`);
   batch.delete(memberRef);
 
   // Update user's custom claims
@@ -150,7 +150,7 @@ export async function removeUserFromOrg(
   await setUserCustomClaims(uid, newClaims);
 
   // Update user document
-  const userRef = getFirestore_().doc(`users/${uid}`);
+  const userRef = firestore.doc(`users/${uid}`);
   await userRef.update({
     primaryOrgId: newClaims.orgId || null,
     updatedAt: new Date(),

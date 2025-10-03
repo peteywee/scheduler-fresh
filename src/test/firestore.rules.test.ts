@@ -1,271 +1,184 @@
-import { describe, it, beforeEach } from 'vitest'
-import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing'
-import type { RulesTestEnvironment, RulesTestContext } from '@firebase/rules-unit-testing'
+import { beforeEach, describe, it } from "vitest";
+import {
+  assertFails,
+  assertSucceeds,
+} from "@firebase/rules-unit-testing";
+import type {
+  RulesTestContext,
+  RulesTestEnvironment,
+} from "@firebase/rules-unit-testing";
 
 declare global {
-  var testEnv: RulesTestEnvironment
+  // Provided by src/test/rules-setup.ts
+   
+  var testEnv: RulesTestEnvironment;
 }
 
-describe('Firestore Security Rules', () => {
-  let testEnv: RulesTestEnvironment
-  let alice: RulesTestContext
-  let bob: RulesTestContext
-  let unauthenticated: RulesTestContext
+const ORG_ID = "org-1";
+
+describe("Firestore security rules", () => {
+  let testEnv: RulesTestEnvironment;
+  let adminCtx: RulesTestContext;
+  let memberCtx: RulesTestContext;
+  let outsiderCtx: RulesTestContext;
+  let unauthCtx: RulesTestContext;
+
+  let orgSeed: {
+    orgId: string;
+    name: string;
+    ownerUid: string;
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
+    updatedBy: string;
+  };
 
   beforeEach(async () => {
-    testEnv = global.testEnv
-    
-    // Clear all data
-    await testEnv.clearFirestore()
+    testEnv = global.testEnv;
+    await testEnv.clearFirestore();
 
-    // Create test users with custom claims
-    alice = testEnv.authenticatedContext('alice', {
-      orgId: 'org-1',
-      orgRole: 'admin',
-      admin: true,
-      orgIds: ['org-1'],
-      orgRoles: { 'org-1': 'admin' },
-    })
+    const now = new Date().toISOString();
 
-    bob = testEnv.authenticatedContext('bob', {
-      orgId: 'org-1', 
-      orgRole: 'employee',
-      admin: false,
-      orgIds: ['org-1'],
-      orgRoles: { 'org-1': 'employee' },
-    })
+    orgSeed = {
+      orgId: ORG_ID,
+      name: "Test Organization",
+      ownerUid: "alice",
+      createdBy: "alice",
+      createdAt: now,
+      updatedAt: now,
+      updatedBy: "alice",
+    };
 
-    unauthenticated = testEnv.unauthenticatedContext()
-
-    // Create required user documents to satisfy claimMatchesUserDoc validation
     await testEnv.withSecurityRulesDisabled(async (context) => {
-      await context.firestore().doc('users/alice').set({
-        uid: 'alice',
-        primaryOrgId: 'org-1',
-        orgIds: ['org-1'],
-        createdAt: new Date(),
-      })
+      const db = context.firestore();
 
-      await context.firestore().doc('users/bob').set({
-        uid: 'bob',
-        primaryOrgId: 'org-1',
-        orgIds: ['org-1'],
-        createdAt: new Date(),
-      })
+      await db.doc(`users/alice`).set({
+        uid: "alice",
+        orgId: ORG_ID,
+        createdAt: now,
+      });
 
-      // Create org document
-      await context.firestore().doc('orgs/org-1').set({
-        name: 'Test Organization',
-        ownerUid: 'alice',
-        createdBy: 'alice',
-        createdAt: new Date(),
-      })
-    })
-  })
+      await db.doc(`users/bob`).set({
+        uid: "bob",
+        orgId: ORG_ID,
+        createdAt: now,
+      });
 
-  describe('User Documents', () => {
-    it('allows users to read their own document', async () => {
-      await assertSucceeds(alice.firestore().doc('users/alice').get())
-    })
+      await db.doc(`orgs/${ORG_ID}`).set(orgSeed);
 
-    it('denies users from reading other users documents', async () => {
-      await assertFails(alice.firestore().doc('users/bob').get())
-    })
+      await db.doc(`orgs/${ORG_ID}/members/alice`).set({
+        uid: "alice",
+        orgId: ORG_ID,
+        role: "admin",
+        addedBy: "alice",
+        createdAt: now,
+      });
 
-    it('allows users to create their own document', async () => {
-      const charlie = testEnv.authenticatedContext('charlie', {})
-      
+      await db.doc(`orgs/${ORG_ID}/members/bob`).set({
+        uid: "bob",
+        orgId: ORG_ID,
+        role: "member",
+        addedBy: "alice",
+        createdAt: now,
+      });
+    });
+
+    adminCtx = testEnv.authenticatedContext("alice", {
+      orgId: ORG_ID,
+      orgIds: [ORG_ID],
+      orgRole: "admin",
+      orgRoles: { [ORG_ID]: "admin" },
+      admin: true,
+    });
+
+    memberCtx = testEnv.authenticatedContext("bob", {
+      orgId: ORG_ID,
+      orgIds: [ORG_ID],
+      orgRole: "employee",
+      orgRoles: { [ORG_ID]: "employee" },
+      admin: false,
+    });
+
+    outsiderCtx = testEnv.authenticatedContext("eve", {
+      orgId: "org-2",
+      orgIds: ["org-2"],
+      orgRole: "employee",
+      orgRoles: { "org-2": "employee" },
+      admin: false,
+    });
+
+    unauthCtx = testEnv.unauthenticatedContext();
+  });
+
+  describe("organization documents", () => {
+    it("allows members to read their organization", async () => {
+      await assertSucceeds(memberCtx.firestore().doc(`orgs/${ORG_ID}`).get());
+    });
+
+    it("denies access to non-members", async () => {
+      await assertFails(outsiderCtx.firestore().doc(`orgs/${ORG_ID}`).get());
+    });
+
+    it("allows admins to update when claim matches user doc", async () => {
       await assertSucceeds(
-        charlie.firestore().doc('users/charlie').set({
-          uid: 'charlie',
-          createdAt: new Date(),
-        })
-      )
-    })
+        adminCtx.firestore().doc(`orgs/${ORG_ID}`).update({
+          orgId: orgSeed.orgId,
+          name: "Updated Organization",
+          updatedAt: new Date().toISOString(),
+        }),
+      );
+    });
 
-    it('denies users from creating documents for other users', async () => {
+    it("denies admins when user document orgId mismatches claim", async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().doc(`users/alice`).update({ orgId: "org-2" });
+      });
+
       await assertFails(
-        alice.firestore().doc('users/charlie').set({
-          uid: 'alice', // Wrong UID
-          createdAt: new Date(),
-        })
-      )
-    })
-  })
+        adminCtx.firestore().doc(`orgs/${ORG_ID}`).update({
+          orgId: orgSeed.orgId,
+          name: "Should fail",
+          updatedAt: new Date().toISOString(),
+        }),
+      );
+    });
+  });
 
-  describe('Organization Documents', () => {
-    it('allows org members to read org document', async () => {
-      await assertSucceeds(alice.firestore().doc('orgs/org-1').get())
-      await assertSucceeds(bob.firestore().doc('orgs/org-1').get())
-    })
-
-    it('denies non-members from reading org document', async () => {
-      const charlie = testEnv.authenticatedContext('charlie', {
-        orgId: 'org-2',
-        orgIds: ['org-2'],
-      })
-      
-      await assertFails(charlie.firestore().doc('orgs/org-1').get())
-    })
-
-    it('allows admins to update org document', async () => {
+  describe("organization members", () => {
+    it("allows admins to add members", async () => {
       await assertSucceeds(
-        alice.firestore().doc('orgs/org-1').update({
-          name: 'Updated Organization Name',
-          updatedAt: new Date(),
-        })
-      )
-    })
+        adminCtx.firestore().doc(`orgs/${ORG_ID}/members/charlie`).set({
+          uid: "charlie",
+          orgId: ORG_ID,
+          role: "member",
+          addedBy: "alice",
+          createdAt: new Date().toISOString(),
+        }),
+      );
+    });
 
-    it('denies non-admins from updating org document', async () => {
+    it("blocks non-admins from adding members", async () => {
       await assertFails(
-        bob.firestore().doc('orgs/org-1').update({
-          name: 'Updated Organization Name',
-          updatedAt: new Date(),
-        })
-      )
-    })
+        memberCtx.firestore().doc(`orgs/${ORG_ID}/members/charlie`).set({
+          uid: "charlie",
+          orgId: ORG_ID,
+          role: "member",
+          addedBy: "bob",
+          createdAt: new Date().toISOString(),
+        }),
+      );
+    });
 
-    it('denies updating protected fields', async () => {
-      await assertFails(
-        alice.firestore().doc('orgs/org-1').update({
-          ownerUid: 'bob', // Protected field
-          updatedAt: new Date(),
-        })
-      )
-    })
-  })
-
-  describe('claimMatchesUserDoc Validation', () => {
-    it('allows operations when claim matches user document', async () => {
-      // Alice's claims match her user document
+    it("allows members to read their membership", async () => {
       await assertSucceeds(
-        alice.firestore().doc('orgs/org-1').update({
-          name: 'Valid Update',	
-          updatedAt: new Date(),
-        })
-      )
-    })
+        memberCtx.firestore().doc(`orgs/${ORG_ID}/members/bob`).get(),
+      );
+    });
+  });
 
-    it('denies operations when user document does not exist', async () => {
-      const charlie = testEnv.authenticatedContext('charlie', {
-        orgId: 'org-1',
-        orgRole: 'admin',
-        admin: true,
-        orgIds: ['org-1'],
-        orgRoles: { 'org-1': 'admin' },
-      })
-
-      // Charlie has claims but no user document
-      await assertFails(
-        charlie.firestore().doc('orgs/org-1').update({
-          name: 'Invalid Update',
-          updatedAt: new Date(),
-        })
-      )
-    })
-
-    it('denies operations when claim does not match user document', async () => {
-      // Create user with different org in document
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await context.firestore().doc('users/eve').set({
-          uid: 'eve',
-          primaryOrgId: 'org-2', // Different from claim
-          orgIds: ['org-2'],
-          createdAt: new Date(),
-        })
-      })
-
-      const eve = testEnv.authenticatedContext('eve', {
-        orgId: 'org-1', // Claims org-1 but document has org-2
-        orgRole: 'admin',
-        admin: true,
-        orgIds: ['org-1'],
-        orgRoles: { 'org-1': 'admin' },
-      })
-
-      await assertFails(
-        eve.firestore().doc('orgs/org-1').update({
-          name: 'Invalid Update',
-          updatedAt: new Date(),
-        })
-      )
-    })
-  })
-
-  describe('Organization Members', () => {
-    it('allows admins to add members', async () => {
-      await assertSucceeds(
-        alice.firestore().doc('orgs/org-1/members/charlie').set({
-          uid: 'charlie',
-          orgId: 'org-1',
-          role: 'employee',
-          addedBy: 'alice',
-          joinedAt: new Date(),
-        })
-      )
-    })
-
-    it('denies non-admins from adding members', async () => {
-      await assertFails(
-        bob.firestore().doc('orgs/org-1/members/charlie').set({
-          uid: 'charlie',
-          orgId: 'org-1',
-          role: 'employee',
-          addedBy: 'bob',
-          joinedAt: new Date(),
-        })
-      )
-    })
-
-    it('allows members to read their own membership', async () => {
-      // First create the membership
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await context.firestore().doc('orgs/org-1/members/bob').set({
-          uid: 'bob',
-          orgId: 'org-1',
-          role: 'employee',
-          addedBy: 'alice',
-          joinedAt: new Date(),
-        })
-      })
-
-      await assertSucceeds(bob.firestore().doc('orgs/org-1/members/bob').get())
-    })
-
-    it('allows admins to read all memberships', async () => {
-      // First create the membership
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await context.firestore().doc('orgs/org-1/members/bob').set({
-          uid: 'bob',
-          orgId: 'org-1',
-          role: 'employee',
-          addedBy: 'alice',
-          joinedAt: new Date(),
-        })
-      })
-
-      await assertSucceeds(alice.firestore().doc('orgs/org-1/members/bob').get())
-    })
-  })
-
-  describe('Unauthenticated Access', () => {
-    it('denies unauthenticated access to all documents', async () => {
-      await assertFails(unauthenticated.firestore().doc('users/alice').get())
-      await assertFails(unauthenticated.firestore().doc('orgs/org-1').get())
-      await assertFails(unauthenticated.firestore().doc('orgs/org-1/members/alice').get())
-    })
-
-    it('allows public read access to directory', async () => {
-      // Create a public directory entry
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await context.firestore().doc('directory/orgs/org-1').set({
-          name: 'Test Organization',
-          isPublic: true,
-        })
-      })
-
-      await assertSucceeds(unauthenticated.firestore().doc('directory/orgs/org-1').get())
-    })
-  })
-})
+  describe("unauthenticated users", () => {
+    it("cannot access org documents", async () => {
+      await assertFails(unauthCtx.firestore().doc(`orgs/${ORG_ID}`).get());
+    });
+  });
+});

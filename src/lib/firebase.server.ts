@@ -18,11 +18,17 @@ let adminApp: AdminApp | undefined;
 function getServiceAccountFromEnv() {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   if (!raw) {
-    // During build time, we might not have credentials
-    if (process.env.NODE_ENV === 'production' || process.env.NEXT_PHASE === 'phase-production-build') {
-      console.warn("FIREBASE_SERVICE_ACCOUNT_JSON is not set during build");
+    const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+    const isTestEnv = process.env.NODE_ENV === "test";
+    if (process.env.NODE_ENV === "production" && !isBuildPhase) {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON is not set");
+    }
+
+    if (isBuildPhase || isTestEnv) {
+      console.warn("FIREBASE_SERVICE_ACCOUNT_JSON is not set; using minimal configuration");
       return null;
     }
+
     throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON is not set");
   }
   try {

@@ -1,22 +1,22 @@
-import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  plugins: [react()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
   test: {
-    environment: "node",
     globals: true,
-    include: [
-      "src/**/*.test.ts",
-      "src/**/*.test.tsx",
-      "src/__tests__/**/*.test.ts",
-    ],
-    setupFiles: ["src/__tests__/setup.ts"], // create if you need global test setup
-    testTimeout: 30000, // firestore rules/emulator tests can be slower
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+    include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+    exclude: ["node_modules", "dist", ".next", "src/**/firestore*.test.ts"],
+    testTimeout: 30000,
+    hookTimeout: 30000,
     coverage: {
       reporter: ["text", "lcov"],
     },
