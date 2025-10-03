@@ -6,7 +6,7 @@
 - **Backend:** Next.js API Routes (no Cloud Functions), Firebase Admin SDK
 - **Database:** Firestore with security rules and emulator support
 - **Storage:** Firebase Storage with access rules
-- **AI:** Google Genkit flows for conflict detection using Gemini 2.5 Flash
+- **AI:** Google Genkit flows for conflict detection using Gemini 1.5 Flash
 - **Auth:** Firebase Authentication with session cookies and CSRF protection
 
 ## Application Structure

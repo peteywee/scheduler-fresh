@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase.server";
+import { OrganizationSchema } from "@/lib/types";
 import { createOrganization } from "@/lib/auth-utils";
 
 function getAllowedOrigins(): string[] {
@@ -43,37 +44,22 @@ export async function POST(req: NextRequest) {
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
+    
+    // Validate organization data using Zod schema
+    const parseResult = OrganizationSchema.pick({ 
+      name: true, 
+      description: true, 
+      isPublic: true 
+    }).safeParse(body);
 
-    // Validate organization data
-    const { name, description, isPublic } = body;
-
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
+    if (!parseResult.success) {
       return NextResponse.json(
-        { success: false, error: "Organization name is required" },
-        { status: 400 },
+        { success: false, error: parseResult.error.issues[0]?.message || "Invalid organization data" },
+        { status: 400 }
       );
     }
 
-    if (name.trim().length > 100) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Organization name must be 100 characters or less",
-        },
-        { status: 400 },
-      );
-    }
-
-    if (
-      description &&
-      typeof description === "string" &&
-      description.length > 500
-    ) {
-      return NextResponse.json(
-        { success: false, error: "Description must be 500 characters or less" },
-        { status: 400 },
-      );
-    }
+    const { name, description, isPublic } = parseResult.data;
 
     // Create organization
     const orgData = {

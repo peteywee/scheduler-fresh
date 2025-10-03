@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase.server";
+import { adminAuth, adminInit } from "@/lib/firebase.server";
 import { getFirestore } from "firebase-admin/firestore";
 import { RequestAccessSchema, JoinRequest } from "@/lib/types";
 
-// Lazy initialize Firestore to avoid build-time errors
-let db: FirebaseFirestore.Firestore | null = null;
-
-function getFirestore_() {
-  if (!db) {
-    db = getFirestore();
-  }
-  return db;
+// Lazy initialize to avoid build-time errors
+function getDb() {
+  adminInit();
+  return getFirestore();
 }
 
 function getAllowedOrigins(): string[] {
@@ -52,6 +48,12 @@ export async function POST(req: NextRequest) {
     const decoded = await adminAuth().verifySessionCookie(session, true);
     const uid = decoded.uid;
     const user = await adminAuth().getUser(uid);
+    if (decoded.email_verified === false) {
+      return NextResponse.json(
+        { success: false, error: "Email must be verified to request access" },
+        { status: 403 }
+      );
+    }
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
@@ -67,7 +69,7 @@ export async function POST(req: NextRequest) {
     const { orgId, message } = parseResult.data;
 
     // Verify organization exists and allows join requests
-    const orgDoc = await getFirestore_().doc(`orgs/${orgId}`).get();
+    const orgDoc = await getDb().doc(`orgs/${orgId}`).get();
     if (!orgDoc.exists) {
       return NextResponse.json(
         { success: false, error: "Organization not found" },
@@ -84,9 +86,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user is already a member
-    const memberDoc = await getFirestore_()
-      .doc(`orgs/${orgId}/members/${uid}`)
-      .get();
+    const memberDoc = await getDb().doc(`orgs/${orgId}/members/${uid}`).get();
     if (memberDoc.exists) {
       return NextResponse.json(
         {
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user already has a pending request
-    const existingRequestQuery = await getFirestore_()
+    const existingRequestQuery = await getDb()
       .collection(`orgs/${orgId}/joinRequests`)
       .where("requestedBy", "==", uid)
       .where("status", "==", "pending")
@@ -116,9 +116,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create join request
-    const requestRef = getFirestore_()
-      .collection(`orgs/${orgId}/joinRequests`)
-      .doc();
+    const requestRef = getDb().collection(`orgs/${orgId}/joinRequests`).doc();
     const now = new Date();
 
     const joinRequest: JoinRequest = {

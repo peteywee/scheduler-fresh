@@ -1,73 +1,149 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase.server";
-import { AuthMeResponse, Organization } from "@/lib/types";
-import { getUserOrganizations, getUserCustomClaims } from "@/lib/auth-utils";
+import { getFirestore } from "firebase-admin/firestore";
+import {
+  CreateInviteRequestSchema,
+  CreateInviteResponse,
+  InviteCode,
+  generateShortCode,
+} from "@/lib/types";
+import {
+  generateInviteCode,
+  generateQRCodeUrl,
+  isUserOrgAdmin,
+} from "@/lib/auth-utils";
 
-function allowOrigin(req: NextRequest): boolean {
-  const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
-  const defaults = ["http://localhost:3000", "http://127.0.0.1:3000"];
-  const origin = req.headers.get("origin");
-  if (!origin) return true;
-  const allowed = envOrigin ? [envOrigin, ...defaults] : defaults;
-  return allowed.includes(origin);
+// Lazy initialize Firestore to avoid build-time errors
+let db: FirebaseFirestore.Firestore | null = null;
+
+function getDb() {
+  if (!db) {
+    db = getFirestore();
+  }
+  return db;
 }
 
-export async function GET(req: NextRequest) {
-  if (!allowOrigin(req))
-    return new NextResponse("Forbidden origin", { status: 403 });
+function getAllowedOrigins(): string[] {
+  const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
+  const defaults = ["http://localhost:3000", "http://127.0.0.1:3000"];
+  return envOrigin ? [envOrigin, ...defaults] : defaults;
+}
 
+function validateCsrf(req: NextRequest): boolean {
+  const header = req.headers.get("x-csrf-token");
+  const cookie = req.cookies.get("XSRF-TOKEN")?.value;
+  return Boolean(header && cookie && header === cookie);
+}
+
+function allowOrigin(req: NextRequest): boolean {
+  const origin = req.headers.get("origin");
+  if (!origin) return true;
+  return getAllowedOrigins().includes(origin);
+}
+
+export async function POST(req: NextRequest) {
+  if (!allowOrigin(req)) {
+    return new NextResponse("Forbidden origin", { status: 403 });
+  }
+  if (!validateCsrf(req)) {
+    return new NextResponse("CSRF validation failed", { status: 403 });
+  }
+
+  // Verify session
   const session = req.cookies.get("__session")?.value;
   if (!session) {
-    return NextResponse.json<AuthMeResponse>(
-      { authenticated: false },
+    return NextResponse.json<CreateInviteResponse>(
+      { success: false, error: "Authentication required" },
       { status: 401 },
     );
   }
 
   try {
     const decoded = await adminAuth().verifySessionCookie(session, true);
-    const user = await adminAuth().getUser(decoded.uid);
-
-    // During build time, don't try to access Firestore
-    if (process.env.NEXT_PHASE === "phase-production-build") {
-      return NextResponse.json<AuthMeResponse>({
-        authenticated: true,
-        uid: user.uid,
-        email: user.email,
-        emailVerified: user.emailVerified,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-        customClaims: user.customClaims as Record<string, unknown>,
-      });
+    const uid = decoded.uid;
+    if (decoded.email_verified === false) {
+      return NextResponse.json<CreateInviteResponse>(
+        { success: false, error: "Email must be verified to create invites" },
+        { status: 403 }
+      );
     }
 
-    const customClaims = await getUserCustomClaims(decoded.uid);
+    // Parse request body
+    const body = await req.json().catch(() => ({}));
+    const parseResult = CreateInviteRequestSchema.safeParse(body);
 
-    // Get user's organizations
-    const organizations = await getUserOrganizations(decoded.uid);
-
-    // Get primary organization details
-    let primaryOrg: Organization | undefined;
-    if (customClaims.orgId) {
-      primaryOrg = organizations.find((org) => org.id === customClaims.orgId);
+    if (!parseResult.success) {
+      return NextResponse.json<CreateInviteResponse>(
+        { success: false, error: "Invalid request data" },
+        { status: 400 },
+      );
     }
 
-    return NextResponse.json<AuthMeResponse>({
-      authenticated: true,
-      uid: user.uid,
-      email: user.email,
-      emailVerified: user.emailVerified,
-      displayName: user.displayName,
-      photoURL: user.photoURL,
-      customClaims,
-      primaryOrg,
-      organizations,
+    const { orgId, role, expiresIn, maxUses, notes } = parseResult.data;
+
+    // Verify user is admin of the organization
+    const isAdmin = await isUserOrgAdmin(uid, orgId);
+    if (!isAdmin) {
+      return NextResponse.json<CreateInviteResponse>(
+        { success: false, error: "Admin access required" },
+        { status: 403 },
+      );
+    }
+
+    // Verify organization exists
+    const orgDoc = await getDb().doc(`orgs/${orgId}`).get();
+    if (!orgDoc.exists) {
+      return NextResponse.json<CreateInviteResponse>(
+        { success: false, error: "Organization not found" },
+        { status: 404 },
+      );
+    }
+
+    // Generate invite code
+    const code = generateInviteCode();
+    const now = new Date();
+    const expiresAt = expiresIn
+      ? new Date(now.getTime() + expiresIn * 24 * 60 * 60 * 1000)
+      : undefined;
+
+    const inviteData: InviteCode = {
+      code,
+      orgId,
+      createdBy: uid,
+      createdAt: now,
+      expiresAt,
+      maxUses,
+      currentUses: 0,
+      isActive: true,
+      role,
+      notes,
+    };
+
+    // Save invite to Firestore
+    await getDb().doc(`orgs/${orgId}/invites/${code}`).set(inviteData);
+
+    // Generate response data
+    const shortCode = generateShortCode(orgId, code);
+    const qrCodeUrl = generateQRCodeUrl(shortCode);
+
+    // Update invite with QR code URL
+    await getDb().doc(`orgs/${orgId}/invites/${code}`).update({ qrCodeUrl });
+
+    return NextResponse.json<CreateInviteResponse>({
+      success: true,
+      invite: {
+        code,
+        shortCode,
+        qrCodeUrl,
+        expiresAt: expiresAt?.toISOString(),
+        maxUses,
+      },
     });
   } catch (error) {
-    console.error("Error fetching user data:", error);
-    return NextResponse.json<AuthMeResponse>(
-      { authenticated: false },
-      { status: 401 },
+    console.error("Error creating invite:", error);
+    return NextResponse.json<CreateInviteResponse>(
+      { success: false, error: "Failed to create invite" },
+      { status: 500 },
     );
   }
 }
