@@ -7,12 +7,22 @@ import {
 } from "firebase/auth";
 import {
   getFirestore,
-  connectFirestoreEmulator,
-  Firestore,
-} from "firebase/firestore";
-import {
-  getStorage,
-  connectStorageEmulator,
+  const getFirebaseConfig = () => {
+    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    const appId = process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
+
+    if (!apiKey || !authDomain || !projectId || !appId) {
+      throw new Error("Missing Firebase configuration environment variables.");
+    }
+
+    return { apiKey, authDomain, projectId, appId };
+  };
+
+  const firebaseConfig = process.env.NEXT_PHASE !== 'phase-production-build' 
+    ? getFirebaseConfig() 
+    : {}; // Provide an empty object for build phase
   FirebaseStorage,
 } from "firebase/storage";
 
