@@ -29,13 +29,7 @@ function validateCsrf(req: NextRequest): boolean {
   return Boolean(header && cookie && header === cookie);
 }
 
-interface ApiError {
-  code: string;
-  message: string;
-  details?: any;
-}
-
-function errorResponse(status: number, code: string, message: string, details?: any) {
+function errorResponse(status: number, code: string, message: string, details?: unknown) {
   return new NextResponse(JSON.stringify({ code, message, details }), {
     status,
     headers: {
@@ -82,11 +76,14 @@ export async function POST(req: NextRequest) {
 
   const { requestId, approved, role, notes, orgId } = parsed.data;
 
-  if (!ALLOWED_ROLES.includes(role as any)) {
+  if (!ALLOWED_ROLES.includes(role as typeof ALLOWED_ROLES[number])) {
     return errorResponse(400, "invalid-role", "Role not permitted.");
   }
 
   // Authorization (early)
+  if (!orgId) {
+    return errorResponse(400, "missing-org-id", "Organization ID is required.");
+  }
   const hasAdminRights = await isUserOrgAdmin(actorUid, orgId);
   if (!hasAdminRights) {
     return errorResponse(403, "forbidden", "Admin access required for this organization.");
@@ -116,7 +113,7 @@ export async function POST(req: NextRequest) {
 
       if (approved) {
         // Add membership before marking approved (still inside transaction)
-        await addUserToOrg(data.requestedBy, orgId, role, actorUid);
+        await addUserToOrg(data.requestedBy, orgId!, role, actorUid);
       }
 
       tx.update(requestRef, {
@@ -146,13 +143,14 @@ export async function POST(req: NextRequest) {
         "Vary": "Origin"
       }
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
     console.error(JSON.stringify({
       event: "approve_join_request_failed",
       orgId,
       requestId,
       actorUid,
-      error: err?.message || String(err)
+      error: errorMessage
     }));
     return errorResponse(500, "internal-error", "Failed to process request.");
   }
