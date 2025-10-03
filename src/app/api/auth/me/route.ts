@@ -1,5 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase.server";
+import { z } from "zod";
+
+const MeSuccessSchema = z.object({
+  uid: z.string(),
+  email: z.string().nullable(),
+  emailVerified: z.boolean(),
+});
+
+export async function GET(req: NextRequest) {
+  const session = req.cookies.get("__session")?.value;
+  if (!session) {
+    return NextResponse.json(
+      { code: "auth/unauthorized", message: "Authentication required" },
+      { status: 401 },
+    );
+  }
+
+  try {
+    const decoded = await adminAuth().verifySessionCookie(session, true);
+    const payload = {
+      uid: decoded.uid,
+      email: (decoded.email as string | undefined) ?? null,
+      emailVerified: Boolean((decoded as any).email_verified ?? decoded.email_verified),
+    };
+    // Enforce response shape
+    MeSuccessSchema.parse(payload);
+    return NextResponse.json(payload, { status: 200 });
+  } catch {
+    return NextResponse.json(
+      { code: "auth/invalid-session", message: "Invalid session" },
+      { status: 401 },
+    );
+  }
+}
+
 import { getFirestore } from "firebase-admin/firestore";
 import {
   CreateInviteRequestSchema,
