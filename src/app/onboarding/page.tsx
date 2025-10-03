@@ -34,6 +34,12 @@ interface StepProps {
   isLoading?: boolean;
 }
 
+interface OrgFormData {
+  name: string;
+  description: string;
+  isPublic: boolean;
+}
+
 function WelcomeStep({ onNext }: StepProps) {
   return (
     <Card className="max-w-2xl mx-auto">
@@ -108,8 +114,10 @@ function WelcomeStep({ onNext }: StepProps) {
 }
 
 function ChoiceStep({
-  onNext,
-}: StepProps & { onChoice: (choice: "create" | "join") => void }) {
+  onChoice,
+}: {
+  onChoice: (choice: "create" | "join") => void;
+}) {
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader className="text-center">
@@ -124,7 +132,7 @@ function ChoiceStep({
         <div className="grid md:grid-cols-2 gap-4">
           <Card
             className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => (onNext as any)("create")}
+            onClick={() => onChoice("create")}
           >
             <CardHeader className="text-center">
               <Plus className="h-12 w-12 text-primary mx-auto mb-2" />
@@ -146,7 +154,7 @@ function ChoiceStep({
 
           <Card
             className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => (onNext as any)("join")}
+            onClick={() => onChoice("join")}
           >
             <CardHeader className="text-center">
               <Users className="h-12 w-12 text-primary mx-auto mb-2" />
@@ -174,11 +182,15 @@ function ChoiceStep({
 }
 
 function CreateOrgStep({
-  onNext,
+  onSubmit,
   onBack,
   isLoading,
-}: StepProps & { onSubmit: (data: any) => void }) {
-  const [formData, setFormData] = useState({
+}: {
+  onSubmit: (data: OrgFormData) => void;
+  onBack?: () => void;
+  isLoading?: boolean;
+}) {
+  const [formData, setFormData] = useState<OrgFormData>({
     name: "",
     description: "",
     isPublic: false,
@@ -204,7 +216,7 @@ function CreateOrgStep({
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      (onNext as any)(formData);
+      onSubmit(formData);
     }
   };
 
@@ -354,7 +366,7 @@ export default function OnboardingPage() {
     }
   };
 
-  const handleCreateOrg = async (formData: any) => {
+  const handleCreateOrg = async (formData: OrgFormData) => {
     setIsLoading(true);
     setError("");
 

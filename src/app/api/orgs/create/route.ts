@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase.server";
-import { OrganizationSchema, sanitizeOrgId } from "@/lib/types";
 import { createOrganization } from "@/lib/auth-utils";
 
 function getAllowedOrigins(): string[] {
@@ -34,7 +33,7 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json(
       { success: false, error: "Authentication required" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -44,28 +43,35 @@ export async function POST(req: NextRequest) {
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
-    
+
     // Validate organization data
     const { name, description, isPublic } = body;
-    
+
     if (!name || typeof name !== "string" || name.trim().length === 0) {
       return NextResponse.json(
         { success: false, error: "Organization name is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (name.trim().length > 100) {
       return NextResponse.json(
-        { success: false, error: "Organization name must be 100 characters or less" },
-        { status: 400 }
+        {
+          success: false,
+          error: "Organization name must be 100 characters or less",
+        },
+        { status: 400 },
       );
     }
 
-    if (description && typeof description === "string" && description.length > 500) {
+    if (
+      description &&
+      typeof description === "string" &&
+      description.length > 500
+    ) {
       return NextResponse.json(
         { success: false, error: "Description must be 500 characters or less" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -93,7 +99,7 @@ export async function POST(req: NextRequest) {
     console.error("Error creating organization:", error);
     return NextResponse.json(
       { success: false, error: "Failed to create organization" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
