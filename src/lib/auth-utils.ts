@@ -293,3 +293,26 @@ export function generateQRCodeUrl(shortCode: string): string {
 export async function revokeUserTokens(uid: string): Promise<void> {
   await adminAuth().revokeRefreshTokens(uid);
 }
+
+export async function verifyOrgAccess(
+  uid: string,
+  orgId: string,
+  allowedRoles: string[]
+): Promise<boolean> {
+  try {
+    const memberDoc = await getFirestore_()
+      .collection(`orgs/${orgId}/members`)
+      .doc(uid)
+      .get();
+
+    if (!memberDoc.exists) {
+      return false; // User is not a member at all
+    }
+
+    const memberData = memberDoc.data();
+    return allowedRoles.includes(memberData?.role);
+  } catch (error) {
+    console.error("Error verifying org access:", error);
+    return false;
+  }
+}

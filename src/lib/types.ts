@@ -40,6 +40,8 @@ export const OrgMemberSchema = z.object({
   role: z.enum(["admin", "manager", "employee"]),
   joinedAt: z.date(),
   addedBy: z.string(),
+  displayName: z.string().optional(),
+  email: z.string().email().optional(),
 });
 
 export type OrgMember = z.infer<typeof OrgMemberSchema>;
@@ -189,3 +191,18 @@ export function sanitizeOrgId(name: string): string {
     .replace(/^-|-$/g, "")
     .substring(0, 20);
 }
+
+// Shift data model
+export const ShiftSchema = z.object({
+  id: z.string(),
+  orgId: z.string(),
+  start: z.date(),
+  end: z.date(),
+  title: z.string().optional(),
+  assignedTo: z.array(z.string()).optional(), // Array of user UIDs
+  notes: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type Shift = z.infer<typeof ShiftSchema>;
