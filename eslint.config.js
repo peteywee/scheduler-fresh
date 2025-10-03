@@ -5,7 +5,10 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 
 export default tseslint.config(
-  { ignores: ["dist", ".next", "node_modules", "next-env.d.ts"] },
+  { ignores: [
+    "dist", ".next", "node_modules", "next-env.d.ts",
+    "public/sw.js", "public/workbox-*.js", "public/**/*.min.js", "public/**/*.map"
+  ] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx,js,jsx}"],
@@ -34,6 +37,29 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/triple-slash-reference": "off",
+    },
+  },
+  // Test files configuration
+  {
+    files: ["**/*.{test,spec}.{ts,tsx,js,jsx}"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        // Vitest globals
+        describe: "readonly",
+        it: "readonly",
+        test: "readonly",
+        expect: "readonly",
+        beforeAll: "readonly",
+        afterAll: "readonly",
+        beforeEach: "readonly",
+        afterEach: "readonly",
+        vi: "readonly",
+        vitest: "readonly",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 );

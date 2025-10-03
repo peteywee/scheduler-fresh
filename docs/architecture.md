@@ -1,77 +1,65 @@
-# Architecture Overview
+# Architecture Overview · Scheduler Fresh
 
-This document captures the essential architecture, data flows, and security patterns for the Scheduler Fresh app.
+## Tech Stack
 
-## Stack
+- **Frontend:** Next.js 15 with React 18, Tailwind CSS, shadcn/ui components
+- **Backend:** Next.js API Routes (no Cloud Functions), Firebase Admin SDK
+- **Database:** Firestore with security rules and emulator support
+- **Storage:** Firebase Storage with access rules
+- **AI:** Google Genkit flows for conflict detection using Gemini 1.5 Flash
+- **Auth:** Firebase Authentication with session cookies and CSRF protection
 
-- Next.js 15 (App Router)
-- Firebase: Web SDK + Admin SDK, Emulators-first
-- Genkit (Google AI) for conflict detection
-- shadcn/ui + Tailwind CSS
-- TypeScript, ESLint flat config
+## Application Structure
 
-## High-level flow
+### Route Groups
 
-- Client pages under `src/app/(app)` require auth; public auth pages under `src/app/(auth)`.
-- Client auth (Firebase Web) manages the user; server endpoints verify session cookies (Firebase Admin).
-- AI flows run server-side via Genkit (`src/ai/**`). Client components call server actions that invoke flows.
+- **`src/app/(app)/**`\*\* - Protected authenticated app pages (dashboard, conflict-detector, requests, settings)
+- **`src/app/(auth)/**`\*\* - Public authentication pages (login, signup)
+- **`src/app/api/**`\*\* - API route handlers (no Cloud Functions)
 
-## Routing
+### Authentication & Session Management
 
-- `src/app/(app)/**` – main app (dashboard, conflict-detector, requests, settings).
-- `src/app/(auth)/**` – login, signup.
-- `src/app/api/**` – route handlers (no Cloud Functions). Auth endpoints: `/api/auth/{session,me}`.
+- **Client SDK:** `src/lib/firebase.ts` - Firebase Auth/Firestore/Storage initialization with emulator connections
+- **Admin SDK:** `src/lib/firebase.server.ts` - Server-side Firebase Admin using `FIREBASE_SERVICE_ACCOUNT_JSON`
+- **Session Endpoints:**
+  - `POST /api/auth/session` - Creates Firebase session cookie from ID token
+  - `DELETE /api/auth/session` - Clears session cookie
+  - `GET /api/auth/me` - Returns current user from session cookie
+  - `POST /api/auth/csrf` - CSRF token generation and validation
+- **Security:** CSRF double-submit protection, origin validation against `NEXT_PUBLIC_BASE_URL`, session cookie revocation support
 
-## Auth
+### AI Integration (Genkit)
 
-- Client: `src/lib/firebase.ts` initializes Firebase Web SDK; connects to emulators in dev.
-- Server: `src/lib/firebase.server.ts` initializes Admin SDK from `FIREBASE_SERVICE_ACCOUNT_JSON`.
-- Sessions: `/api/auth/session` creates a revocable Firebase session cookie from an ID token (CSRF + Origin enforced). `/api/auth/me` verifies the session cookie with `checkRevoked=true`.
+- **Configuration:** `src/ai/genkit.ts` - Genkit setup with Google AI plugin
+- **Flows:** `src/ai/flows/conflict-flagging.ts` - AI flow with zod input/output schemas for schedule conflict detection
+- **Bridge:** `src/app/actions/conflict-actions.ts` - Server actions that connect forms to AI flows
+- **Pattern:** zod validation → AI flow execution → structured response
 
-## Security
+### Component Architecture
 
-- CSRF: double-submit token via `x-csrf-token` header, checked against a cookie. Origin is validated against `NEXT_PUBLIC_APP_URL`.
-- Cookies: session cookie is `httpOnly`, `sameSite=lax`, `secure` in production.
-- Secrets: use `.env.local` for local dev; sync to Google Secret Manager via scripts under `scripts/**`.
-- Gitleaks: runs locally and in CI to prevent secret leaks.
+- **UI Primitives:** `src/components/ui/**` - shadcn/ui base components (buttons, forms, dialogs)
+- **Business Components:** `src/components/**` - Application-specific components
+  - `conflict-detector/` - AI conflict detection interface
+  - `layout/` - App shell, navigation, headers
+  - `schedule/` - Schedule management components
+  - `auth/` - Authentication forms and flows
 
-## AI integration
+### Firebase Configuration
 
-- Genkit configuration: `src/ai/genkit.ts`
-- Flow example: `src/ai/flows/conflict-flagging.ts` (zod IO schemas, `ai.definePrompt`, `ai.defineFlow`).
-- Server action example: `src/app/actions/conflict-actions.ts`
-- Client wiring example: `src/components/conflict-detector/conflict-detector.tsx`
+- **Emulators:** Auth (9099), Firestore (8080), Storage (9199), UI (4000)
+- **Rules:** `firestore.rules` and `storage.rules` with security rules and tenancy patterns
+- **Indexes:** `firestore.indexes.json` for query optimization
 
-## Developer workflows
+## Development Workflow
 
-- pnpm commands:
-  - `pnpm run dev:web` – Next dev server on 3000
-  - `pnpm run dev:api` – Firebase emulators (auth 9099, firestore 8080, storage 9199, UI 4000)
-  - `pnpm run dev` – run both
-  - `pnpm run stop` – stop ports/processes
-  - Quality gates: `pnpm run typecheck`, `pnpm run lint`, `pnpm run build`, `pnpm run gitleaks:scan`
-- VS Code tasks:
-  - Start All (Web + API)
-  - Complete: Stabilize & Validate (ensure pnpm, install, husky, lint/typecheck/build/gitleaks, CLI checks)
-  - Cloud tasks: GCP/Firebase setup, service accounts, secrets sync, status
+- **Package Manager:** pnpm-only (no npm/yarn)
+- **Dev Servers:** `pnpm run dev` (both Next.js on 3000 + Firebase emulators)
+- **Quality Gates:** TypeScript, ESLint (max-warnings=0), build validation, gitleaks security scanning
+- **Security:** Husky pre-commit hooks with lint-staged and secret scanning
 
-## Environment & CLI
+## Import Aliases
 
-- `.env.local` holds Firebase web config (e.g., `NEXT_PUBLIC_FIREBASE_*`). Admin uses `FIREBASE_SERVICE_ACCOUNT_JSON`.
-- Scripts:
-  - `scripts/setup-cli-config.sh` – orchestrates GCP + Firebase + SAs + secrets; `full|interactive|validate|status`
-  - `scripts/setup-gcp.sh`, `scripts/setup-firebase.sh`, `scripts/service-accounts.sh`
-  - `scripts/secrets-management.sh` – sync to/from Secret Manager
-  - `scripts/env-utils.sh` – validate and manage env files
-
-## Conventions
-
-- Import alias `@/*` (see `tsconfig.json`).
-- Keep server logic in route handlers under `src/app/api/**` and use CSRF/origin checks for mutating endpoints.
-- Emulators-first development; production deploys should use restricted API keys and proper Firebase security rules.
-
-## Next steps (feature patterns)
-
-- Add new AI features: copy the flow/action/component pattern from conflict detector.
-- Define Firestore collections for employees, schedules, requests; add indexes when Firestore prompts you.
-- Consider an onboarding flow to create/join orgs and set custom claims server-side with Admin SDK.
+- `@/components` → `src/components`
+- `@/lib` → `src/lib`
+- `@/hooks` → `src/hooks`
+- `@/ai` → `src/ai`

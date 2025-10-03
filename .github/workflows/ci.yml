@@ -1,4 +1,4 @@
-name: CI - pnpm lint, typecheck, build
+name: CI - pnpm lint, typecheck, test, build
 
 on:
   push:
@@ -28,8 +28,15 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
-      - name: Build
-        run: pnpm run build
+      - name: Test
+        run: pnpm run test:run
+        env:
+          NODE_ENV: test
+
+      - name: Test Firestore Rules
+        run: pnpm run test:rules
+        env:
+          NODE_ENV: test
 
       - name: Build
         run: pnpm run build

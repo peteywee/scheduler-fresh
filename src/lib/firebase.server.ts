@@ -1,5 +1,3 @@
-"use server";
-
 import {
   cert,
   getApps,
@@ -10,12 +8,23 @@ import {
   getAuth as getAdminAuth,
   Auth as AdminAuth,
 } from "firebase-admin/auth";
+import {
+  getFirestore as getAdminFirestore,
+  Firestore as AdminFirestore,
+} from "firebase-admin/firestore";
 
 let adminApp: AdminApp | undefined;
 
 function getServiceAccountFromEnv() {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  if (!raw) throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON is not set");
+  if (!raw) {
+    // During build time, we might not have credentials
+    if (process.env.NODE_ENV === 'production' || process.env.NEXT_PHASE === 'phase-production-build') {
+      console.warn("FIREBASE_SERVICE_ACCOUNT_JSON is not set during build");
+      return null;
+    }
+    throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON is not set");
+  }
   try {
     // Support base64-encoded or raw JSON
     const json = raw.trim().startsWith("{")
@@ -29,7 +38,25 @@ function getServiceAccountFromEnv() {
 
 export function adminInit(): AdminApp {
   if (adminApp) return adminApp;
+  
   const sa = getServiceAccountFromEnv();
+  if (!sa) {
+    // During build time or when no service account is available,
+    // initialize with minimal config to prevent build errors
+    const apps = getApps();
+    if (apps.length) {
+      adminApp = apps[0];
+      return adminApp;
+    }
+    
+    // Initialize with project ID only for build time
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-project';
+    adminApp = initializeApp({
+      projectId,
+    });
+    return adminApp;
+  }
+  
   const apps = getApps();
   if (apps.length) {
     adminApp = apps[0];
@@ -43,4 +70,8 @@ export function adminInit(): AdminApp {
 
 export function adminAuth(): AdminAuth {
   return getAdminAuth(adminInit());
+}
+
+export function adminDb(): AdminFirestore {
+  return getAdminFirestore(adminInit());
 }

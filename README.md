@@ -44,18 +44,9 @@ This project includes a complete CLI-based configuration system for Firebase and
 
 For detailed instructions, see [Firebase & GCP CLI Setup Guide](docs/firebase-gcp-cli-setup.md).
 
-## Copilot Agent Operating Instructions
+## Documentation
 
-See `.github/copilot-instructions.md` for concise, up-to-date guidance tailored to this repo (architecture map, workflows, security, and patterns with file references). For a deeper dive into data flows and security choices, read `docs/architecture.md`.
-
-### Useful Tasks (VS Code)
-
-- Start All (Web + API): runs Next.js and Firebase emulators in parallel
-- Complete: Stabilize & Validate: ensure pnpm, install deps, husky, then lint → typecheck → build → gitleaks and CLI checks
-- Cloud: Setup (Full/Interactive): orchestrates GCP + Firebase + service accounts + secrets sync
-
-### Scripts (CLI)
-
-- `./scripts/setup-cli-config.sh full|interactive|status|validate`
-- `./scripts/setup-firebase.sh`, `./scripts/setup-gcp.sh`, `./scripts/service-accounts.sh`
-- `./scripts/secrets-management.sh` and `./scripts/env-utils.sh`
+- **AI Agent Instructions:** See [`.github/copilot-instructions.md`](.github/copilot-instructions.md) for concise, up-to-date guidance tailored to this repo (architecture map, workflows, security, and patterns with file references)
+- **Architecture Overview:** See [`docs/architecture.md`](docs/architecture.md) for technical architecture, auth patterns, AI integration, and component structure
+- **App Features & Design:** See [`docs/blueprint.md`](docs/blueprint.md) for app features and UI design guidelines
+- **CLI Setup Guide:** See [`docs/firebase-gcp-cli-setup.md`](docs/firebase-gcp-cli-setup.md) for detailed Firebase & GCP configuration
