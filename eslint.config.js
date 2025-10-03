@@ -39,4 +39,27 @@ export default tseslint.config(
       "@typescript-eslint/triple-slash-reference": "off",
     },
   },
+  // Test files configuration
+  {
+    files: ["**/*.{test,spec}.{ts,tsx,js,jsx}"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        // Vitest globals
+        describe: "readonly",
+        it: "readonly",
+        test: "readonly",
+        expect: "readonly",
+        beforeAll: "readonly",
+        afterAll: "readonly",
+        beforeEach: "readonly",
+        afterEach: "readonly",
+        vi: "readonly",
+        vitest: "readonly",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 );

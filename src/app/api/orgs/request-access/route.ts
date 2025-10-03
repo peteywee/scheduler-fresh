@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json(
       { success: false, error: "Authentication required" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -58,11 +58,11 @@ export async function POST(req: NextRequest) {
     // Parse request body
     const body = await req.json().catch(() => ({}));
     const parseResult = RequestAccessSchema.safeParse(body);
-    
+
     if (!parseResult.success) {
       return NextResponse.json(
         { success: false, error: "Invalid request data" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     if (!orgDoc.exists) {
       return NextResponse.json(
         { success: false, error: "Organization not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     if (!orgData?.settings?.allowPublicJoinRequests) {
       return NextResponse.json(
         { success: false, error: "Organization does not accept join requests" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -89,8 +89,11 @@ export async function POST(req: NextRequest) {
     const memberDoc = await getDb().doc(`orgs/${orgId}/members/${uid}`).get();
     if (memberDoc.exists) {
       return NextResponse.json(
-        { success: false, error: "You are already a member of this organization" },
-        { status: 400 }
+        {
+          success: false,
+          error: "You are already a member of this organization",
+        },
+        { status: 400 },
       );
     }
 
@@ -104,15 +107,18 @@ export async function POST(req: NextRequest) {
 
     if (!existingRequestQuery.empty) {
       return NextResponse.json(
-        { success: false, error: "You already have a pending request for this organization" },
-        { status: 400 }
+        {
+          success: false,
+          error: "You already have a pending request for this organization",
+        },
+        { status: 400 },
       );
     }
 
     // Create join request
     const requestRef = getDb().collection(`orgs/${orgId}/joinRequests`).doc();
     const now = new Date();
-    
+
     const joinRequest: JoinRequest = {
       id: requestRef.id,
       orgId,
@@ -134,7 +140,7 @@ export async function POST(req: NextRequest) {
     console.error("Error requesting access:", error);
     return NextResponse.json(
       { success: false, error: "Failed to request access" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

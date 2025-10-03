@@ -12,16 +12,47 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Invite {
   code: string;
@@ -42,7 +73,11 @@ interface InviteManagerProps {
   isAdmin: boolean;
 }
 
-export default function InviteManager({ orgId, orgName, isAdmin }: InviteManagerProps) {
+export default function InviteManager({
+  orgId,
+  orgName,
+  isAdmin,
+}: InviteManagerProps) {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -61,7 +96,9 @@ export default function InviteManager({ orgId, orgName, isAdmin }: InviteManager
     return (
       <Card>
         <CardContent className="text-center py-8">
-          <p className="text-muted-foreground">Admin access required to manage invites.</p>
+          <p className="text-muted-foreground">
+            Admin access required to manage invites.
+          </p>
         </CardContent>
       </Card>
     );
@@ -81,7 +118,7 @@ export default function InviteManager({ orgId, orgName, isAdmin }: InviteManager
 
       const csrfToken = document.cookie
         .split("; ")
-        .find(row => row.startsWith("XSRF-TOKEN="))
+        .find((row) => row.startsWith("XSRF-TOKEN="))
         ?.split("=")[1];
 
       if (!csrfToken) {
@@ -91,7 +128,9 @@ export default function InviteManager({ orgId, orgName, isAdmin }: InviteManager
       const payload = {
         orgId,
         role: createForm.role,
-        ...(createForm.expiresIn && { expiresIn: parseInt(createForm.expiresIn) }),
+        ...(createForm.expiresIn && {
+          expiresIn: parseInt(createForm.expiresIn),
+        }),
         ...(createForm.maxUses && { maxUses: parseInt(createForm.maxUses) }),
         ...(createForm.notes && { notes: createForm.notes }),
       };
@@ -168,9 +207,12 @@ export default function InviteManager({ orgId, orgName, isAdmin }: InviteManager
   };
 
   const getInviteStatus = (invite: Invite) => {
-    if (!invite.isActive) return { label: "Inactive", variant: "secondary" as const };
-    if (isExpired(invite.expiresAt)) return { label: "Expired", variant: "destructive" as const };
-    if (isMaxedOut(invite)) return { label: "Max Uses", variant: "outline" as const };
+    if (!invite.isActive)
+      return { label: "Inactive", variant: "secondary" as const };
+    if (isExpired(invite.expiresAt))
+      return { label: "Expired", variant: "destructive" as const };
+    if (isMaxedOut(invite))
+      return { label: "Max Uses", variant: "outline" as const };
     return { label: "Active", variant: "default" as const };
   };
 
@@ -199,7 +241,8 @@ export default function InviteManager({ orgId, orgName, isAdmin }: InviteManager
                 <DialogHeader>
                   <DialogTitle>Create Team Invite</DialogTitle>
                   <DialogDescription>
-                    Generate a new invite code for team members to join {orgName}.
+                    Generate a new invite code for team members to join{" "}
+                    {orgName}.
                   </DialogDescription>
                 </DialogHeader>
 
@@ -226,7 +269,12 @@ export default function InviteManager({ orgId, orgName, isAdmin }: InviteManager
                         type="number"
                         placeholder="e.g., 7"
                         value={createForm.expiresIn}
-                        onChange={(e) => setCreateForm({ ...createForm, expiresIn: e.target.value })}
+                        onChange={(e) =>
+                          setCreateForm({
+                            ...createForm,
+                            expiresIn: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
@@ -237,7 +285,12 @@ export default function InviteManager({ orgId, orgName, isAdmin }: InviteManager
                         type="number"
                         placeholder="e.g., 10"
                         value={createForm.maxUses}
-                        onChange={(e) => setCreateForm({ ...createForm, maxUses: e.target.value })}
+                        onChange={(e) =>
+                          setCreateForm({
+                            ...createForm,
+                            maxUses: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -248,7 +301,9 @@ export default function InviteManager({ orgId, orgName, isAdmin }: InviteManager
                       id="notes"
                       placeholder="Internal notes about this invite..."
                       value={createForm.notes}
-                      onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })}
+                      onChange={(e) =>
+                        setCreateForm({ ...createForm, notes: e.target.value })
+                      }
                       rows={2}
                     />
                   </div>
@@ -260,10 +315,18 @@ export default function InviteManager({ orgId, orgName, isAdmin }: InviteManager
                   )}
 
                   <div className="flex gap-3">
-                    <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowCreateDialog(false)}
+                    >
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={isLoading} className="flex-1">
+                    <Button
+                      type="submit"
+                      disabled={isLoading}
+                      className="flex-1"
+                    >
                       {isLoading ? "Creating..." : "Create Invite"}
                     </Button>
                   </div>
@@ -328,7 +391,9 @@ export default function InviteManager({ orgId, orgName, isAdmin }: InviteManager
                           {invite.maxUses && ` / ${invite.maxUses}`}
                         </TableCell>
                         <TableCell>
-                          {invite.expiresAt ? formatDate(invite.expiresAt) : "Never"}
+                          {invite.expiresAt
+                            ? formatDate(invite.expiresAt)
+                            : "Never"}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -338,22 +403,33 @@ export default function InviteManager({ orgId, orgName, isAdmin }: InviteManager
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => {
-                                setSelectedInvite(invite);
-                                setShowQRDialog(true);
-                              }}>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedInvite(invite);
+                                  setShowQRDialog(true);
+                                }}
+                              >
                                 <QrCode className="mr-2 h-4 w-4" />
                                 Show QR Code
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => {
-                                copyToClipboard(getInviteUrl(invite.shortCode));
-                              }}>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  copyToClipboard(
+                                    getInviteUrl(invite.shortCode),
+                                  );
+                                }}
+                              >
                                 <Copy className="mr-2 h-4 w-4" />
                                 Copy Link
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => {
-                                window.open(getInviteUrl(invite.shortCode), '_blank');
-                              }}>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  window.open(
+                                    getInviteUrl(invite.shortCode),
+                                    "_blank",
+                                  );
+                                }}
+                              >
                                 <ExternalLink className="mr-2 h-4 w-4" />
                                 Open Link
                               </DropdownMenuItem>
@@ -421,7 +497,9 @@ export default function InviteManager({ orgId, orgName, isAdmin }: InviteManager
                   />
                   <Button
                     variant="outline"
-                    onClick={() => copyToClipboard(getInviteUrl(selectedInvite.shortCode))}
+                    onClick={() =>
+                      copyToClipboard(getInviteUrl(selectedInvite.shortCode))
+                    }
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
@@ -437,10 +515,14 @@ export default function InviteManager({ orgId, orgName, isAdmin }: InviteManager
                   {selectedInvite.maxUses && ` / ${selectedInvite.maxUses}`}
                 </div>
                 <div>
-                  <strong>Created:</strong> {formatDate(selectedInvite.createdAt)}
+                  <strong>Created:</strong>{" "}
+                  {formatDate(selectedInvite.createdAt)}
                 </div>
                 <div>
-                  <strong>Expires:</strong> {selectedInvite.expiresAt ? formatDate(selectedInvite.expiresAt) : "Never"}
+                  <strong>Expires:</strong>{" "}
+                  {selectedInvite.expiresAt
+                    ? formatDate(selectedInvite.expiresAt)
+                    : "Never"}
                 </div>
               </div>
 
