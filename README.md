@@ -46,6 +46,7 @@ For detailed instructions, see [Firebase & GCP CLI Setup Guide](docs/firebase-gc
 
 ## Documentation
 
+- **Multi-Tenant Implementation:** See [`IMPLEMENTATION.md`](IMPLEMENTATION.md) for the contractor/subcontractor model, parent ledgers, attendance replication, and API routes
 - **AI Agent Instructions:** See [`.github/copilot-instructions.md`](.github/copilot-instructions.md) for concise, up-to-date guidance tailored to this repo (architecture map, workflows, security, and patterns with file references)
 - **Architecture Overview:** See [`docs/architecture.md`](docs/architecture.md) for technical architecture, auth patterns, AI integration, and component structure
 - **App Features & Design:** See [`docs/blueprint.md`](docs/blueprint.md) for app features and UI design guidelines
