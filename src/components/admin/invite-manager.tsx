@@ -10,6 +10,7 @@ import {
   Users, 
   MoreHorizontal
 } from "lucide-react";
+import BulkInviteForm from "./bulk-invite-form";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -91,6 +92,13 @@ export default function InviteManager({
     maxUses: "",
     notes: "",
   });
+
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const handleInvitesCreated = (count: number) => {
+    setSuccessMessage(`${count} invites created successfully.`);
+    // Optionally, refresh the invites list here
+  };
 
   if (!isAdmin) {
     return (
@@ -230,112 +238,120 @@ export default function InviteManager({
                 Generate invite codes and QR codes for {orgName}
               </CardDescription>
             </div>
-            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Invite
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create Team Invite</DialogTitle>
-                  <DialogDescription>
-                    Generate a new invite code for team members to join{" "}
-                    {orgName}.
-                  </DialogDescription>
-                </DialogHeader>
+            <div className="flex items-center gap-2">
+              <BulkInviteForm orgId={orgId} onInvitesCreated={handleInvitesCreated} />
+              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Invite
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create Team Invite</DialogTitle>
+                    <DialogDescription>
+                      Generate a new invite code for team members to join{" "}
+                      {orgName}.
+                    </DialogDescription>
+                  </DialogHeader>
 
-                <form onSubmit={handleCreateInvite} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Role</Label>
-                    <Select value={createForm.role} onValueChange={(value: "admin" | "manager" | "employee") => setCreateForm({ ...createForm, role: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="employee">Employee</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+                  <form onSubmit={handleCreateInvite} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="expiresIn">Expires In (Days)</Label>
-                      <Input
-                        id="expiresIn"
-                        type="number"
-                        placeholder="e.g., 7"
-                        value={createForm.expiresIn}
-                        onChange={(e) =>
-                          setCreateForm({
-                            ...createForm,
-                            expiresIn: e.target.value,
-                          })
-                        }
-                      />
+                      <Label htmlFor="role">Role</Label>
+                      <Select value={createForm.role} onValueChange={(value: "admin" | "manager" | "employee") => setCreateForm({ ...createForm, role: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="employee">Employee</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="expiresIn">Expires In (Days)</Label>
+                        <Input
+                          id="expiresIn"
+                          type="number"
+                          placeholder="e.g., 7"
+                          value={createForm.expiresIn}
+                          onChange={(e) =>
+                            setCreateForm({
+                              ...createForm,
+                              expiresIn: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="maxUses">Max Uses</Label>
+                        <Input
+                          id="maxUses"
+                          type="number"
+                          placeholder="e.g., 10"
+                          value={createForm.maxUses}
+                          onChange={(e) =>
+                            setCreateForm({
+                              ...createForm,
+                              maxUses: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="maxUses">Max Uses</Label>
-                      <Input
-                        id="maxUses"
-                        type="number"
-                        placeholder="e.g., 10"
-                        value={createForm.maxUses}
+                      <Label htmlFor="notes">Notes (Optional)</Label>
+                      <Textarea
+                        id="notes"
+                        placeholder="Internal notes about this invite..."
+                        value={createForm.notes}
                         onChange={(e) =>
-                          setCreateForm({
-                            ...createForm,
-                            maxUses: e.target.value,
-                          })
+                          setCreateForm({ ...createForm, notes: e.target.value })
                         }
+                        rows={2}
                       />
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Notes (Optional)</Label>
-                    <Textarea
-                      id="notes"
-                      placeholder="Internal notes about this invite..."
-                      value={createForm.notes}
-                      onChange={(e) =>
-                        setCreateForm({ ...createForm, notes: e.target.value })
-                      }
-                      rows={2}
-                    />
-                  </div>
+                    {error && (
+                      <Alert variant="destructive">
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    )}
 
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="flex gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowCreateDialog(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={isLoading}
-                      className="flex-1"
-                    >
-                      {isLoading ? "Creating..." : "Create Invite"}
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+                    <div className="flex gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowCreateDialog(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={isLoading}
+                        className="flex-1"
+                      >
+                        {isLoading ? "Creating..." : "Create Invite"}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+            </div>
         </CardHeader>
         <CardContent>
+          {successMessage && (
+            <Alert className="mb-4">
+              <AlertDescription>{successMessage}</AlertDescription>
+            </Alert>
+          )}
           {invites.length === 0 ? (
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
