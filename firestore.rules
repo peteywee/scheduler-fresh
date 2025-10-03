@@ -36,6 +36,13 @@ service cloud.firestore {
 				get(memberDocPath(orgId, request.auth.uid)).data.role == "admin";
 		}
 
+		// Parent (contractor) claims: parent admin with matching parentId claim
+		function isParentAdmin(parentId) {
+			return isAuthed()
+				&& (request.auth.token.parentAdmin == true)
+				&& (request.auth.token.parentId == parentId);
+		}
+
 		// ========= Public directory (read-only) =========
 		// Use a simple collection with even path segments.
 		// Tests should read: /orgDirectory/{orgId}
@@ -69,7 +76,7 @@ service cloud.firestore {
 						// Accept the existing persisted keys plus a safe writable subset
 						let allowedKeys = [
 							"orgId", "name", "timezone", "updatedAt", "updatedBy",
-							"settings", "ownerUid", "createdAt", "createdBy"
+							"settings", "ownerUid", "createdAt", "createdBy", "parentId"
 						];
 						let allowed = incoming.keys().hasOnly(allowedKeys);
 
@@ -140,6 +147,61 @@ service cloud.firestore {
 
 				// Never deref org membership here; tests will seed docs before asserting
 				return allowed && orgOk;
+			}
+		}
+
+		// ========= Attendance within orgs =========
+		match /orgs/{orgId}/attendance/{eventId} {
+			// Members can read attendance in their org
+			allow get, list: if isMember(orgId);
+
+			// Staff can create their own pending events; Admins can approve/update
+			allow create: if isMember(orgId) && validAttendanceCreate(orgId);
+			allow update: if isAdmin(orgId) && validAttendanceUpdate(orgId);
+
+			// No deletes client-side
+			allow delete: if false;
+
+			function validAttendanceCreate(orgId) {
+				let d = request.resource.data;
+				let has = d.keys().hasAll(["id","tenantId","staffId","venueId","clockIn","status"]);
+				let belongs = ("tenantId" in d) && (d.tenantId == orgId);
+				let staffOk = ("staffId" in d) && (isAuthed() && d.staffId == request.auth.uid);
+				let statusOk = ("status" in d) && (d.status == "pending");
+				let timeOk = ("clockIn" in d) && (d.clockIn is int);
+				return has && belongs && staffOk && statusOk && timeOk;
+			}
+
+			function validAttendanceUpdate(orgId) {
+				let d = request.resource.data;
+				let hasBase = d.keys().hasAll(["id","tenantId","staffId","venueId","clockIn","status"]);
+				let belongs = ("tenantId" in d) && (d.tenantId == orgId);
+				// Approvals may add clockOut/approvedBy/approvedAt
+				let statusOk = ("status" in d) && (d.status in ["pending","approved","rejected"]);
+				return hasBase && belongs && statusOk;
+			}
+		}
+
+		// ========= Parents (contractors) – append-only ledgers; server writes only =========
+		match /parents/{parentId} {
+			// No direct client access at root
+			allow read, write: if false;
+
+			match /contracts/{subOrgId} {
+				// Parent admins may READ their contracts; writes are server-only.
+				allow get, list: if isParentAdmin(parentId);
+				allow create, update, delete: if false;
+			}
+
+			match /ledgers/{periodId} {
+				allow read, write: if false;
+
+				match /lines/{lineId} {
+					// Parent admins can read their ledger lines (no PII beyond staffRef in data model)
+					allow get, list: if isParentAdmin(parentId);
+					// No client writes — must be done via Admin SDK/Functions replication
+					allow create, update, delete: if false;
+				}
 			}
 		}
 	}

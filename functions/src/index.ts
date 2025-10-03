@@ -1,0 +1,14 @@
+import * as functions from "firebase-functions";
+import { replicateApprovedAttendance } from "./replicateAttendance";
+
+// Trigger on updates to org attendance documents
+export const onAttendanceWrite = functions.firestore
+  .document("orgs/{orgId}/attendance/{eventId}")
+  .onWrite(async (change, context) => {
+    try {
+      await replicateApprovedAttendance(change, context);
+    } catch (err) {
+      console.error("replicateApprovedAttendance failed:", err);
+      throw err;
+    }
+  });
