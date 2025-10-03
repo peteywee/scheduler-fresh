@@ -42,7 +42,7 @@ This project includes a complete CLI-based configuration system for Firebase and
 ./scripts/validate-setup.sh
 ```
 
-For detailed instructions, see [Firebase & GCP CLI Setup Guide](docs/firebase-gcp-cli-setup.md).
+For detailed instructions, see [`docs/architecture.md`](docs/architecture.md) for technical architecture and CLI setup details.
 
 ## Documentation
 
@@ -50,4 +50,4 @@ For detailed instructions, see [Firebase & GCP CLI Setup Guide](docs/firebase-gc
 - **AI Agent Instructions:** See [`.github/copilot-instructions.md`](.github/copilot-instructions.md) for concise, up-to-date guidance tailored to this repo (architecture map, workflows, security, and patterns with file references)
 - **Architecture Overview:** See [`docs/architecture.md`](docs/architecture.md) for technical architecture, auth patterns, AI integration, and component structure
 - **App Features & Design:** See [`docs/blueprint.md`](docs/blueprint.md) for app features and UI design guidelines
-- **CLI Setup Guide:** See [`docs/firebase-gcp-cli-setup.md`](docs/firebase-gcp-cli-setup.md) for detailed Firebase & GCP configuration
+<!-- The CLI Setup Guide file does not exist. Please update this link when the documentation is available. -->
