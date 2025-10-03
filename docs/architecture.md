@@ -57,7 +57,7 @@ This document captures the essential architecture, data flows, and security patt
 
 ## Environment & CLI
 
-- `.env.local` holds Firebase web config (NEXT*PUBLIC_FIREBASE*\*). Admin uses `FIREBASE_SERVICE_ACCOUNT_JSON`.
+- `.env.local` holds Firebase web config (e.g., `NEXT_PUBLIC_FIREBASE_*`). Admin uses `FIREBASE_SERVICE_ACCOUNT_JSON`.
 - Scripts:
   - `scripts/setup-cli-config.sh` – orchestrates GCP + Firebase + SAs + secrets; `full|interactive|validate|status`
   - `scripts/setup-gcp.sh`, `scripts/setup-firebase.sh`, `scripts/service-accounts.sh`
