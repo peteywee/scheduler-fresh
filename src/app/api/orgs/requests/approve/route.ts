@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase.server";
+import { adminAuth, adminInit } from "@/lib/firebase.server";
 import { getFirestore } from "firebase-admin/firestore";
-import { ApproveRequestSchema, JoinRequest } from "@/lib/types";
-import { addUserToOrg, isUserOrgAdmin } from "@/lib/auth-utils";
+import { RequestAccessSchema, JoinRequest } from "@/lib/types";
 
-// Lazy initialize Firestore to avoid build-time errors
-let db: FirebaseFirestore.Firestore | null = null;
-
-function getFirestore_() {
-  if (!db) {
-    db = getFirestore();
-  }
-  return db;
+// Lazy initialize to avoid build-time errors
+function getDb() {
+  adminInit();
+  return getFirestore();
 }
 
 function getAllowedOrigins(): string[] {
@@ -52,10 +47,17 @@ export async function POST(req: NextRequest) {
   try {
     const decoded = await adminAuth().verifySessionCookie(session, true);
     const uid = decoded.uid;
+    const user = await adminAuth().getUser(uid);
+    if (decoded.email_verified === false) {
+      return NextResponse.json(
+        { success: false, error: "Email must be verified to request access" },
+        { status: 403 }
+      );
+    }
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
-    const parseResult = ApproveRequestSchema.safeParse(body);
+    const parseResult = RequestAccessSchema.safeParse(body);
 
     if (!parseResult.success) {
       return NextResponse.json(
@@ -64,75 +66,80 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { requestId, approved, role, notes } = parseResult.data;
+    const { orgId, message } = parseResult.data;
 
-    // Find the join request
-    let requestDoc;
-    let orgId: string | undefined;
-
-    // Search across all orgs for the request (this is a bit inefficient but works for the prototype)
-    // In production, you'd want to include orgId in the request or maintain a separate index
-    const orgsSnapshot = await getFirestore_().collection("orgs").get();
-
-    for (const orgDoc of orgsSnapshot.docs) {
-      const requestRef = getFirestore_().doc(`orgs/${orgDoc.id}/joinRequests/${requestId}`);
-      const doc = await requestRef.get();
-      if (doc.exists) {
-        requestDoc = doc;
-        orgId = orgDoc.id;
-        break;
-      }
-    }
-
-    if (!requestDoc || !orgId) {
+    // Verify organization exists and allows join requests
+    const orgDoc = await getDb().doc(`orgs/${orgId}`).get();
+    if (!orgDoc.exists) {
       return NextResponse.json(
-        { success: false, error: "Join request not found" },
+        { success: false, error: "Organization not found" },
         { status: 404 },
       );
     }
 
-    const requestData = requestDoc.data() as JoinRequest;
-
-    // Verify user is admin of the organization
-    const isAdmin = await isUserOrgAdmin(uid, orgId);
-    if (!isAdmin) {
+    const orgData = orgDoc.data();
+    if (!orgData?.settings?.allowPublicJoinRequests) {
       return NextResponse.json(
-        { success: false, error: "Admin access required" },
-        { status: 403 },
-      );
-    }
-
-    // Verify request is still pending
-    if (requestData.status !== "pending") {
-      return NextResponse.json(
-        { success: false, error: "Request has already been processed" },
+        { success: false, error: "Organization does not accept join requests" },
         { status: 400 },
       );
     }
 
-    const now = new Date();
-
-    if (approved) {
-      // Add user to organization
-      await addUserToOrg(requestData.requestedBy, orgId, role, uid);
+    // Check if user is already a member
+    const memberDoc = await getDb().doc(`orgs/${orgId}/members/${uid}`).get();
+    if (memberDoc.exists) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "You are already a member of this organization",
+        },
+        { status: 400 },
+      );
     }
 
-    // Update request status
-    await requestDoc.ref.update({
-      status: approved ? "approved" : "rejected",
-      reviewedAt: now,
-      reviewedBy: uid,
-      reviewNotes: notes,
-    });
+    // Check if user already has a pending request
+    const existingRequestQuery = await getDb()
+      .collection(`orgs/${orgId}/joinRequests`)
+      .where("requestedBy", "==", uid)
+      .where("status", "==", "pending")
+      .limit(1)
+      .get();
+
+    if (!existingRequestQuery.empty) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "You already have a pending request for this organization",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Create join request
+    const requestRef = getDb().collection(`orgs/${orgId}/joinRequests`).doc();
+    const now = new Date();
+
+    const joinRequest: JoinRequest = {
+      id: requestRef.id,
+      orgId,
+      requestedBy: uid,
+      requestedByEmail: user.email || "",
+      requestedByName: user.displayName || "",
+      message,
+      status: "pending",
+      createdAt: now,
+    };
+
+    await requestRef.set(joinRequest);
 
     return NextResponse.json({
       success: true,
-      status: approved ? "approved" : "rejected",
+      requestId: requestRef.id,
     });
   } catch (error) {
-    console.error("Error processing join request:", error);
+    console.error("Error requesting access:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to process request" },
+      { success: false, error: "Failed to request access" },
       { status: 500 },
     );
   }

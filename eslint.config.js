@@ -5,7 +5,10 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 
 export default tseslint.config(
-  { ignores: ["dist", ".next", "node_modules", "next-env.d.ts"] },
+  { ignores: [
+    "dist", ".next", "node_modules", "next-env.d.ts",
+    "public/sw.js", "public/workbox-*.js", "public/**/*.min.js", "public/**/*.map"
+  ] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx,js,jsx}"],

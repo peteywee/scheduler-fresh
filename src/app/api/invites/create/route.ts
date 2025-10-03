@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase.server";
+import { adminAuth, adminInit } from "@/lib/firebase.server";
 import { getFirestore } from "firebase-admin/firestore";
 import {
   CreateInviteRequestSchema,
@@ -7,20 +7,12 @@ import {
   InviteCode,
   generateShortCode,
 } from "@/lib/types";
-import {
-  generateInviteCode,
-  generateQRCodeUrl,
-  isUserOrgAdmin,
-} from "@/lib/auth-utils";
+import { generateInviteCode, generateQRCodeUrl, isUserOrgAdmin } from "@/lib/auth-utils";
 
 // Lazy initialize Firestore to avoid build-time errors
-let db: FirebaseFirestore.Firestore | null = null;
-
-function getFirestore_() {
-  if (!db) {
-    db = getFirestore();
-  }
-  return db;
+function getDb() {
+  adminInit();
+  return getFirestore();
 }
 
 function getAllowedOrigins(): string[] {
@@ -61,6 +53,12 @@ export async function POST(req: NextRequest) {
   try {
     const decoded = await adminAuth().verifySessionCookie(session, true);
     const uid = decoded.uid;
+    if (decoded.email_verified === false) {
+      return NextResponse.json<CreateInviteResponse>(
+        { success: false, error: "Email must be verified to create invites" },
+        { status: 403 }
+      );
+    }
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
@@ -85,7 +83,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify organization exists
-    const orgDoc = await getFirestore_().doc(`orgs/${orgId}`).get();
+    const orgDoc = await getDb().doc(`orgs/${orgId}`).get();
     if (!orgDoc.exists) {
       return NextResponse.json<CreateInviteResponse>(
         { success: false, error: "Organization not found" },
@@ -114,11 +112,14 @@ export async function POST(req: NextRequest) {
     };
 
     // Save invite to Firestore
-    await getFirestore_().doc(`orgs/${orgId}/invites/${code}`).set(inviteData);
+    await getDb().doc(`orgs/${orgId}/invites/${code}`).set(inviteData);
 
     // Generate response data
     const shortCode = generateShortCode(orgId, code);
     const qrCodeUrl = generateQRCodeUrl(shortCode);
+
+    // Update invite with QR code URL
+    await getDb().doc(`orgs/${orgId}/invites/${code}`).update({ qrCodeUrl });
 
     return NextResponse.json<CreateInviteResponse>({
       success: true,

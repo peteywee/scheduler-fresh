@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import {
-  Plus,
-  QrCode,
-  Copy,
-  ExternalLink,
-  Users,
-  MoreHorizontal,
+import { 
+  Plus, 
+  QrCode, 
+  Copy, 
+  ExternalLink, 
+  Users, 
+  MoreHorizontal
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -249,13 +249,7 @@ export default function InviteManager({
                 <form onSubmit={handleCreateInvite} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="role">Role</Label>
-                    <Select
-                      value={createForm.role}
-                      onValueChange={(
-                        value: "admin" | "manager" | "employee",
-                      ) => setCreateForm({ ...createForm, role: value })}
-                    >
-                      {" "}
+                    <Select value={createForm.role} onValueChange={(value: "admin" | "manager" | "employee") => setCreateForm({ ...createForm, role: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase.server";
-import { getFirestore } from "firebase-admin/firestore";
+import { adminAuth, adminInit } from "@/lib/firebase.server";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import {
   JoinOrgRequestSchema,
   JoinOrgResponse,
@@ -9,14 +9,10 @@ import {
 } from "@/lib/types";
 import { addUserToOrg } from "@/lib/auth-utils";
 
-// Lazy initialize Firestore to avoid build-time errors
-let db: FirebaseFirestore.Firestore | null = null;
-
-function getFirestore_() {
-  if (!db) {
-    db = getFirestore();
-  }
-  return db;
+// Lazy initialize to avoid build-time errors
+function getDb() {
+  adminInit();
+  return getFirestore();
 }
 
 function getAllowedOrigins(): string[] {
@@ -50,7 +46,7 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json<JoinOrgResponse>(
       { success: false, error: "Authentication required" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -61,11 +57,11 @@ export async function POST(req: NextRequest) {
     // Parse request body
     const body = await req.json().catch(() => ({}));
     const parseResult = JoinOrgRequestSchema.safeParse(body);
-    
+
     if (!parseResult.success) {
       return NextResponse.json<JoinOrgResponse>(
         { success: false, error: "Invalid request data" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -80,71 +76,62 @@ export async function POST(req: NextRequest) {
       if (!parsed) {
         return NextResponse.json<JoinOrgResponse>(
           { success: false, error: "Invalid invite code format" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       orgId = parsed.orgId;
       const code = parsed.inviteCode;
 
-      // Get invite document
-      const inviteDoc = await getFirestore_().doc(`orgs/${orgId}/invites/${code}`).get();
-      if (!inviteDoc.exists) {
-        return NextResponse.json<JoinOrgResponse>(
-          { success: false, error: "Invite code not found" },
-          { status: 404 }
-        );
-      }
-
-      const invite = inviteDoc.data() as InviteCode;
-
-      // Validate invite
-      if (!invite.isActive) {
-        return NextResponse.json<JoinOrgResponse>(
-          { success: false, error: "Invite code is no longer active" },
-          { status: 400 }
-        );
-      }
-
-      if (invite.expiresAt && new Date() > invite.expiresAt) {
-        return NextResponse.json<JoinOrgResponse>(
-          { success: false, error: "Invite code has expired" },
-          { status: 400 }
-        );
-      }
-
-      if (invite.maxUses && invite.currentUses >= invite.maxUses) {
-        return NextResponse.json<JoinOrgResponse>(
-          { success: false, error: "Invite code has reached maximum uses" },
-          { status: 400 }
-        );
-      }
-
-      role = invite.role;
-
-      // Update invite usage
-      await inviteDoc.ref.update({
-        currentUses: invite.currentUses + 1,
+      // Consume invite in a transaction: validate constraints then increment usage
+      await getDb().runTransaction(async (tx) => {
+        const ref = getDb().doc(`orgs/${orgId}/invites/${code}`);
+        const snap = await tx.get(ref);
+        if (!snap.exists) {
+          throw new Error("Invite code not found");
+        }
+        const invite = snap.data() as InviteCode;
+        if (!invite.isActive) {
+          throw new Error("Invite code is no longer active");
+        }
+        if (invite.orgId !== orgId) {
+          throw new Error("Invite code does not belong to this organization");
+        }
+        if (invite.expiresAt && new Date() > invite.expiresAt) {
+          throw new Error("Invite code has expired");
+        }
+        if (invite.maxUses && (invite.currentUses ?? 0) >= invite.maxUses) {
+          throw new Error("Invite code has reached maximum uses");
+        }
+        // Stash role for outer scope via closure capture
+        role = invite.role;
+        tx.update(ref, {
+          currentUses: FieldValue.increment(1),
+          lastUsedAt: new Date(),
+        });
       });
     } else if (directOrgId) {
       // Direct join (for bootstrap case)
       orgId = directOrgId;
-      
+
       // Verify organization exists and allows direct joining
-      const orgDoc = await getFirestore_().doc(`orgs/${orgId}`).get();
+      const orgDoc = await getDb().doc(`orgs/${orgId}`).get();
       if (!orgDoc.exists) {
         return NextResponse.json<JoinOrgResponse>(
           { success: false, error: "Organization not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
       // Only allow direct join if no members exist (bootstrap)
-      const membersSnapshot = await getFirestore_().collection(`orgs/${orgId}/members`).limit(1).get();
+      const membersSnapshot = await getDb()
+        .collection(`orgs/${orgId}/members`)
+        .limit(1)
+        .get();
       if (!membersSnapshot.empty) {
         return NextResponse.json<JoinOrgResponse>(
           { success: false, error: "Organization requires an invite code" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -152,27 +139,30 @@ export async function POST(req: NextRequest) {
     } else {
       return NextResponse.json<JoinOrgResponse>(
         { success: false, error: "Either inviteCode or orgId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Verify organization exists
-    const orgDoc = await getFirestore_().doc(`orgs/${orgId}`).get();
+    const orgDoc = await getDb().doc(`orgs/${orgId}`).get();
     if (!orgDoc.exists) {
       return NextResponse.json<JoinOrgResponse>(
         { success: false, error: "Organization not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     const orgData = orgDoc.data();
 
     // Check if user is already a member
-    const memberDoc = await getFirestore_().doc(`orgs/${orgId}/members/${uid}`).get();
+    const memberDoc = await getDb().doc(`orgs/${orgId}/members/${uid}`).get();
     if (memberDoc.exists) {
       return NextResponse.json<JoinOrgResponse>(
-        { success: false, error: "You are already a member of this organization" },
-        { status: 400 }
+        {
+          success: false,
+          error: "You are already a member of this organization",
+        },
+        { status: 400 },
       );
     }
 
@@ -189,7 +179,7 @@ export async function POST(req: NextRequest) {
     console.error("Error joining organization:", error);
     return NextResponse.json<JoinOrgResponse>(
       { success: false, error: "Failed to join organization" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

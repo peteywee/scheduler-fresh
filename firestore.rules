@@ -3,88 +3,41 @@ service cloud.firestore {
 	function isSignedIn() { return request.auth != null; }
 	function uid() { return request.auth.uid; }
 	function userOrg() { return isSignedIn() ? request.auth.token.orgId : null; }
-	function userOrgIds() { return isSignedIn() ? request.auth.token.orgIds : []; }
 	function isAdmin(orgId) { return isSignedIn() && (request.auth.token.admin == true || request.auth.token.orgRole == 'admin' || request.auth.token.orgRoles[orgId] == 'admin'); }
 	function onlyChanges(keys) { return request.resource.data.diff(resource.data).changedKeys().hasOnly(keys); }
 	function unchanged(f) { return resource.data[f] == request.resource.data[f]; }
 	function isMember(orgId) {
 		return exists(/databases/$(database)/documents/orgs/$(orgId)/members/$(uid()));
 	}
-	function canAccessOrg(orgId) {
-		return isSignedIn() && (orgId in userOrgIds() || userOrg() == orgId || isMember(orgId));
-	}
 
 	// Defense-in-depth: ensure the custom claim orgId matches the users/{uid} document
 	function claimMatchesUserDoc(orgId) {
 		return exists(/databases/$(database)/documents/users/$(uid())) &&
-		  (get(/databases/$(database)/documents/users/$(uid())).data.primaryOrgId == orgId ||
-		   orgId in get(/databases/$(database)/documents/users/$(uid())).data.get('orgIds', []));
+		  get(/databases/$(database)/documents/users/$(uid())).data.orgId == userOrg() &&
+		  userOrg() == orgId;
 	}
 
 	match /databases/{database}/documents {
-		// User documents
-		match /users/{userId} {
-			allow read: if isSignedIn() && userId == uid();
-			allow create: if isSignedIn() && userId == uid() && request.resource.data.uid == uid();
-			allow update: if isSignedIn() && userId == uid() && unchanged('uid') && unchanged('createdAt');
-		}
-
 		// Organization root documents
 		match /orgs/{orgId} {
 			// Bootstrap: allow creating an org if requester becomes owner
-			allow create: if isSignedIn() && request.resource.data.ownerUid == uid() && request.resource.data.createdBy == uid();
-			allow read: if isSignedIn() && canAccessOrg(orgId);
-			allow update: if isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId) 
-				&& unchanged('ownerUid') && unchanged('createdAt') && unchanged('createdBy')
-				&& onlyChanges(['name', 'description', 'isPublic', 'settings', 'updatedAt']);
-			allow delete: if isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId) && resource.data.ownerUid == uid();
+			allow create: if isSignedIn() && request.resource.data.ownerUid == uid();
+			allow read: if isSignedIn() && (isMember(orgId) || isAdmin(orgId));
+			allow update, delete: if isAdmin(orgId) && (userOrg() == orgId) && claimMatchesUserDoc(orgId);
 
 			// Members
 			match /members/{memberId} {
-				allow read: if isSignedIn() && canAccessOrg(orgId) && (memberId == uid() || isAdmin(orgId));
-				allow create: if isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId)
-					&& request.resource.data.orgId == orgId && request.resource.data.addedBy == uid();
-				allow update: if isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId)
-					&& unchanged('uid') && unchanged('orgId') && unchanged('joinedAt') && unchanged('addedBy')
-					&& onlyChanges(['role']);
-				allow delete: if isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId);
-			}
-
-			// Invite codes
-			match /invites/{inviteCode} {
-				allow read: if isSignedIn() && isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId);
-				allow create: if isSignedIn() && isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId)
-					&& request.resource.data.orgId == orgId && request.resource.data.createdBy == uid();
-				allow update: if isSignedIn() && isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId)
-					&& unchanged('code') && unchanged('orgId') && unchanged('createdBy') && unchanged('createdAt')
-					&& onlyChanges(['currentUses', 'isActive']);
-				allow delete: if isSignedIn() && isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId);
-			}
-
-			// Join requests
-			match /joinRequests/{requestId} {
-				allow read: if isSignedIn() && (
-					(isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId)) ||
-					resource.data.requestedBy == uid()
-				);
-				allow create: if isSignedIn() && request.resource.data.requestedBy == uid()
-					&& request.resource.data.orgId == orgId;
-				allow update: if isSignedIn() && isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId)
-					&& unchanged('requestedBy') && unchanged('orgId') && unchanged('createdAt') && unchanged('message')
-					&& onlyChanges(['status', 'reviewedAt', 'reviewedBy', 'reviewNotes']);
-				allow delete: if isSignedIn() && (
-					(isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId)) ||
-					resource.data.requestedBy == uid()
-				);
+				allow read: if isSignedIn() && (userOrg() == orgId) && (memberId == uid() || isAdmin(orgId));
+				allow create, update, delete: if isAdmin(orgId) && (userOrg() == orgId) && claimMatchesUserDoc(orgId);
 			}
 
 			// Schedules
 			match /schedules/{scheduleId} {
-				allow read: if isSignedIn() && canAccessOrg(orgId);
-				allow create: if isSignedIn() && canAccessOrg(orgId) && claimMatchesUserDoc(orgId)
+				allow read: if isSignedIn() && (isMember(orgId) || isAdmin(orgId));
+				allow create: if isSignedIn() && userOrg() == orgId && isMember(orgId) && claimMatchesUserDoc(orgId)
 					&& request.resource.data.orgId == orgId
 					&& request.resource.data.createdBy == uid();
-				allow update: if isSignedIn() && canAccessOrg(orgId) && claimMatchesUserDoc(orgId)
+				allow update: if isSignedIn() && userOrg() == orgId && isMember(orgId) && claimMatchesUserDoc(orgId)
 					&& request.resource.data.orgId == orgId
 					&& request.resource.data.updatedBy == uid()
 					&& unchanged('createdAt') && unchanged('createdBy') && unchanged('orgId')
@@ -93,16 +46,16 @@ service cloud.firestore {
 					  (isAdmin(orgId) && onlyChanges(['title','notes','shifts','updatedAt','updatedBy'])) ||
 					  onlyChanges(['title','notes','shifts','updatedAt','updatedBy'])
 					);
-				allow delete: if isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId);
+				allow delete: if isAdmin(orgId) && userOrg() == orgId && claimMatchesUserDoc(orgId);
 			}
 
 			// Shifts under schedules (if modeled)
 			match /schedules/{scheduleId}/shifts/{shiftId} {
-				allow read: if isSignedIn() && canAccessOrg(orgId);
-				allow create: if isSignedIn() && canAccessOrg(orgId) && claimMatchesUserDoc(orgId)
+				allow read: if isSignedIn() && (isMember(orgId) || isAdmin(orgId));
+				allow create: if isSignedIn() && userOrg() == orgId && isMember(orgId) && claimMatchesUserDoc(orgId)
 					&& request.resource.data.orgId == orgId
 					&& request.resource.data.createdBy == uid();
-				allow update: if isSignedIn() && canAccessOrg(orgId) && claimMatchesUserDoc(orgId)
+				allow update: if isSignedIn() && userOrg() == orgId && isMember(orgId) && claimMatchesUserDoc(orgId)
 					&& request.resource.data.orgId == orgId
 					&& request.resource.data.updatedBy == uid()
 					&& unchanged('createdAt') && unchanged('createdBy') && unchanged('orgId')
@@ -110,15 +63,8 @@ service cloud.firestore {
 					  (isAdmin(orgId) && onlyChanges(['start','end','employeeId','updatedAt','updatedBy','notes'])) ||
 					  onlyChanges(['start','end','employeeId','updatedAt','updatedBy','notes'])
 					);
-				allow delete: if isAdmin(orgId) && canAccessOrg(orgId) && claimMatchesUserDoc(orgId);
+				allow delete: if isAdmin(orgId) && userOrg() == orgId && claimMatchesUserDoc(orgId);
 			}
-		}
-
-		// Public organization directory
-		match /directory/orgs/{orgId} {
-			allow read: if true; // Public read for discovery
-			allow create, update: if isSignedIn() && isAdmin(orgId) && exists(/databases/$(database)/documents/orgs/$(orgId));
-			allow delete: if isSignedIn() && isAdmin(orgId);
 		}
 
 		// Default deny
