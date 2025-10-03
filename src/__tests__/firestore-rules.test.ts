@@ -38,7 +38,7 @@ describe("Firestore Security Rules", () => {
       });
 
       // Should be denied
-      await expect(alice.firestore().doc("orgs/org1").get()).toDeny();
+      await expect(alice.firestore().doc("orgs/org1").get()).rejects.toThrow();
     });
 
     it("should allow access when claim matches user doc", async () => {
@@ -55,8 +55,8 @@ describe("Firestore Security Rules", () => {
         });
       });
 
-      // Should be allowed
-      await expect(alice.firestore().doc("orgs/org1").get()).toAllow();
+            // Should allow
+      await expect(alice.firestore().doc("orgs/org1").get()).resolves.toBeDefined();
     });
   });
 
