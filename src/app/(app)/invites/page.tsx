@@ -202,7 +202,7 @@ export default function InvitesPage() {
             <div className="space-y-4">
               <div>
                 <Label htmlFor="role">Role</Label>
-                <Select value={role} onValueChange={(value: any) => setRole(value)}>
+                <Select value={role} onValueChange={(value: string) => setRole(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
