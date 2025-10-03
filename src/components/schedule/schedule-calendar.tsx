@@ -1,52 +1,63 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import ShiftCard from "./shift-card";
-import { mockSchedule } from "@/lib/mock-data";
+// src/components/schedule/schedule-calendar.tsx
 
-const daysOfWeek = ["Mon, 24", "Tue, 25", "Wed, 26", "Thu, 27", "Fri, 28", "Sat, 29", "Sun, 30"];
+"use client";
+
+import { useState, useEffect } from "react";
+import { Shift } from "@/lib/types";
+import { ShiftEditorDialog } from "./shift-editor-dialog";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
 
 export default function ScheduleCalendar() {
+  const [shifts, _setShifts] = useState<Shift[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedShift, setSelectedShift] = useState<Shift | undefined>(undefined);
+
+  // TODO: Fetch shifts from the API in a useEffect hook
+  useEffect(() => {
+    // fetch(`/api/shifts?orgId=...&week=...`)
+    //   .then(res => res.json())
+    //   .then(data => setShifts(data));
+  }, []);
+
+  const handleAddShift = () => {
+    setSelectedShift(undefined);
+    setIsDialogOpen(true);
+  };
+
+  const handleEditShift = (shift: Shift) => {
+    setSelectedShift(shift);
+    setIsDialogOpen(true);
+  };
+
   return (
-    <div className="grid grid-cols-8 grid-rows-[auto_1fr] border rounded-lg overflow-hidden">
-      {/* Empty corner */}
-      <div className="p-2 border-b border-r bg-muted/50 font-semibold">Staff</div>
+    <div>
+      <div className="flex justify-end mb-4">
+        <Button onClick={handleAddShift}>
+          <PlusCircle className="mr-2 h-4 w-4" /> Add Shift
+        </Button>
+      </div>
       
-      {/* Day headers */}
-      {daysOfWeek.map((day) => (
-        <div key={day} className="p-2 text-center border-b font-semibold bg-muted/50">
-          {day}
-        </div>
-      ))}
-      
-      {/* Staff rows and their shifts */}
-      {mockSchedule.staff.map((staffMember, staffIndex) => (
-        <div key={staffMember.id} className="grid grid-cols-subgrid col-span-8 row-start-auto">
-          {/* Staff member name cell */}
-          <div className={`flex items-center gap-2 p-2 border-r ${staffIndex < mockSchedule.staff.length - 1 ? 'border-b' : ''}`}>
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={staffMember.avatarUrl} alt={staffMember.name} />
-              <AvatarFallback>{staffMember.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <span className="font-medium text-sm">{staffMember.name}</span>
+      {/* This is where you will build your calendar grid.
+        Map over the `shifts` state to display them.
+        Each shift should have an `onClick` that calls `handleEditShift(shift)`.
+      */}
+      <div className="grid grid-cols-7 border rounded-lg h-96 p-2">
+        <p className="text-muted-foreground">Calendar grid goes here...</p>
+        {/* Example of displaying a shift */}
+        {shifts.map(shift => (
+          <div key={shift.id} onClick={() => handleEditShift(shift)}>
+            {shift.title}
           </div>
-          
-          {/* Shift cells for the week */}
-          {daysOfWeek.map((day, dayIndex) => {
-            const shiftsForDay = mockSchedule.shifts.filter(
-              (shift) => shift.staffId === staffMember.id && shift.dayIndex === dayIndex
-            );
-            return (
-              <div
-                key={`${staffMember.id}-${day}`}
-                className={`p-2 min-h-24 space-y-2 ${staffIndex < mockSchedule.staff.length - 1 ? 'border-b' : ''} ${dayIndex < daysOfWeek.length - 1 ? 'border-r' : ''}`}
-              >
-                {shiftsForDay.map((shift) => (
-                  <ShiftCard key={shift.id} shift={shift} />
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      ))}
+        ))}
+      </div>
+
+      <ShiftEditorDialog
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        shift={selectedShift}
+        orgId={"your-current-org-id"} // This needs to be passed down
+      />
     </div>
   );
 }
