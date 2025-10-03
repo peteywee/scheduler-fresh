@@ -1,4 +1,4 @@
-name: CI - pnpm lint, typecheck, build
+name: CI - pnpm lint, typecheck, test, build
 
 on:
   push:
