@@ -1,13 +1,21 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { setUserCustomClaims, getUserCustomClaims, addUserToOrg } from './auth-utils'
-import type { CustomClaims } from './types'
+import { setUserCustomClaims, getUserCustomClaims, addUserToOrg } from '@/lib/auth-utils'
+import type { CustomClaims } from '@/lib/types'
 
 // Mock Firebase Admin
-vi.mock('./firebase.server', () => ({
-  adminAuth: vi.fn(() => ({
-    setCustomUserClaims: vi.fn(),
-    getUser: vi.fn(),
-  })),
+const { adminAuthMock, adminInitMock } = vi.hoisted(() => {
+  return {
+    adminAuthMock: vi.fn(() => ({
+      setCustomUserClaims: vi.fn(),
+      getUser: vi.fn(),
+    })),
+    adminInitMock: vi.fn(),
+  }
+})
+
+vi.mock('@/lib/firebase.server', () => ({
+  adminAuth: adminAuthMock,
+  adminInit: adminInitMock,
 }))
 
 // Mock Firestore
@@ -53,7 +61,7 @@ describe('Auth Utils', () => {
 
   describe('getUserCustomClaims', () => {
     it('should return user custom claims', async () => {
-      const { adminAuth } = await import('./firebase.server')
+  const { adminAuth } = await import('@/lib/firebase.server')
       const mockClaims: CustomClaims = {
         orgId: 'org-123',
         orgRole: 'admin',
@@ -75,7 +83,7 @@ describe('Auth Utils', () => {
     })
 
     it('should return empty object when no custom claims exist', async () => {
-      const { adminAuth } = await import('./firebase.server')
+  const { adminAuth } = await import('@/lib/firebase.server')
       const mockGetUser = vi.fn().mockResolvedValue({
         uid: 'test-uid',
         customClaims: null,
@@ -92,7 +100,7 @@ describe('Auth Utils', () => {
 
   describe('addUserToOrg', () => {
     it('should add user to organization and update claims', async () => {
-      const { adminAuth } = await import('./firebase.server')
+  const { adminAuth } = await import('@/lib/firebase.server')
       const { getFirestore } = await import('firebase-admin/firestore')
 
       // Mock Firestore batch operations
