@@ -19,6 +19,11 @@ export default tseslint.config(
         ...globals.node,
       },
     },
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
     plugins: {
       react,
       "react-hooks": reactHooks,
@@ -27,6 +32,8 @@ export default tseslint.config(
       ...react.configs.recommended.rules,
       "react/jsx-uses-react": "off",
       "react/react-in-jsx-scope": "off",
+      "react/no-unescaped-entities": "off",
+      "react/prop-types": "off",
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": "off",
       "@typescript-eslint/no-unused-vars": [
