@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useAuthRedirect } from "@/hooks/use-auth-redirect";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -42,8 +43,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { signInWithGoogle, signInWithEmail } = useAuth();
-  const router = useRouter();
+  const _router = useRouter();
   const { toast } = useToast();
+  
+  // Handle first-time user routing
+  useAuthRedirect();
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +67,7 @@ export default function LoginPage() {
         title: "Success",
         description: "Signed in successfully",
       });
-      router.push("/dashboard");
+      // Redirect will be handled by useAuthRedirect hook
     } catch (error) {
       toast({
         title: "Error",
@@ -83,7 +87,7 @@ export default function LoginPage() {
         title: "Success",
         description: "Signed in with Google successfully",
       });
-      router.push("/dashboard");
+      // Redirect will be handled by useAuthRedirect hook
     } catch (error) {
       toast({
         title: "Error",

@@ -41,6 +41,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) return;
+
     // Seed CSRF token early
     seedCsrf();
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -66,10 +68,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => unsubscribe();
+    // Lightweight heartbeat: refresh session cookie every ~50 minutes if signed in
+    const interval = setInterval(
+      async () => {
+        if (!auth) return;
+        try {
+          const u = auth.currentUser;
+          if (!u) return;
+          const idToken = await u.getIdToken(true);
+          await fetch("/api/auth/session", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-csrf-token": (await getCsrfTokenFromCookie()) || "",
+            },
+            credentials: "include",
+            body: JSON.stringify({ idToken }),
+          });
+        } catch {
+          // ignore background refresh errors
+        }
+      },
+      50 * 60 * 1000,
+    );
+
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
 
   const signInWithGoogle = async () => {
+    if (!auth || !googleProvider) {
+      throw new Error("Firebase not initialized");
+    }
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
@@ -79,6 +111,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithEmail = async (email: string, password: string) => {
+    if (!auth) {
+      throw new Error("Firebase not initialized");
+    }
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
@@ -88,6 +123,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUpWithEmail = async (email: string, password: string) => {
+    if (!auth) {
+      throw new Error("Firebase not initialized");
+    }
     try {
       await createUserWithEmailAndPassword(auth, email, password);
     } catch (error) {
@@ -97,6 +135,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    if (!auth) {
+      throw new Error("Firebase not initialized");
+    }
     try {
       // Try to revoke server session first
       const csrf = (await getCsrfTokenFromCookie()) || "";
