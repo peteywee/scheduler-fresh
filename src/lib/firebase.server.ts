@@ -25,7 +25,9 @@ function getServiceAccountFromEnv() {
     }
 
     if (isBuildPhase || isTestEnv) {
-      console.warn("FIREBASE_SERVICE_ACCOUNT_JSON is not set; using minimal configuration");
+      console.warn(
+        "FIREBASE_SERVICE_ACCOUNT_JSON is not set; using minimal configuration",
+      );
       return null;
     }
 
@@ -44,7 +46,7 @@ function getServiceAccountFromEnv() {
 
 export function adminInit(): AdminApp {
   if (adminApp) return adminApp;
-  
+
   const sa = getServiceAccountFromEnv();
   if (!sa) {
     // During build time or when no service account is available,
@@ -54,15 +56,16 @@ export function adminInit(): AdminApp {
       adminApp = apps[0];
       return adminApp;
     }
-    
+
     // Initialize with project ID only for build time
-    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-project';
+    const projectId =
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "demo-project";
     adminApp = initializeApp({
       projectId,
     });
     return adminApp;
   }
-  
+
   const apps = getApps();
   if (apps.length) {
     adminApp = apps[0];

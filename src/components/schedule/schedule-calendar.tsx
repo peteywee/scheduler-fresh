@@ -11,7 +11,9 @@ import { PlusCircle } from "lucide-react";
 export default function ScheduleCalendar() {
   const [shifts, _setShifts] = useState<Shift[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedShift, setSelectedShift] = useState<Shift | undefined>(undefined);
+  const [selectedShift, setSelectedShift] = useState<Shift | undefined>(
+    undefined,
+  );
 
   // TODO: Fetch shifts from the API in a useEffect hook
   useEffect(() => {
@@ -37,7 +39,7 @@ export default function ScheduleCalendar() {
           <PlusCircle className="mr-2 h-4 w-4" /> Add Shift
         </Button>
       </div>
-      
+
       {/* This is where you will build your calendar grid.
         Map over the `shifts` state to display them.
         Each shift should have an `onClick` that calls `handleEditShift(shift)`.
@@ -45,7 +47,7 @@ export default function ScheduleCalendar() {
       <div className="grid grid-cols-7 border rounded-lg h-96 p-2">
         <p className="text-muted-foreground">Calendar grid goes here...</p>
         {/* Example of displaying a shift */}
-        {shifts.map(shift => (
+        {shifts.map((shift) => (
           <div key={shift.id} onClick={() => handleEditShift(shift)}>
             {shift.title}
           </div>
