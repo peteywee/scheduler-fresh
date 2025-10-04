@@ -8,13 +8,21 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev:web": "next dev -p 3000",
-    "dev:api": "firebase emulators:start --only auth,firestore,storage",
-    "dev": "pnpm -C . run-p dev:web dev:api",
-    "stop": "pnpm run kill:ports && pnpm run kill:node",
-    "kill:ports": "pnpm dlx kill-port 3000 8080 9099 9199 || true",
-    "kill:node": "pkill -f 'next|node|firebase' || true",
-    "emu:kill": "pkill -f 'firebase emulators' || true",
+    "check:ports": "node ./scripts/check-ports.mjs",
+    "dev:web:start": "next dev -p 3000",
+    "dev:web:start:turbo": "next dev --turbopack -p 3000",
+    "dev:api:start": "firebase emulators:start --only auth,firestore,storage",
+    "dev:web": "pnpm run check:ports --silent 3000 && pnpm run dev:web:start",
+    "dev:web:turbo": "pnpm run check:ports --silent 3000 && pnpm run dev:web:start:turbo",
+    "dev:api": "pnpm run check:ports --silent 8080 9099 9199 && pnpm run dev:api:start",
+    "dev": "pnpm run check:ports --silent 3000 8080 9099 9199 && pnpm -C . run-p dev:web:start dev:api:start",
+    "dev:turbo": "pnpm run check:ports --silent 3000 8080 9099 9199 && pnpm -C . run-p dev:web:start:turbo dev:api:start",
+    "stop": "pnpm run stop:web && pnpm run stop:api",
+    "stop:web": "pnpm dlx kill-port 3000 || true",
+    "stop:api": "pnpm dlx kill-port 8080 9099 9199 9150 || true",
+    "kill:ports": "pnpm run stop",
+    "kill:node": "sh -c \"pkill -f 'next dev -p 3000' || true; pkill -f 'firebase emulators:start' || true\"",
+    "emu:kill": "pkill -f 'firebase emulators:start' || true",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings=0",
     "format": "prettier . --write",
@@ -32,7 +40,8 @@
     "docs:open": "echo 'No documentation file found to open.'",
     "rules:test": "vitest run --config vitest.rules.config.ts",
     "emu": "firebase emulators:start --only firestore,functions,auth",
-    "emu:exec": "firebase emulators:exec --only firestore \"vitest run --config vitest.config.ts\""
+    "emu:exec": "firebase emulators:exec --only firestore \"vitest run --config vitest.config.ts\"",
+    "task-runner": "node --import ./scripts/task-runner-register.mjs ./scripts/task-runner.ts"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx,js,jsx}": [

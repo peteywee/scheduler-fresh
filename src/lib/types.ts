@@ -196,6 +196,7 @@ export function sanitizeOrgId(name: string): string {
 export const ShiftSchema = z.object({
   id: z.string(),
   orgId: z.string(),
+
   venueId: z.string().optional(), // Reference to venue where shift takes place
   standId: z.string().optional(), // Reference to stand/booth/zone within venue
   start: z.date(),

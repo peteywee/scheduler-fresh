@@ -1,8 +1,74 @@
-# Pre-install dependencies for Copilot coding agent
+# Copilot Coding Agent Setup Steps
+# Pre-install dependencies for ephemeral development environment
+# https://docs.github.com/en/copilot/building-copilot-extensions/setting-up-copilot-extensions
+
+name: Scheduler-Fresh Setup
+
+# System dependencies and environment setup
 setup:
-  - run: corepack enable
-  - run: corepack prepare pnpm@latest --activate
-  - run: pnpm install --frozen-lockfile
-  - run: pnpm typecheck
-  - run: pnpm lint
-  - run: pnpm build
+  # Enable and configure pnpm
+  - name: Enable Corepack
+    run: corepack enable
+
+  - name: Activate pnpm
+    run: corepack prepare pnpm@latest --activate
+
+  # Install project dependencies
+  - name: Install dependencies
+    run: pnpm install --frozen-lockfile
+
+  # Install Firebase CLI globally for emulator management
+  - name: Install Firebase CLI
+    run: pnpm add -g firebase-tools
+
+  # Verify installations
+  - name: Verify Node.js version
+    run: node --version
+
+  - name: Verify pnpm version
+    run: pnpm --version
+
+  - name: Verify Firebase CLI
+    run: firebase --version
+
+  # Build the project
+  - name: Build project
+    run: pnpm build
+
+  # Run linting checks
+  - name: Run linter
+    run: pnpm lint
+
+  # Run type checking
+  - name: Type check
+    run: pnpm typecheck
+
+  # Run unit tests (excluding rules tests that need emulator)
+  - name: Run unit tests
+    run: pnpm test:run
+
+  # Install Playwright browsers for E2E testing
+  - name: Install Playwright browsers
+    run: pnpm dlx playwright install --with-deps chromium
+
+  # Verify setup
+  - name: Verify setup complete
+    run: echo "✅ Copilot development environment ready"
+
+# Optional: Environment variables that may be needed
+# Note: Actual secrets should be configured in repository settings
+environment:
+  NODE_ENV: development
+  CI: true
+  FIREBASE_NO_PROMPT: true
+
+# Suggested workflow commands
+commands:
+  dev: pnpm dev
+  build: pnpm build
+  test: pnpm test
+  test:rules: pnpm test:rules
+  test:e2e: pnpm test:e2e
+  lint: pnpm lint
+  format: pnpm format
+  typecheck: pnpm typecheck
