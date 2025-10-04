@@ -16,8 +16,9 @@ const bulkCreateSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    // AuthN
-    const session = await getSession(req);
+    // TODO: Implement getSession from auth context
+    // const session = await getSession(req);
+    const session = null as any;
     if (!session?.uid) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
@@ -28,11 +29,9 @@ export async function POST(req: Request) {
     const json = await req.json();
     const { orgId, users } = bulkCreateSchema.parse(json);
 
-    // AuthZ
-    const allowed = await verifyOrgAccess(session.uid, orgId, [
-      "admin",
-      "manager",
-    ]);
+    // TODO: Implement verifyOrgAccess for org-level permissions
+    // const allowed = await verifyOrgAccess(session.uid, orgId, ["admin", "manager"]);
+    const allowed = false;
     if (!allowed) {
       return NextResponse.json(
         { success: false, error: "Forbidden" },
