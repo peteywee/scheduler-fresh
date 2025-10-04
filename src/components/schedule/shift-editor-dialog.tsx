@@ -33,6 +33,8 @@ const formSchema = z.object({
   start: z.string(), // Use string for input, convert to Date on submit
   end: z.string(),
   assignedTo: z.array(z.string()).optional(),
+  venueId: z.string().optional(),
+  standId: z.string().optional(),
 });
 
 
@@ -55,6 +57,8 @@ export function ShiftEditorDialog({ isOpen, onOpenChange, shift, orgId }: ShiftE
       start: shift?.start?.toISOString().substring(0, 16) || "",
       end: shift?.end?.toISOString().substring(0, 16) || "",
       assignedTo: shift?.assignedTo || [],
+      venueId: shift?.venueId || "",
+      standId: shift?.standId || "",
     },
   });
 
@@ -102,6 +106,24 @@ export function ShiftEditorDialog({ isOpen, onOpenChange, shift, orgId }: ShiftE
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="venueId">Venue ID (Optional)</Label>
+            <Input 
+              id="venueId" 
+              placeholder="e.g., venue-123" 
+              {...form.register("venueId")} 
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="standId">Stand/Booth/Zone ID (Optional)</Label>
+            <Input 
+              id="standId" 
+              placeholder="e.g., booth-12, zone-a" 
+              {...form.register("standId")} 
+            />
           </div>
 
           <DialogFooter>
