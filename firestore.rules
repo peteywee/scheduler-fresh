@@ -3,44 +3,110 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if a user is a member of a specific org
-    function isOrgMember(orgId) {
-      return request.auth != null
-        && exists(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid));
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Helper function to check if a user has a specific role in an org
-    function hasOrgRole(orgId, role) {
-      return isOrgMember(orgId)
-        && get(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid)).data.role == role;
+    function orgMemberPath(orgId) {
+      return /databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid);
     }
 
-    // Helper function to check for admin or manager role
+    function userDocPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function userOrgMatches(orgId) {
+      return isSignedIn()
+        && exists(userDocPath(request.auth.uid))
+        && get(userDocPath(request.auth.uid)).data.orgId == orgId;
+    }
+
+    function orgMembership(orgId) {
+      return isSignedIn() && exists(orgMemberPath(orgId));
+    }
+
+    function orgRole(orgId) {
+      return orgMembership(orgId) ? get(orgMemberPath(orgId)).data.role : null;
+    }
+
+    function hasOrgRole(orgId, roles) {
+      return orgMembership(orgId) && (orgRole(orgId) in roles);
+    }
+
+    function isOrgAdmin(orgId) {
+      return hasOrgRole(orgId, ['admin']);
+    }
+
     function isOrgAdminOrManager(orgId) {
-      return isOrgMember(orgId)
-        && (get(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid)).data.role in ['admin', 'manager']);
+      return hasOrgRole(orgId, ['admin', 'manager']);
+    }
+
+    function isParentAdmin(parentId) {
+      return request.auth != null
+        && request.auth.token.parentAdmin == true
+        && request.auth.token.parentId == parentId;
+    }
+
+    function isOwnAttendanceCreate(orgId) {
+      return orgMembership(orgId)
+        && request.auth.uid == request.resource.data.staffId
+        && request.resource.data.tenantId == orgId
+        && request.resource.data.status == 'pending'
+        && !('approvedAt' in request.resource.data)
+        && !('approvedBy' in request.resource.data);
+    }
+
+    function isValidAttendanceUpdate(orgId) {
+      return request.resource.data.tenantId == orgId
+        && resource.data.tenantId == orgId
+        && request.resource.data.staffId == resource.data.staffId
+        && !(request.method == 'delete');
     }
 
     match /orgs/{orgId} {
-      // Existing rules for orgs...
-      allow read: if isOrgMember(orgId);
-      allow write: if hasOrgRole(orgId, 'admin');
+      allow read: if orgMembership(orgId);
+      allow create, update: if isOrgAdmin(orgId) && userOrgMatches(orgId);
+      allow delete: if false;
 
-      // Rules for org members subcollection
       match /members/{memberId} {
-        allow read: if isOrgMember(orgId);
-        allow write: if hasOrgRole(orgId, 'admin');
+        allow read: if orgMembership(orgId);
+        allow create, update: if isOrgAdmin(orgId) && userOrgMatches(orgId)
+          && request.resource.data.orgId == orgId
+          && request.resource.data.uid == memberId;
+        allow delete: if false;
       }
 
-      // --- NEW RULES FOR SHIFTS ---
+      match /attendance/{attendanceId} {
+        allow read: if orgMembership(orgId);
+        allow create: if isOwnAttendanceCreate(orgId);
+        allow update: if isOrgAdminOrManager(orgId) && isValidAttendanceUpdate(orgId);
+        allow delete: if false;
+      }
+
       match /shifts/{shiftId} {
-        // Any member of the organization can read the schedule
-        allow read: if isOrgMember(orgId);
-
-        // Only admins or managers can create, update, or delete shifts
-        allow write: if isOrgAdminOrManager(orgId);
+        allow read: if orgMembership(orgId);
+        allow create, update, delete: if isOrgAdminOrManager(orgId);
       }
-      // --- END NEW RULES ---
+    }
+
+    match /parents/{parentId} {
+      allow create, update, delete: if false;
+      allow read: if isParentAdmin(parentId);
+
+      match /contracts/{subOrgId} {
+        allow read: if isParentAdmin(parentId) || isOrgAdmin(subOrgId);
+        allow create, update, delete: if false;
+      }
+
+      match /ledgers/{periodId} {
+        allow read: if isParentAdmin(parentId);
+        allow create, update, delete: if false;
+
+        match /lines/{lineId} {
+          allow read: if isParentAdmin(parentId);
+          allow create, update, delete: if false;
+        }
+      }
     }
   }
 }
