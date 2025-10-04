@@ -40,6 +40,8 @@ export const OrgMemberSchema = z.object({
   role: z.enum(["admin", "manager", "employee"]),
   joinedAt: z.date(),
   addedBy: z.string(),
+  displayName: z.string().optional(),
+  email: z.string().email().optional(),
 });
 
 export type OrgMember = z.infer<typeof OrgMemberSchema>;
@@ -189,3 +191,46 @@ export function sanitizeOrgId(name: string): string {
     .replace(/^-|-$/g, "")
     .substring(0, 20);
 }
+
+// Shift data model
+export const ShiftSchema = z.object({
+  id: z.string(),
+  orgId: z.string(),
+  venueId: z.string().optional(), // Reference to venue where shift takes place
+  standId: z.string().optional(), // Reference to stand/booth/zone within venue
+  start: z.date(),
+  end: z.date(),
+  title: z.string().optional(),
+  assignedTo: z.array(z.string()).optional(), // Array of user UIDs
+  notes: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type Shift = z.infer<typeof ShiftSchema>;
+
+// Venue data model
+export const VenueSchema = z.object({
+  id: z.string(),
+  orgId: z.string(),
+  name: z.string().min(1, "Venue name is required"),
+  description: z.string().optional(),
+  address: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type Venue = z.infer<typeof VenueSchema>;
+
+// Stand/Booth/Zone data model (child of Venue)
+export const StandSchema = z.object({
+  id: z.string(),
+  venueId: z.string(), // Parent venue reference
+  orgId: z.string(),
+  name: z.string().min(1, "Stand name is required"), // e.g., "Booth 12", "Zone A"
+  description: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type Stand = z.infer<typeof StandSchema>;

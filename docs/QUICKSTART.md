@@ -1,4 +1,4 @@
-# Implementation Summary - Multi-Tenant Staff Scheduler
+# Quickstart Guide - Multi-Tenant Staff Scheduler
 
 ## Quick Stats
 
@@ -304,7 +304,7 @@ firebase deploy
 
 ## Support
 
-- **Implementation Details**: See `IMPLEMENTATION.md`
+- **Implementation Details**: See [IMPLEMENTATION.md](./IMPLEMENTATION.md)
 - **Delivery Summary**: See `DELIVERY_SUMMARY.md`
 - **Project README**: See `README.md`
 - **Copilot Instructions**: See `.github/copilot-instructions.md`
