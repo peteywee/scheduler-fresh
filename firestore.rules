@@ -5,19 +5,20 @@ service cloud.firestore {
 
     // Helper function to check if a user is a member of a specific org
     function isOrgMember(orgId) {
-      return exists(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid));
+      return request.auth != null
+        && exists(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid));
     }
 
     // Helper function to check if a user has a specific role in an org
     function hasOrgRole(orgId, role) {
-      let userRole = get(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid)).data.role;
-      return userRole == role;
+      return isOrgMember(orgId)
+        && get(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid)).data.role == role;
     }
 
     // Helper function to check for admin or manager role
     function isOrgAdminOrManager(orgId) {
-        let userRole = get(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid)).data.role;
-        return userRole in ['admin', 'manager'];
+      return isOrgMember(orgId)
+        && (get(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid)).data.role in ['admin', 'manager']);
     }
 
     match /orgs/{orgId} {
