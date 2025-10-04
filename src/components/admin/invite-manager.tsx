@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { 
-  Plus, 
-  QrCode, 
-  Copy, 
-  ExternalLink, 
-  Users, 
-  MoreHorizontal
+import {
+  Plus,
+  QrCode,
+  Copy,
+  ExternalLink,
+  Users,
+  MoreHorizontal,
 } from "lucide-react";
 import BulkInviteForm from "./bulk-invite-form";
 
@@ -239,8 +239,14 @@ export default function InviteManager({
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <BulkInviteForm orgId={orgId} onInvitesCreated={handleInvitesCreated} />
-              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <BulkInviteForm
+                orgId={orgId}
+                onInvitesCreated={handleInvitesCreated}
+              />
+              <Dialog
+                open={showCreateDialog}
+                onOpenChange={setShowCreateDialog}
+              >
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
@@ -259,7 +265,12 @@ export default function InviteManager({
                   <form onSubmit={handleCreateInvite} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="role">Role</Label>
-                      <Select value={createForm.role} onValueChange={(value: "admin" | "manager" | "employee") => setCreateForm({ ...createForm, role: value })}>
+                      <Select
+                        value={createForm.role}
+                        onValueChange={(
+                          value: "admin" | "manager" | "employee",
+                        ) => setCreateForm({ ...createForm, role: value })}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -312,7 +323,10 @@ export default function InviteManager({
                         placeholder="Internal notes about this invite..."
                         value={createForm.notes}
                         onChange={(e) =>
-                          setCreateForm({ ...createForm, notes: e.target.value })
+                          setCreateForm({
+                            ...createForm,
+                            notes: e.target.value,
+                          })
                         }
                         rows={2}
                       />
@@ -344,7 +358,7 @@ export default function InviteManager({
                 </DialogContent>
               </Dialog>
             </div>
-            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {successMessage && (

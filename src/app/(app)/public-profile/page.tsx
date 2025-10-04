@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -21,7 +27,7 @@ async function getCsrfToken(): Promise<string> {
   await fetch("/api/auth/csrf", { method: "GET", credentials: "include" });
   const token = document.cookie
     .split("; ")
-    .find(row => row.startsWith("XSRF-TOKEN="))
+    .find((row) => row.startsWith("XSRF-TOKEN="))
     ?.split("=")[1];
   return token || "";
 }
@@ -52,7 +58,7 @@ export default function PublicProfilePage() {
         setProfile(data.profile);
       }
     } catch (error) {
-      console.error('Failed to load public profile:', error);
+      console.error("Failed to load public profile:", error);
       toast({
         title: "Error",
         description: "Failed to load public profile",
@@ -67,7 +73,7 @@ export default function PublicProfilePage() {
     try {
       setSaving(true);
       const csrf = await getCsrfToken();
-      
+
       const response = await fetch("/api/orgs/public-profile", {
         method: "POST",
         headers: {
@@ -90,7 +96,8 @@ export default function PublicProfilePage() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update profile",
+        description:
+          error instanceof Error ? error.message : "Failed to update profile",
         variant: "destructive",
       });
     } finally {
@@ -101,7 +108,7 @@ export default function PublicProfilePage() {
   const addTag = () => {
     const tag = newTag.trim();
     if (tag && !profile.tags.includes(tag)) {
-      setProfile(prev => ({
+      setProfile((prev) => ({
         ...prev,
         tags: [...prev.tags, tag],
       }));
@@ -110,9 +117,9 @@ export default function PublicProfilePage() {
   };
 
   const removeTag = (tagToRemove: string) => {
-    setProfile(prev => ({
+    setProfile((prev) => ({
       ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove),
+      tags: prev.tags.filter((tag) => tag !== tagToRemove),
     }));
   };
 
@@ -159,7 +166,7 @@ export default function PublicProfilePage() {
               id="listed"
               checked={profile.listed}
               onCheckedChange={(checked) =>
-                setProfile(prev => ({ ...prev, listed: checked }))
+                setProfile((prev) => ({ ...prev, listed: checked }))
               }
             />
           </div>
@@ -172,7 +179,7 @@ export default function PublicProfilePage() {
                   id="name"
                   value={profile.name}
                   onChange={(e) =>
-                    setProfile(prev => ({ ...prev, name: e.target.value }))
+                    setProfile((prev) => ({ ...prev, name: e.target.value }))
                   }
                   placeholder="Your organization name"
                   required
@@ -185,7 +192,7 @@ export default function PublicProfilePage() {
                   id="city"
                   value={profile.city}
                   onChange={(e) =>
-                    setProfile(prev => ({ ...prev, city: e.target.value }))
+                    setProfile((prev) => ({ ...prev, city: e.target.value }))
                   }
                   placeholder="e.g., San Francisco, CA"
                 />
@@ -195,7 +202,11 @@ export default function PublicProfilePage() {
                 <Label htmlFor="tags">Tags</Label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {profile.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="cursor-pointer">
+                    <Badge
+                      key={tag}
+                      variant="secondary"
+                      className="cursor-pointer"
+                    >
                       {tag}
                       <Button
                         variant="ghost"
@@ -244,7 +255,9 @@ export default function PublicProfilePage() {
           </CardHeader>
           <CardContent>
             <div className="border rounded-lg p-4">
-              <h3 className="font-semibold">{profile.name || "Organization Name"}</h3>
+              <h3 className="font-semibold">
+                {profile.name || "Organization Name"}
+              </h3>
               {profile.city && (
                 <p className="text-sm text-muted-foreground">{profile.city}</p>
               )}

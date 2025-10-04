@@ -26,6 +26,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings=0",
     "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "build": "next build",
     "test": "vitest",
     "test:run": "vitest run --exclude \"src/**/firestore*.test.ts\"",

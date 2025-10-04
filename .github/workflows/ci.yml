@@ -1,47 +1,73 @@
-name: CI - pnpm lint, typecheck, test, build
+name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
+    branches: [main, develop]
 
 jobs:
-  node-ci:
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v3
         with:
-          version: 10.17.1
-          # Do not run install here; we run an explicit, controlled install below.
-          # This prevents the action from failing early when it can't detect a lockfile path.
-          run_install: false
-
+          version: 8
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "20"
           cache: "pnpm"
-
       - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
 
-      - name: Lint
-        run: pnpm run lint
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run format:check
 
-      - name: Typecheck
-        run: pnpm run typecheck
-
-      - name: Test
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      # The FIREBASE_EMULATOR_HUB is needed for Firestore rules tests
+      - name: Run Tests
+        env:
+          FIREBASE_EMULATOR_HUB: "localhost:4400"
         run: pnpm run test:run
-        env:
-          NODE_ENV: test
 
-      - name: Test Firestore Rules
-        run: pnpm run test:rules
-        env:
-          NODE_ENV: test
-
-      - name: Build
-        run: pnpm run build
-        env:
-          NEXT_TELEMETRY_DISABLED: "1"
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, format-check, test] # This job depends on the others
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build

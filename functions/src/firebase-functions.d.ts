@@ -15,7 +15,9 @@ declare module "firebase-functions" {
 
   export const firestore: {
     document: (path: string) => {
-      onWrite: (fn: (change: Change<unknown>, context: EventContext) => unknown) => unknown;
+      onWrite: (
+        fn: (change: Change<unknown>, context: EventContext) => unknown,
+      ) => unknown;
     };
   };
 

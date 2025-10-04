@@ -128,11 +128,7 @@ export default function BulkInviteForm({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1"
-            >
+            <Button type="submit" disabled={isLoading} className="flex-1">
               {isLoading ? "Importing..." : "Import Users"}
             </Button>
           </div>
