@@ -1,6 +1,3 @@
-#!/usr/bin/env bash
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Robust pnpm resolution for local/CI/agent shells
 export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
 export PATH="$PNPM_HOME:$PATH"
