@@ -56,7 +56,7 @@ export default function ScheduleCalendar() {
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         shift={selectedShift}
-        orgId={orgId} // This needs to be passed down from props
+        orgId={""} // TODO: Pass orgId from parent component
       />
     </div>
   );
