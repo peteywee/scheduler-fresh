@@ -41,7 +41,7 @@ export default function ScheduleCalendar({ orgId = "demo" }: { orgId?: string })
           .map((s) => {
             const rec = s as RawShift & Record<string, unknown>;
             return {
-              id: typeof rec.id === "string" ? rec.id : String(Math.random()).slice(2, 8),
+              id: typeof rec.id === "string" ? rec.id : undefined,
               orgId: typeof rec.orgId === "string" ? rec.orgId : orgId,
               venueId: typeof rec.venueId === "string" ? rec.venueId : undefined,
               standId: typeof rec.standId === "string" ? rec.standId : undefined,
