@@ -3,24 +3,30 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ============================================================================
+    // HELPER FUNCTIONS
+    // ============================================================================
+
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function orgMemberDoc(orgId) {
-      return /databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid);
+    // Organization membership check with null-safe access
+    function orgMemberPath(orgId) {
+      return /databases/$(database)/documents/orgs/$(orgId)/staff/$(request.auth.uid);
     }
 
     function hasOrgMembership(orgId) {
-      return isSignedIn() && exists(orgMemberDoc(orgId));
+      return isSignedIn() && exists(orgMemberPath(orgId));
     }
 
-    function orgRole(orgId) {
-      return get(orgMemberDoc(orgId)).data.role;
+    function getOrgRole(orgId) {
+      let memberPath = orgMemberPath(orgId);
+      return exists(memberPath) ? get(memberPath).data.role : null;
     }
 
     function hasOrgRole(orgId, roles) {
-      return hasOrgMembership(orgId) && (orgRole(orgId) in roles);
+      return hasOrgMembership(orgId) && (getOrgRole(orgId) in roles);
     }
 
     function isOrgAdmin(orgId) {
@@ -31,59 +37,132 @@ service cloud.firestore {
       return hasOrgRole(orgId, ['admin', 'manager']);
     }
 
-    function userDoc() {
-      return /databases/$(database)/documents/users/$(request.auth.uid);
-    }
-
-    function userOrgMatches(orgId) {
-      return isSignedIn()
-        && exists(userDoc())
-        && get(userDoc()).data.orgId == orgId;
-    }
-
+    // Parent (Corporate Account) admin check using custom claims
     function isParentAdmin(parentId) {
       return isSignedIn()
         && request.auth.token.parentAdmin == true
         && request.auth.token.parentId == parentId;
     }
 
-    match /orgs/{orgId} {
-      allow read: if hasOrgMembership(orgId);
+    // ============================================================================
+    // CORPORATE ACCOUNTS (Parents) - Read-only for parent admins
+    // ============================================================================
 
+    match /corporate_accounts/{corpId} {
+      allow read: if isParentAdmin(corpId);
+      allow write: if false; // Server-side only
+
+      // Contracts between parent and sub-orgs
+      match /contracts/{contractId} {
+        allow read: if isParentAdmin(corpId);
+        allow write: if false; // Server-side only
+      }
+
+      // Ledgers - APPEND-ONLY, SERVER-SIDE ONLY, no PII
+      match /ledgers/{periodId} {
+        allow read: if isParentAdmin(corpId);
+        allow write: if false; // Server-side only
+
+        match /lines/{lineId} {
+          allow read: if isParentAdmin(corpId);
+          allow write: if false; // Server-side only
+        }
+      }
+    }
+
+    // ============================================================================
+    // ORGANIZATIONS (Sub-Organizations) - Tenant-scoped
+    // ============================================================================
+
+    match /orgs/{orgId} {
+      // Organization document
+      allow read: if hasOrgMembership(orgId);
       allow create: if isSignedIn()
         && request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.orgId == orgId;
-
-      allow update: if isOrgAdmin(orgId)
-        && userOrgMatches(orgId)
-        && request.resource.data.orgId == orgId
-        && resource.data.orgId == orgId;
-
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isOrgAdmin(orgId);
       allow delete: if false;
 
-      match /members/{memberId} {
+      // Staff members (formerly "members")
+      match /staff/{staffId} {
         allow read: if hasOrgMembership(orgId);
-
         allow create: if isOrgAdmin(orgId)
-          && request.resource.data.uid == memberId
+          && request.resource.data.id == staffId
           && request.resource.data.orgId == orgId;
-
         allow update: if isOrgAdmin(orgId)
-          && request.resource.data.uid == memberId
-          && request.resource.data.orgId == orgId;
-
+          && request.resource.data.id == staffId
+          && request.resource.data.orgId == orgId
+          && resource.data.orgId == orgId;
         allow delete: if isOrgAdmin(orgId);
       }
 
+      // Certifications
+      match /certifications/{certId} {
+        allow read: if hasOrgMembership(orgId);
+        allow create: if hasOrgMembership(orgId)
+          && request.resource.data.orgId == orgId;
+        allow update: if (
+            hasOrgMembership(orgId)
+            && request.auth.uid == resource.data.staffId
+          ) || isOrgAdminOrManager(orgId);
+        allow delete: if isOrgAdminOrManager(orgId);
+      }
+
+      // Location Hierarchy: Venues
+      match /venues/{venueId} {
+        allow read: if hasOrgMembership(orgId);
+        allow create: if isOrgAdminOrManager(orgId)
+          && request.resource.data.orgId == orgId;
+        allow update: if isOrgAdminOrManager(orgId)
+          && request.resource.data.orgId == orgId
+          && resource.data.orgId == orgId;
+        allow delete: if isOrgAdmin(orgId);
+      }
+
+      // Location Hierarchy: Zones
+      match /zones/{zoneId} {
+        allow read: if hasOrgMembership(orgId);
+        allow create: if isOrgAdminOrManager(orgId)
+          && request.resource.data.orgId == orgId;
+        allow update: if isOrgAdminOrManager(orgId)
+          && request.resource.data.orgId == orgId
+          && resource.data.orgId == orgId;
+        allow delete: if isOrgAdmin(orgId);
+      }
+
+      // Location Hierarchy: Positions
+      match /positions/{positionId} {
+        allow read: if hasOrgMembership(orgId);
+        allow create: if isOrgAdminOrManager(orgId)
+          && request.resource.data.orgId == orgId;
+        allow update: if isOrgAdminOrManager(orgId)
+          && request.resource.data.orgId == orgId
+          && resource.data.orgId == orgId;
+        allow delete: if isOrgAdmin(orgId);
+      }
+
+      // Shifts
+      match /shifts/{shiftId} {
+        allow read: if hasOrgMembership(orgId);
+        allow create: if isOrgAdminOrManager(orgId)
+          && request.resource.data.orgId == orgId;
+        allow update: if isOrgAdminOrManager(orgId)
+          && request.resource.data.orgId == orgId
+          && resource.data.orgId == orgId;
+        allow delete: if isOrgAdminOrManager(orgId);
+      }
+
+      // Attendance - staff can create pending, admins approve
       match /attendance/{attendanceId} {
         allow read: if hasOrgMembership(orgId);
-
+        
+        // Staff can create their own pending attendance
         allow create: if hasOrgMembership(orgId)
           && request.auth.uid == request.resource.data.staffId
           && request.resource.data.tenantId == orgId
           && request.resource.data.status == "pending";
-
+        
+        // Staff can update their own pending attendance, admins can approve/reject
         allow update: if (
             hasOrgMembership(orgId)
             && request.auth.uid == resource.data.staffId
@@ -96,75 +175,26 @@ service cloud.firestore {
             && request.resource.data.staffId == resource.data.staffId
             && request.resource.data.tenantId == resource.data.tenantId
           );
-
-        allow delete: if false;
+        
+        allow delete: if false; // No client-side deletes
       }
 
-      match /joinRequests/{requestId} {
-        allow read: if (
-            isSignedIn() && request.auth.uid == resource.data.requestedBy
-          ) || isOrgAdminOrManager(orgId);
-
-        allow create: if isSignedIn()
-          && request.auth.uid == request.resource.data.requestedBy
-          && request.resource.data.orgId == orgId;
-
-        allow update: if isOrgAdminOrManager(orgId);
-
-        allow delete: if isOrgAdminOrManager(orgId)
-          || (isSignedIn() && request.auth.uid == resource.data.requestedBy);
-      }
-
-      match /invites/{inviteId} {
-        allow read: if isOrgAdminOrManager(orgId);
-        allow create: if isOrgAdminOrManager(orgId)
-          && request.resource.data.orgId == orgId;
-        allow update: if isOrgAdminOrManager(orgId)
-          && request.resource.data.orgId == orgId;
-        allow delete: if isOrgAdminOrManager(orgId);
-      }
-
-      match /shifts/{shiftId} {
+      // Tokens (for onboarding)
+      match /tokens/{tokenId} {
         allow read: if hasOrgMembership(orgId);
-        allow create: if isOrgAdminOrManager(orgId)
+        allow create: if isOrgAdmin(orgId)
           && request.resource.data.orgId == orgId;
-        allow update: if isOrgAdminOrManager(orgId)
+        allow update: if isOrgAdmin(orgId)
           && request.resource.data.orgId == orgId
           && resource.data.orgId == orgId;
-        allow delete: if isOrgAdminOrManager(orgId);
-      }
-
-      match /public/{docId} {
-        allow read: if resource.data.listed == true;
-        allow write: if isOrgAdminOrManager(orgId);
+        allow delete: if isOrgAdmin(orgId);
       }
     }
 
-    match /users/{uid} {
-      allow read: if isSignedIn() && request.auth.uid == uid;
-      allow write: if false;
-    }
-
-    match /parents/{parentId} {
-      allow read: if isParentAdmin(parentId);
-      allow write: if false;
-
-      match /contracts/{contractId} {
-        allow read: if isParentAdmin(parentId);
-        allow write: if false;
-      }
-
-      match /ledgers/{periodId} {
-        allow read: if isParentAdmin(parentId);
-        allow write: if false;
-
-        match /lines/{lineId} {
-          allow read: if isParentAdmin(parentId);
-          allow write: if false;
-        }
-      }
-    }
-
+    // ============================================================================
+    // DEFAULT DENY ALL
+    // ============================================================================
+    
     match /{document=**} {
       allow read, write: if false;
     }

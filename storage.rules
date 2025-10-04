@@ -2,22 +2,35 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    function isSignedIn() { return request.auth != null; }
-    function uid() { return request.auth.uid; }
-    function org() { return isSignedIn() ? request.auth.token.orgId : null; }
-
-    // Path pattern: orgs/{orgId}/users/{uid}/... or orgs/{orgId}/public/...
-    match /orgs/{orgId}/users/{userId}/{allPaths=**} {
-      allow write: if isSignedIn() && org() == orgId && uid() == userId;
-      allow read: if isSignedIn() && org() == orgId && uid() == userId;
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function userOrgId() {
+      return isSignedIn() ? request.auth.token.orgId : null;
     }
 
-    match /orgs/{orgId}/public/{allPaths=**} {
-      allow read: if true; // public assets per org
-      allow write: if false; // only via backend/admin if needed
+    // ============================================================================
+    // ORGANIZATION-SCOPED STORAGE
+    // ============================================================================
+    // Pattern: orgs/{orgId}/staff/{staffId}/certifications/{certId}
+    
+    match /orgs/{orgId}/staff/{staffId}/certifications/{certId} {
+      // Only allow access if user's custom auth token contains matching orgId
+      allow read, write: if isSignedIn() && userOrgId() == orgId;
     }
 
-    // Default deny
+    // General org file storage
+    match /orgs/{orgId}/{allPaths=**} {
+      allow read, write: if isSignedIn() && userOrgId() == orgId;
+    }
+
+    // ============================================================================
+    // DEFAULT DENY ALL
+    // ============================================================================
+    
     match /{allPaths=**} {
       allow read, write: if false;
     }
