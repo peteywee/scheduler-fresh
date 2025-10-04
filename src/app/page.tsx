@@ -1,6 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CalendarCheck, Users, BotMessageSquare } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarCheck,
+  Users,
+  BotMessageSquare,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,31 +15,40 @@ const featureCards = [
   {
     icon: <CalendarCheck className="h-8 w-8 text-primary" />,
     title: "Intuitive Scheduling",
-    description: "Create, manage, and publish schedules with a simple drag-and-drop interface. Keep your team in sync effortlessly.",
+    description:
+      "Create, manage, and publish schedules with a simple drag-and-drop interface. Keep your team in sync effortlessly.",
   },
   {
     icon: <Users className="h-8 w-8 text-primary" />,
     title: "Staff Management",
-    description: "Empower your staff to view shifts, request swaps, and manage their time off, all subject to your approval.",
+    description:
+      "Empower your staff to view shifts, request swaps, and manage their time off, all subject to your approval.",
   },
   {
     icon: <BotMessageSquare className="h-8 w-8 text-primary" />,
     title: "AI Conflict Detection",
-    description: "Leverage our smart AI to automatically flag potential scheduling conflicts, ensuring smooth operations.",
+    description:
+      "Leverage our smart AI to automatically flag potential scheduling conflicts, ensuring smooth operations.",
   },
 ];
 
 export default function Home() {
-  const heroImage = PlaceHolderImages.find(p => p.id === "1");
+  const heroImage = PlaceHolderImages.find((p) => p.id === "1");
 
   return (
     <div className="flex flex-col min-h-screen">
       <header className="px-4 lg:px-6 h-14 flex items-center bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <Link href="#" className="flex items-center justify-center" prefetch={false}>
+        <Link
+          href="#"
+          className="flex items-center justify-center"
+          prefetch={false}
+        >
           <CalendarCheck className="h-6 w-6 text-primary" />
           <span className="sr-only">Fresh Schedules</span>
         </Link>
-        <h1 className="ml-2 text-xl font-bold font-headline text-foreground">Fresh Schedules</h1>
+        <h1 className="ml-2 text-xl font-bold font-headline text-foreground">
+          Fresh Schedules
+        </h1>
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Link
             href="/login"
@@ -58,7 +72,9 @@ export default function Home() {
                     Scheduling, Simplified.
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    Fresh Schedules is the ultimate tool for managing your team. From intuitive drag-and-drop scheduling to AI-powered conflict detection, we've got you covered.
+                    Fresh Schedules is the ultimate tool for managing your team.
+                    From intuitive drag-and-drop scheduling to AI-powered
+                    conflict detection, we've got you covered.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -87,24 +103,36 @@ export default function Home() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm">Key Features</div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Everything you need, nothing you don't.</h2>
+                <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm">
+                  Key Features
+                </div>
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+                  Everything you need, nothing you don't.
+                </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Focus on what matters most—your business. Let Fresh Schedules handle the complexities of staff management.
+                  Focus on what matters most—your business. Let Fresh Schedules
+                  handle the complexities of staff management.
                 </p>
               </div>
             </div>
             <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 mt-12">
               {featureCards.map((feature) => (
-                <Card key={feature.title} className="hover:shadow-lg transition-shadow duration-300">
+                <Card
+                  key={feature.title}
+                  className="hover:shadow-lg transition-shadow duration-300"
+                >
                   <CardHeader>
                     <div className="p-3 rounded-full bg-primary/10 inline-block mb-4">
-                       {feature.icon}
+                      {feature.icon}
                     </div>
-                    <CardTitle className="font-headline">{feature.title}</CardTitle>
+                    <CardTitle className="font-headline">
+                      {feature.title}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">{feature.description}</p>
+                    <p className="text-muted-foreground">
+                      {feature.description}
+                    </p>
                   </CardContent>
                 </Card>
               ))}
@@ -113,12 +141,22 @@ export default function Home() {
         </section>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-muted-foreground">&copy; 2024 Fresh Schedules. All rights reserved.</p>
+        <p className="text-xs text-muted-foreground">
+          &copy; 2024 Fresh Schedules. All rights reserved.
+        </p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
-          <Link href="#" className="text-xs hover:underline underline-offset-4" prefetch={false}>
+          <Link
+            href="#"
+            className="text-xs hover:underline underline-offset-4"
+            prefetch={false}
+          >
             Terms of Service
           </Link>
-          <Link href="#" className="text-xs hover:underline underline-offset-4" prefetch={false}>
+          <Link
+            href="#"
+            className="text-xs hover:underline underline-offset-4"
+            prefetch={false}
+          >
             Privacy
           </Link>
         </nav>

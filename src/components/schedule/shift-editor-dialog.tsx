@@ -26,7 +26,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-
 // Create a Zod schema for the form
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -37,7 +36,6 @@ const formSchema = z.object({
   standId: z.string().optional(),
 });
 
-
 interface ShiftEditorDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -45,7 +43,12 @@ interface ShiftEditorDialogProps {
   orgId: string;
 }
 
-export function ShiftEditorDialog({ isOpen, onOpenChange, shift, orgId }: ShiftEditorDialogProps) {
+export function ShiftEditorDialog({
+  isOpen,
+  onOpenChange,
+  shift,
+  orgId,
+}: ShiftEditorDialogProps) {
   const [members, setMembers] = useState<OrgMember[]>([]);
   // resolver typing mismatch between @hookform/resolvers and this project's zod version;
   // it's safe to cast here.
@@ -82,10 +85,10 @@ export function ShiftEditorDialog({ isOpen, onOpenChange, shift, orgId }: ShiftE
           <DialogTitle>{shift ? "Edit Shift" : "Add Shift"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-                <Label htmlFor="title">Title</Label>
-                <Input id="title" {...form.register("title")} />
-            </div>
+          <div>
+            <Label htmlFor="title">Title</Label>
+            <Input id="title" {...form.register("title")} />
+          </div>
 
           <div>
             <Label>Assign To</Label>
@@ -110,19 +113,19 @@ export function ShiftEditorDialog({ isOpen, onOpenChange, shift, orgId }: ShiftE
 
           <div>
             <Label htmlFor="venueId">Venue ID (Optional)</Label>
-            <Input 
-              id="venueId" 
-              placeholder="e.g., venue-123" 
-              {...form.register("venueId")} 
+            <Input
+              id="venueId"
+              placeholder="e.g., venue-123"
+              {...form.register("venueId")}
             />
           </div>
 
           <div>
             <Label htmlFor="standId">Stand/Booth/Zone ID (Optional)</Label>
-            <Input 
-              id="standId" 
-              placeholder="e.g., booth-12, zone-a" 
-              {...form.register("standId")} 
+            <Input
+              id="standId"
+              placeholder="e.g., booth-12, zone-a"
+              {...form.register("standId")}
             />
           </div>
 
