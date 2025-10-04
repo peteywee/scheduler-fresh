@@ -1,12 +1,24 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase.server";
 
+import { getSession } from "@/lib/session";
+import { verifyOrgAccess } from "@/lib/auth-utils";
+
 export async function GET(req: Request) {
   try {
+    const session = await getSession(req);
+    if (!session?.uid) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
     const url = new URL(req.url);
     const orgId = url.searchParams.get("orgId");
     if (!orgId) return new NextResponse("Missing orgId", { status: 400 });
 
+    const isAllowed = await verifyOrgAccess(session.uid, orgId, ["admin", "manager", "employee"]);
+    if (!isAllowed) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
     const snapshot = await adminDb().collection(`orgs/${orgId}/shifts`).get();
     const shifts = snapshot.docs.map((d) => {
       const data = d.data();
