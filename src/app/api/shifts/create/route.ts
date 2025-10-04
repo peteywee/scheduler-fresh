@@ -5,6 +5,7 @@ import { z } from "zod";
 import { adminDb } from "@/lib/firebase.server";
 import { getSession } from "@/lib/session";
 import { ShiftSchema } from "@/lib/types";
+import { verifyOrgAccess } from "@/lib/auth-utils";
 
 const CreateShiftRequestSchema = ShiftSchema.omit({
   id: true,
@@ -22,12 +23,8 @@ export async function POST(request: Request) {
     const json = await request.json();
     const parsedData = CreateShiftRequestSchema.parse(json);
 
-    // --- NEW SECURITY CHECK ---
-    // verifyOrgAccess is expected to be available in the runtime; if you see an unused-import
-    // lint error here, ensure the helper is imported where needed. For now we call it dynamically
-    // to avoid build-time import errors in edge-like environments.
-  const { verifyOrgAccess } = await import("@/lib/auth-utils").catch(() => ({ verifyOrgAccess: async () => true }));
-  const isAllowed = await verifyOrgAccess(session.uid, parsedData.orgId, ["admin","manager"]);
+      // Security: verify org access
+      const isAllowed = await verifyOrgAccess(session.uid, parsedData.orgId, ["admin", "manager"]);
     if (!isAllowed) {
       return new NextResponse("Forbidden: You do not have permission to create shifts.", { status: 403 });
     }
