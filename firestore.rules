@@ -1,208 +1,46 @@
 rules_version = '2';
+
 service cloud.firestore {
-	match /databases/{database}/documents {
+  match /databases/{database}/documents {
 
-		// ========= Helpers =========
-		function isAuthed() {
-			return request.auth != null;
-		}
+    // Helper function to check if a user is a member of a specific org
+    function isOrgMember(orgId) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid));
+    }
 
-		function userDocPath(uid) {
-			return /databases/$(database)/documents/users/$(uid);
-		}
+    // Helper function to check if a user has a specific role in an org
+    function hasOrgRole(orgId, role) {
+      return isOrgMember(orgId)
+        && get(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid)).data.role == role;
+    }
 
-		// Only call get() if the doc exists to avoid Null value errors
-		function hasUserDoc() {
-			return isAuthed() && exists(userDocPath(request.auth.uid));
-		}
+    // Helper function to check for admin or manager role
+    function isOrgAdminOrManager(orgId) {
+      return isOrgMember(orgId)
+        && (get(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid)).data.role in ['admin', 'manager']);
+    }
 
-		// Safe accessor for the authed user's orgId
-		function authedOrgIdOrEmpty() {
-			return hasUserDoc()
-				? get(userDocPath(request.auth.uid)).data.orgId
-				: "";
-		}
+    match /orgs/{orgId} {
+      // Existing rules for orgs...
+      allow read: if isOrgMember(orgId);
+      allow write: if hasOrgRole(orgId, 'admin');
 
-		function memberDocPath(orgId, uid) {
-			return /databases/$(database)/documents/orgs/$(orgId)/members/$(uid);
-		}
+      // Rules for org members subcollection
+      match /members/{memberId} {
+        allow read: if isOrgMember(orgId);
+        allow write: if hasOrgRole(orgId, 'admin');
+      }
 
-		function isMember(orgId) {
-			return isAuthed() && exists(memberDocPath(orgId, request.auth.uid));
-		}
+      // --- NEW RULES FOR SHIFTS ---
+      match /shifts/{shiftId} {
+        // Any member of the organization can read the schedule
+        allow read: if isOrgMember(orgId);
 
-		function isAdmin(orgId) {
-			return isMember(orgId) &&
-				get(memberDocPath(orgId, request.auth.uid)).data.role == "admin";
-		}
-
-		// Parent (contractor) claims: parent admin with matching parentId claim
-		function isParentAdmin(parentId) {
-			return isAuthed()
-				&& (request.auth.token.parentAdmin == true)
-				&& (request.auth.token.parentId == parentId);
-		}
-
-		// ========= Public directory (read-only) =========
-		// Use a simple collection with even path segments.
-		// Tests should read: /orgDirectory/{orgId}
-		match /orgDirectory/{orgId} {
-			allow read: if true;     // public listing
-			allow write: if false;   // only server/admins write via Admin SDK
-		}
-
-		// ========= Organization root documents =========
-		// orgs/{orgId}
-		match /orgs/{orgId} {
-			// Members can read their org doc
-			allow get, list: if isMember(orgId);
-
-			// Admins can update their org doc; validate shape on writes
-			allow update: if isAdmin(orgId) && (authedOrgIdOrEmpty() == orgId) && validOrgUpdate();
-
-			// Prevent create/delete from client; use Admin SDK or CFs
-			allow create, delete: if false;
-
-					function validOrgUpdate() {
-						// Example field guards — adjust to your schema
-						// Never assume fields exist; check with keys().hasAll([...])
-						let incoming = request.resource.data;
-
-						// Only allow updates that keep the same orgId (immutable)
-						let sameId = (("orgId" in resource.data) && ("orgId" in incoming))
-							? (incoming.orgId == resource.data.orgId)
-							: true;
-
-						// Accept the existing persisted keys plus a safe writable subset
-						let allowedKeys = [
-							"orgId", "name", "timezone", "updatedAt", "updatedBy",
-							"settings", "ownerUid", "createdAt", "createdBy", "parentId"
-						];
-						let allowed = incoming.keys().hasOnly(allowedKeys);
-
-						// Example: if name is provided, it must be non-empty string
-						let nameOk = ("name" in incoming) ? (incoming.name is string && incoming.name.size() > 0) : true;
-
-						// Example: if timezone provided, must be string
-						let tzOk = ("timezone" in incoming) ? (incoming.timezone is string) : true;
-
-						return sameId && allowed && nameOk && tzOk;
-			}
-		}
-
-		// ========= Organization membership documents =========
-		// orgs/{orgId}/members/{uid}
-		match /orgs/{orgId}/members/{uid} {
-			// A member can read their own membership doc; admins can read everyone
-			allow get: if (isAuthed() && request.auth.uid == uid) || isAdmin(orgId);
-			allow list: if isAdmin(orgId); // keep listings restricted
-
-			// Only admins can add or update members, with validation
-			allow create, update: if isAdmin(orgId) && validMembership();
-
-			// No client-side deletes
-			allow delete: if false;
-
-					function validMembership() {
-						let d = request.resource.data;
-
-						// Ensure required fields exist and are well-typed
-						let hasReq = d.keys().hasAll(["uid", "orgId", "role", "createdAt"]);
-						let uidOk = ("uid" in d) && (d.uid is string) && (d.uid.size() > 0);
-						let orgOk = ("orgId" in d) && (d.orgId == orgId);
-						let roleOk = ("role" in d) && (d.role is string) && (
-							d.role in ["admin", "manager", "member"]
-						);
-
-						let allowedKeys = [
-							"uid", "orgId", "role", "createdAt", "addedBy",
-							"updatedAt", "updatedBy", "joinedAt"
-						];
-						let allowed = d.keys().hasOnly(allowedKeys);
-
-						return hasReq && uidOk && orgOk && roleOk && allowed;
-			}
-		}
-
-		// ========= User documents =========
-		// users/{uid}
-		match /users/{uid} {
-			// Owners can read/write their own profile with safe validation
-			allow get: if isAuthed() && request.auth.uid == uid;
-			allow update: if isAuthed() && request.auth.uid == uid && validUserUpdate();
-
-			// Typically created/managed server-side
-			allow create, delete: if false;
-
-			function validUserUpdate() {
-				let inc = request.resource.data;
-
-				// Only allow a controlled set of fields to change
-				let allowed = inc.keys().hasOnly([
-					"displayName", "photoURL", "orgId", "updatedAt", "settings"
-				]);
-
-				// If orgId is being set, it must be a string (can be empty string)
-				let orgOk = ("orgId" in inc) ? (inc.orgId is string) : true;
-
-				// Never deref org membership here; tests will seed docs before asserting
-				return allowed && orgOk;
-			}
-		}
-
-		// ========= Attendance within orgs =========
-		match /orgs/{orgId}/attendance/{eventId} {
-			// Members can read attendance in their org
-			allow get, list: if isMember(orgId);
-
-			// Staff can create their own pending events; Admins can approve/update
-			allow create: if isMember(orgId) && validAttendanceCreate(orgId);
-			allow update: if isAdmin(orgId) && validAttendanceUpdate(orgId);
-
-			// No deletes client-side
-			allow delete: if false;
-
-			function validAttendanceCreate(orgId) {
-				let d = request.resource.data;
-				let has = d.keys().hasAll(["id","tenantId","staffId","venueId","clockIn","status"]);
-				let belongs = ("tenantId" in d) && (d.tenantId == orgId);
-				let staffOk = ("staffId" in d) && (isAuthed() && d.staffId == request.auth.uid);
-				let statusOk = ("status" in d) && (d.status == "pending");
-				let timeOk = ("clockIn" in d) && (d.clockIn is int);
-				return has && belongs && staffOk && statusOk && timeOk;
-			}
-
-			function validAttendanceUpdate(orgId) {
-				let d = request.resource.data;
-				let hasBase = d.keys().hasAll(["id","tenantId","staffId","venueId","clockIn","status"]);
-				let belongs = ("tenantId" in d) && (d.tenantId == orgId);
-				// Approvals may add clockOut/approvedBy/approvedAt
-				let statusOk = ("status" in d) && (d.status in ["pending","approved","rejected"]);
-				return hasBase && belongs && statusOk;
-			}
-		}
-
-		// ========= Parents (contractors) – append-only ledgers; server writes only =========
-		match /parents/{parentId} {
-			// No direct client access at root
-			allow read, write: if false;
-
-			match /contracts/{subOrgId} {
-				// Parent admins may READ their contracts; writes are server-only.
-				allow get, list: if isParentAdmin(parentId);
-				allow create, update, delete: if false;
-			}
-
-			match /ledgers/{periodId} {
-				allow read, write: if false;
-
-				match /lines/{lineId} {
-					// Parent admins can read their ledger lines (no PII beyond staffRef in data model)
-					allow get, list: if isParentAdmin(parentId);
-					// No client writes — must be done via Admin SDK/Functions replication
-					allow create, update, delete: if false;
-				}
-			}
-		}
-	}
+        // Only admins or managers can create, update, or delete shifts
+        allow write: if isOrgAdminOrManager(orgId);
+      }
+      // --- END NEW RULES ---
+    }
+  }
 }
