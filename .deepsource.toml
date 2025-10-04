@@ -1,40 +1,30 @@
-# .deepsource.toml
-# DeepSource config — Next.js + TypeScript + Docker
-# Docs: https://deepsource.io/docs/
-
+# DeepSource config for Next.js 15 + TypeScript 5 + Docker
 version = 1
 
-# ── Analyzers ────────────────────────────────────────────────────────────────
+# ── Analyzers ──────────────────────────────────────────────
 [[analyzers]]
 name = "javascript"
 enabled = true
 
   [analyzers.meta]
-  dialect = "typescript"     # "javascript" or "typescript"
-  module_system = "es-modules"  # valid: "commonjs" | "es-modules" | "amd"
-  # project_type can help DeepSource tune rules; "node" is a safe default for Next.js
+  dialect = "typescript"         # "javascript" or "typescript"
+  module_system = "es-modules"   # "commonjs" | "es-modules" | "amd"
   project_type = "node"
 
 [[analyzers]]
 name = "docker"
 enabled = true
 
-# Add more if you use them:
-# [[analyzers]]
-# name = "secrets"
-# enabled = true
+[[analyzers]]
+name = "secrets"
+enabled = true
 
-# ── Transformers (formatters) ────────────────────────────────────────────────
+# ── Transformers (Formatters) ──────────────────────────────
 [[transformers]]
 name = "prettier"
 enabled = true
 
-# Example: enable Black only if you have Python
-# [[transformers]]
-# name = "black"
-# enabled = false
-
-# ── Paths & ignores ─────────────────────────────────────────────────────────
+# ── Paths & ignores ────────────────────────────────────────
 [ignore]
 patterns = [
   "node_modules/**",
@@ -47,10 +37,10 @@ patterns = [
   "*.lock",
 ]
 
-# ── Reporting ────────────────────────────────────────────────────────────────
+# ── Reporting ──────────────────────────────────────────────
 [report]
 severity = "error"  # "info" | "warning" | "error"
 
-# ── Optional: mark tests so rules understand fixtures/mocks ──────────────────
-# [test_patterns]
-# patterns = ["**/*.test.ts", "**/*.spec.ts", "**/__tests__/**"]
+# ── Test patterns ──────────────────────────────────────────
+[test_patterns]
+patterns = ["**/*.test.ts", "**/*.spec.ts", "**/__tests__/**"]
