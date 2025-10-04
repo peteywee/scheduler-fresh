@@ -2,117 +2,31 @@
 # file: stabilize-and-validate.sh
 set -euo pipefail
 
-echo "==> Ensure pnpm is available on PATH (local & agents)"
-
-resolve_pnpm() {
-  export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
-  export PATH="$PNPM_HOME:$PATH"
-  if ! command -v pnpm >/dev/null 2>&1; then
-    if command -v corepack >/dev/null 2>&1; then
-      corepack enable >/dev/null 2>&1 || true
-      corepack prepare pnpm@10 --activate >/dev/null 2>&1 || true
-    fi
-  fi
-  # Fallback install if still missing
-  if ! command -v pnpm >/dev/null 2>&1; then
-    echo "==> Installing pnpm (user-scoped)…"
-    curl -fsSL https://get.pnpm.io/install.sh | sh -
-    export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
-    export PATH="$PNPM_HOME:$PATH"
-  fi
-}
-
-resolve_pnpm
-echo "==> Harden Husky hooks to be pnpm-robust"
-mkdir -p .husky
-# pre-commit: secret scan + lint-staged; robust PNPM resolution
-cat > .husky/pre-commit <<'SH'
-#!/usr/bin/env bash
-. "$(dirname -- "$0")/_/husky.sh"
-
-# Robust pnpm resolution for local/CI/agent shells
-export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
-export PATH="$PNPM_HOME:$PATH"
-if ! command -v pnpm >/dev/null 2>&1; then
-  if command -v corepack >/dev/null 2>&1; then
-    corepack enable >/dev/null 2>&1 || true
-    corepack prepare pnpm@10 --activate >/dev/null 2>&1 || true
-  fi
-  # Fallback install if still missing
-  if ! command -v pnpm >/dev/null 2>&1; then
-    echo "==> Installing pnpm (user-scoped)…"
-    curl -fsSL https://get.pnpm.io/install.sh | sh -
-    export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
-    export PATH="$PNPM_HOME:$PATH"
-  fi
-fi
-
-# Run secret scan (non-fatal if gitleaks missing) + lint-staged
-pnpm run precommit:secrets || echo "⚠️  precommit:secrets skipped/failed"
-# Prefer pnpm dlx; fallback to npx if pnpm still unavailable
-if command -v pnpm >/dev/null 2>&1; then
-  pnpm dlx lint-staged
-else
-  npx --yes lint-staged
-fi
-SH
-chmod +x .husky/pre-commit
-    export PATH="$PNPM_HOME:$PATH"
-  fi
-}
-
-export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
-resolve_pnpm
-
-# Run secret scan (non-fatal if gitleaks missing) + lint-staged
-pnpm run precommit:secrets || echo "⚠️  precommit:secrets skipped/failed"
-# Prefer pnpm dlx; fallback to npx if pnpm still unavailable
-if command -v pnpm >/dev/null 2>&1; then
-  pnpm dlx lint-staged
-else
-  npx --yes lint-staged
-fi
-SH
-chmod +x .husky/pre-commit
-
-# pre-push: typecheck + lint
-cat > .husky/pre-push <<'SH'
-#!/usr/bin/env bash
-. "$(dirname -- "$0")/_/husky.sh"
-
-export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
-export PATH="$PNPM_HOME:$PATH"
-if ! command -v pnpm >/dev/null 2>&1; then
-  if command -v corepack >/dev/null 2>&1; then corepack enable >/dev/null 2>&1 || true; fi
-fi
-
-pnpm run typecheck && pnpm run lint
-SH
-chmod +x .husky/pre-push
+echo "==> Standardizing: using npm for installs and hooks"
 
 # Ensure husky bootstrap exists (v9)
 if [ ! -f ".husky/_/husky.sh" ]; then
-  pnpm dlx husky@9 init >/dev/null 2>&1 || true
+  npx --yes husky@9 init >/dev/null 2>&1 || true
 fi
 
-echo "==> Install deps (pnpm ci if lockfile present)"
-if [ -f pnpm-lock.yaml ]; then
-  pnpm install --frozen-lockfile
+echo "==> Install deps (npm ci if package-lock present)"
+if [ -f package-lock.json ]; then
+  npm ci --prefer-offline --no-audit --progress=false
 else
-  pnpm install
+  npm install
 fi
 
 echo "==> Lint"
-pnpm run lint
+npm run lint
 
 echo "==> Typecheck"
-pnpm run typecheck
+npm run typecheck
 
 echo "==> Build"
-pnpm run build
+npm run build
 
 echo "==> Gitleaks security scan"
-pnpm run gitleaks:scan || echo "⚠️ gitleaks scan failed or not available"
+npm run gitleaks:scan || echo "⚠️ gitleaks scan failed or not available"
 
 echo "==> Quick Firebase/GCP CLI sanity (non-fatal if missing)"
 set +e
