@@ -75,12 +75,10 @@ async function main() {
       })),
       timestamp: new Date().toISOString(),
     };
-      } else if (error?.code && error.code !== "EADDRINUSE") {
-        console.warn(`⚠️ Port ${port} could not be checked (${error.code}).`);
-      } else {
-        console.error(`❌ Port ${port} is busy.`);
-      }
-      } else if (error && error.code && error.code !== "EADDRINUSE") {
+    console.log(JSON.stringify(payload, null, 2));
+  } else if (!options.silent) {
+    busy.forEach(({ port, error }) => {
+      if (error && error.code && error.code !== "EADDRINUSE") {
         console.warn(`⚠️ Port ${port} could not be checked (${error.code}).`);
       } else {
         console.error(`❌ Port ${port} is busy.`);
