@@ -1,56 +1,145 @@
-# .deepsource.toml
-# DeepSource config — Next.js + TypeScript + Docker
-# Docs: https://deepsource.io/docs/
-
+# DeepSource configuration for Scheduler-Fresh
+# Next.js 15 + TypeScript 5 + Firebase + Docker + PWA
 version = 1
 
-# ── Analyzers ────────────────────────────────────────────────────────────────
+# ── Test Patterns ───────────────────────────────────────────
+test_patterns = [
+  "**/*.test.ts",
+  "**/*.test.tsx",
+  "**/*.spec.ts",
+  "**/*.spec.tsx",
+  "**/__tests__/**",
+  "**/test/**",
+  "src/test/**",
+]
+
+# ── Documentation Patterns ──────────────────────────────────
+documentation = [
+  "docs/**",
+  "*.md",
+  "README*",
+]
+
+# ── JavaScript/TypeScript Analyzer ──────────────────────────
 [[analyzers]]
 name = "javascript"
 enabled = true
 
   [analyzers.meta]
-  dialect = "typescript"     # "javascript" or "typescript"
-  module_system = "es-modules"  # valid: "commonjs" | "es-modules" | "amd"
-  # project_type can help DeepSource tune rules; "node" is a safe default for Next.js
+  dialect = "typescript"
+  style_guide = "airbnb"
+  environment = [
+    "browser",
+    "nodejs",
+    "es2022"
+  ]
+  module_system = "es-modules"
   project_type = "node"
+  skip_doc_coverage = ["test", "spec"]
+  dependency_file_paths = [
+    "package.json",
+    "functions/package.json"
+  ]
+  tsconfig_paths = [
+    "tsconfig.json",
+    "functions/tsconfig.json"
+  ]
 
+# ── Docker Analyzer ─────────────────────────────────────────
 [[analyzers]]
 name = "docker"
 enabled = true
 
-# Add more if you use them:
-# [[analyzers]]
-# name = "secrets"
-# enabled = true
+# ── Secrets Scanner ─────────────────────────────────────────
+[[analyzers]]
+name = "secrets"
+enabled = true
 
-# ── Transformers (formatters) ────────────────────────────────────────────────
+# ── Shell Script Analyzer ───────────────────────────────────
+[[analyzers]]
+name = "shell"
+enabled = true
+
+  [analyzers.meta]
+  dialect = "bash"
+
+# ── SQL Analyzer (for Firestore queries) ────────────────────
+[[analyzers]]
+name = "sql"
+enabled = false  # Enable if using SQL
+
+# ── Test Coverage Analyzer ──────────────────────────────────
+[[analyzers]]
+name = "test-coverage"
+enabled = true
+
+  [analyzers.meta]
+  coverage_file_path = "coverage/lcov.info"
+
+# ── Prettier Transformer ────────────────────────────────────
 [[transformers]]
 name = "prettier"
 enabled = true
 
-# Example: enable Black only if you have Python
-# [[transformers]]
-# name = "black"
-# enabled = false
-
-# ── Paths & ignores ─────────────────────────────────────────────────────────
+# ── Paths & Ignores ─────────────────────────────────────────
 [ignore]
 patterns = [
+  # Dependencies
   "node_modules/**",
+  "**/node_modules/**",
+  "pnpm-lock.yaml",
+  "package-lock.json",
+  "yarn.lock",
+  
+  # Build outputs
   ".next/**",
   "out/**",
   "dist/**",
   "build/**",
+  ".output/**",
+  
+  # Testing & Coverage
   "coverage/**",
+  ".nyc_output/**",
+  "__coverage__/**",
+  
+  # Cache & Temp
   ".cache/**",
-  "*.lock",
+  ".temp/**",
+  ".tmp/**",
+  "*.cache",
+  
+  # Firebase
+  ".firebase/**",
+  "firebase-debug.log",
+  "firestore-debug.log",
+  "ui-debug.log",
+  
+  # Environment & Config
+  ".env*",
+  "*.local",
+  
+  # Generated files
+  "*.generated.*",
+  "*.d.ts",
+  
+  # IDE
+  ".vscode/**",
+  ".idea/**",
+  
+  # Misc
+  "*.min.js",
+  "*.min.css",
+  "public/sw.js",
+  "public/workbox-*.js",
+  
+  # Backups
+  "*.bak",
+  "*.backup",
 ]
 
-# ── Reporting ────────────────────────────────────────────────────────────────
+# ── Reporting Configuration ─────────────────────────────────
 [report]
 severity = "error"  # "info" | "warning" | "error"
-
-# ── Optional: mark tests so rules understand fixtures/mocks ──────────────────
-# [test_patterns]
-# patterns = ["**/*.test.ts", "**/*.spec.ts", "**/__tests__/**"]
+exclude_types = []
+exclude_patterns = []

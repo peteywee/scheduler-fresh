@@ -1,0 +1,41 @@
+{
+  "presets": {
+    "core": {
+      "description": "Lint and type-check the root workspace (safe default).",
+      "include": ["^\\.:lint$", "^\\.:typecheck$"]
+    },
+    "core-with-functions": {
+      "description": "Run lint and build checks for both root and functions package.",
+      "include": [
+        "^\\.:lint$",
+        "^\\.:typecheck$",
+        "^functions:lint$",
+        "^functions:build$"
+      ]
+    },
+    "frontend-dev": {
+      "description": "Start the Next.js web dev server only.",
+      "include": ["^\\.:dev:web$"]
+    },
+    "frontend-dev-turbo": {
+      "description": "Start the Next.js dev server using Turbopack.",
+      "include": ["^\\.:dev:web:turbo$"]
+    },
+    "api-dev": {
+      "description": "Start Firebase emulators (auth, firestore, storage).",
+      "include": ["^\\.:dev:api$"]
+    },
+    "full-dev": {
+      "description": "Run the combined dev script (web + API).",
+      "include": ["^\\.:dev$"]
+    },
+    "full-dev-turbo": {
+      "description": "Run combined dev servers with Turbopack for the web app.",
+      "include": ["^\\.:dev:turbo$"]
+    },
+    "ports": {
+      "description": "Check common dev ports without starting any servers.",
+      "include": ["^\\.:check:ports$"]
+    }
+  }
+}
