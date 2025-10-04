@@ -12,7 +12,7 @@ export async function DELETE(req: NextRequest) {
   if (!shiftId) return new NextResponse("Missing shiftId", { status: 400 });
 
   // Get session
-  const session = await getSession();
+  const session = await getSession(req);
   if (!session) return new NextResponse("Unauthorized", { status: 401 });
 
   // Find shift by id using collectionGroup
