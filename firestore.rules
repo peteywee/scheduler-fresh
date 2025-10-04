@@ -63,6 +63,7 @@ service cloud.firestore {
         && !(request.method == 'delete');
     }
 
+    /** ---------- Orgs Collection ---------- **/
     match /orgs/{orgId} {
       allow read: if orgMembership(orgId);
       allow create, update: if isOrgAdmin(orgId) && userOrgMatches(orgId);
