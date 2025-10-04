@@ -1,9 +1,11 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env -S node --import ./scripts/task-runner-register.mjs
 /*
  A simple task runner:
  - Discovers npm scripts from package.json files (root + subfolders) and .vscode/tasks.json
  - Runs up to CONCURRENCY tasks in parallel (default 3)
  - Records failures, retries up to MAX_RETRIES (default 3), and continues with other tasks
+ - Supports filtering via TASK_INCLUDE/TASK_EXCLUDE (comma-separated regex or literals)
+ - Supports named presets via TASK_PRESET defined in task-runner.config.json
  - When tasks finish (success or exhausted retries) the runner exits with summary
 */
 
@@ -23,6 +25,142 @@ const ROOT = process.cwd();
 const CONCURRENCY = Number(process.env.CONCURRENCY) || 3;
 const MAX_RETRIES = Number(process.env.MAX_RETRIES) || 3;
 const DISCOVER_PACKAGES = true;
+const DEFAULT_EXCLUDE_PATTERNS = ["\bkill\b", "\bstop\b", "\btask-runner\b"];
+const CONFIG_PATH = process.env.TASK_CONFIG_PATH || path.join(ROOT, "task-runner.config.json");
+const DISABLE_FLAG_FILENAME = ".task-runner.disabled";
+const DISABLE_FLAG_PATH = path.join(ROOT, DISABLE_FLAG_FILENAME);
+
+type TaskPreset = {
+  description?: string;
+  include?: string[];
+  exclude?: string[];
+};
+
+type TaskRunnerConfig = {
+  presets?: Record<string, TaskPreset>;
+};
+
+type CompiledFilter = {
+  raw: string;
+  matcher: (value: string) => boolean;
+};
+
+function getDisableReason(): string | null {
+  const envValue = process.env.TASK_RUNNER_DISABLED;
+  if (envValue && envValue !== "0" && envValue.toLowerCase() !== "false") {
+    return `Disabled via TASK_RUNNER_DISABLED=${envValue}. Remove or reset the env var to re-enable.`;
+  }
+
+  if (fs.existsSync(DISABLE_FLAG_PATH)) {
+    return `Disable flag detected at ${DISABLE_FLAG_FILENAME}. Delete this file to re-enable.`;
+  }
+
+  return null;
+}
+
+function escapeForLiteralRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function compileFilterList(patterns: string[]): CompiledFilter[] {
+  return patterns
+    .map((pattern) => compileFilter(pattern))
+    .filter((filter): filter is CompiledFilter => Boolean(filter));
+}
+
+function compileFilter(pattern: string): CompiledFilter | null {
+  const trimmed = pattern.trim();
+  if (!trimmed) return null;
+
+  try {
+    const regex = new RegExp(trimmed, "i");
+    return {
+      raw: trimmed,
+      matcher: (value: string) => regex.test(value),
+    };
+  } catch (err) {
+    console.warn(`[FILTER] Invalid regex '${trimmed}'. Falling back to case-insensitive literal match. Please check your regex syntax if you intended a pattern.`, err);
+    const escaped = new RegExp(escapeForLiteralRegex(trimmed), "i");
+    return {
+      raw: trimmed,
+      matcher: (value: string) => escaped.test(value),
+    };
+  }
+}
+
+function readEnvPatterns(envKey: "TASK_INCLUDE" | "TASK_EXCLUDE"): string[] {
+  const raw = process.env[envKey];
+  if (!raw) return [];
+  return raw.split(",").map((p) => p.trim()).filter(Boolean);
+}
+
+function loadDefaultExcludes(): CompiledFilter[] {
+  if (process.env.ALLOW_DESTRUCTIVE === "1") {
+    return [];
+  }
+  return compileFilterList(DEFAULT_EXCLUDE_PATTERNS);
+}
+
+function loadConfig(): TaskRunnerConfig {
+  try {
+    if (!fs.existsSync(CONFIG_PATH)) {
+      return { presets: {} };
+    }
+
+    const raw = fs.readFileSync(CONFIG_PATH, "utf8");
+    const parsed = JSON.parse(raw) as TaskRunnerConfig;
+    if (!parsed || typeof parsed !== "object") {
+      console.warn(`[CONFIG] ${CONFIG_PATH} is not a valid config object. Expected a JSON object with an optional 'presets' property.`);
+      return { presets: {} };
+    }
+    return {
+      presets: parsed.presets || {},
+    };
+  } catch (err) {
+    console.warn(`[CONFIG] Failed to read ${CONFIG_PATH}`, err);
+    return { presets: {} };
+  }
+}
+
+function resolvePresetPatterns(config: TaskRunnerConfig, names: string[]): {
+  includePatterns: string[];
+  excludePatterns: string[];
+} {
+  const includePatterns: string[] = [];
+  const excludePatterns: string[] = [];
+
+  for (const rawName of names) {
+    const name = rawName.trim();
+    if (!name) continue;
+    const preset = config.presets?.[name];
+    if (!preset) {
+      console.warn(`[PRESET] '${name}' not found in ${CONFIG_PATH}.`);
+      continue;
+    }
+    if (preset.description) {
+      console.log(`[PRESET] ${name}: ${preset.description}`);
+    }
+    if (preset.include?.length) {
+      includePatterns.push(...preset.include);
+    }
+    if (preset.exclude?.length) {
+      excludePatterns.push(...preset.exclude);
+    }
+  }
+
+  return { includePatterns, excludePatterns };
+}
+
+function passesFilters(task: Task, includes: CompiledFilter[], excludes: CompiledFilter[]): boolean {
+  const surfaces = [task.id, task.cmd, `${task.id} ${task.cmd}`];
+  if (includes.length > 0 && !includes.some((f) => surfaces.some((value) => f.matcher(value)))) {
+    return false;
+  }
+  if (excludes.some((f) => surfaces.some((value) => f.matcher(value)))) {
+    return false;
+  }
+  return true;
+}
 
 function findPackageJsonPaths(dir: string): string[] {
   const results: string[] = [];
@@ -109,15 +247,77 @@ function runTask(t: Task) {
 }
 
 async function main() {
+  const disableReason = getDisableReason();
+  if (disableReason) {
+    console.log(`[TASK RUNNER DISABLED] ${disableReason}`);
+    process.exit(0);
+  }
+
   const discovered = discoverTasks();
   if (discovered.length === 0) {
     console.log("No tasks discovered.");
     process.exit(0);
   }
 
-  console.log(`Discovered ${discovered.length} tasks, concurrency=${CONCURRENCY}, maxRetries=${MAX_RETRIES}`);
+  const config = loadConfig();
+  const presetNames = (process.env.TASK_PRESET || "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
 
-  const queue = [...discovered];
+  if (presetNames.length > 0) {
+    console.log(`Applying TASK_PRESET: ${presetNames.join(", ")}`);
+  }
+
+  const { includePatterns: presetIncludePatterns, excludePatterns: presetExcludePatterns } = resolvePresetPatterns(config, presetNames);
+
+  const envIncludePatterns = readEnvPatterns("TASK_INCLUDE");
+  const envExcludePatterns = readEnvPatterns("TASK_EXCLUDE");
+
+  const includeFilters = [
+    ...compileFilterList(presetIncludePatterns),
+    ...compileFilterList(envIncludePatterns),
+  ];
+  const defaultExcludeFilters = loadDefaultExcludes();
+  const presetExcludeFilters = compileFilterList(presetExcludePatterns);
+  const envExcludeFilters = compileFilterList(envExcludePatterns);
+  const allExcludeFilters = [...defaultExcludeFilters, ...presetExcludeFilters, ...envExcludeFilters];
+
+  if (presetIncludePatterns.length > 0) {
+    console.log(`Preset include filters: ${presetIncludePatterns.join(", ")}`);
+  }
+  if (envIncludePatterns.length > 0) {
+    console.log(`Applying TASK_INCLUDE filters: ${envIncludePatterns.join(", ")}`);
+  }
+  if (defaultExcludeFilters.length > 0) {
+    console.log(`Applying default safety filters (set ALLOW_DESTRUCTIVE=1 to bypass): ${defaultExcludeFilters.map((f) => f.raw).join(", ")}`);
+  }
+  if (presetExcludePatterns.length > 0) {
+    console.log(`Preset exclude filters: ${presetExcludePatterns.join(", ")}`);
+  }
+  if (envExcludePatterns.length > 0) {
+    console.log(`Applying TASK_EXCLUDE filters: ${envExcludePatterns.join(", ")}`);
+  }
+
+  const filtered = discovered.filter((task) => passesFilters(task, includeFilters, allExcludeFilters));
+
+  if (filtered.length === 0) {
+    console.log("No tasks remaining after applying filters. Exiting.");
+    process.exit(0);
+  }
+
+  console.log(`Discovered ${discovered.length} tasks (${filtered.length} after filters), concurrency=${CONCURRENCY}, maxRetries=${MAX_RETRIES}`);
+
+  if (process.env.DRY_RUN === "1") {
+    console.log("DRY_RUN=1 set. Listing tasks without executing:");
+    for (const t of filtered) {
+      console.log(` - ${t.id} :: ${t.cmd} @ ${t.cwd}`);
+    }
+    console.log("Exiting early due to dry-run mode.");
+    process.exit(0);
+  }
+
+  const queue = [...filtered];
   const failed: { task: Task; lastCode: number | null }[] = [];
 
   let running = 0;
