@@ -1,4 +1,4 @@
-import { config } from 'dotenv';
+import { config } from "dotenv";
 config();
 
-import '@/ai/flows/conflict-flagging.ts';
+import "@/ai/flows/conflict-flagging.ts";

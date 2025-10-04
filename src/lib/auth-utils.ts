@@ -24,8 +24,13 @@ export async function setUserCustomClaims(
   try {
     await adminAuth().setCustomUserClaims(uid, claims);
   } catch (error) {
-    if (process.env.NODE_ENV === 'development' || process.env.NEXT_PHASE === 'phase-production-build') {
-      console.warn('Firebase Admin SDK not fully initialized, skipping custom claims update');
+    if (
+      process.env.NODE_ENV === "development" ||
+      process.env.NEXT_PHASE === "phase-production-build"
+    ) {
+      console.warn(
+        "Firebase Admin SDK not fully initialized, skipping custom claims update",
+      );
       return;
     }
     throw error;
@@ -40,8 +45,13 @@ export async function getUserCustomClaims(uid: string): Promise<CustomClaims> {
     const user = await adminAuth().getUser(uid);
     return (user.customClaims as CustomClaims) || {};
   } catch (error) {
-    if (process.env.NODE_ENV === 'development' || process.env.NEXT_PHASE === 'phase-production-build') {
-      console.warn('Firebase Admin SDK not fully initialized, returning empty claims');
+    if (
+      process.env.NODE_ENV === "development" ||
+      process.env.NEXT_PHASE === "phase-production-build"
+    ) {
+      console.warn(
+        "Firebase Admin SDK not fully initialized, returning empty claims",
+      );
       return {};
     }
     throw error;
@@ -275,7 +285,7 @@ export async function createOrganization(
  * Generate a secure invite code
  */
 export function generateInviteCode(): string {
-  return randomBytes(6).toString('hex'); // Generates a 12-character hex string
+  return randomBytes(6).toString("hex"); // Generates a 12-character hex string
 }
 
 /**
@@ -297,7 +307,7 @@ export async function revokeUserTokens(uid: string): Promise<void> {
 export async function verifyOrgAccess(
   uid: string,
   orgId: string,
-  allowedRoles: string[]
+  allowedRoles: string[],
 ): Promise<boolean> {
   try {
     const memberDoc = await getFirestore_()

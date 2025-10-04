@@ -7,7 +7,11 @@ import {
   InviteCode,
   generateShortCode,
 } from "@/lib/types";
-import { generateInviteCode, generateQRCodeUrl, isUserOrgAdmin } from "@/lib/auth-utils";
+import {
+  generateInviteCode,
+  generateQRCodeUrl,
+  isUserOrgAdmin,
+} from "@/lib/auth-utils";
 
 // Lazy initialize Firestore to avoid build-time errors
 function getDb() {
@@ -56,7 +60,7 @@ export async function POST(req: NextRequest) {
     if (decoded.email_verified === false) {
       return NextResponse.json<CreateInviteResponse>(
         { success: false, error: "Email must be verified to create invites" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
