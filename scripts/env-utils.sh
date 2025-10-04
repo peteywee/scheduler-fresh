@@ -20,12 +20,12 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 # Function to encode JSON to base64
 encode_json_to_base64() {
   local json_file="$1"
-  
+
   if [[ ! -f "$json_file" ]]; then
     log_error "JSON file not found: $json_file"
     return 1
   fi
-  
+
   log_info "Encoding JSON file to base64: $json_file"
   base64 -w 0 < "$json_file"
 }
@@ -34,10 +34,10 @@ encode_json_to_base64() {
 decode_base64_to_json() {
   local encoded_string="$1"
   local output_file="${2:-decoded.json}"
-  
+
   log_info "Decoding base64 to JSON: $output_file"
   echo "$encoded_string" | base64 -d > "$output_file"
-  
+
   if [[ -f "$output_file" ]]; then
     log_success "Decoded to: $output_file"
     return 0
@@ -50,7 +50,7 @@ decode_base64_to_json() {
 # Function to validate JSON format
 validate_json() {
   local json_content="$1"
-  
+
   if echo "$json_content" | jq empty 2>/dev/null; then
     log_success "Valid JSON format"
     return 0
@@ -63,21 +63,21 @@ validate_json() {
 # Function to extract Firebase config from environment
 get_firebase_config() {
   local env_file="${1:-.env.local}"
-  
+
   if [[ ! -f "$env_file" ]]; then
     log_error "Environment file not found: $env_file"
     return 1
   fi
-  
+
   log_info "Extracting Firebase configuration from: $env_file"
-  
+
   local api_key auth_domain project_id app_id
-  
+
   api_key=$(grep "^NEXT_PUBLIC_FIREBASE_API_KEY=" "$env_file" | cut -d'=' -f2- | tr -d '"')
   auth_domain=$(grep "^NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=" "$env_file" | cut -d'=' -f2- | tr -d '"')
   project_id=$(grep "^NEXT_PUBLIC_FIREBASE_PROJECT_ID=" "$env_file" | cut -d'=' -f2- | tr -d '"')
   app_id=$(grep "^NEXT_PUBLIC_FIREBASE_APP_ID=" "$env_file" | cut -d'=' -f2- | tr -d '"')
-  
+
   if [[ -n "$api_key" && -n "$auth_domain" && -n "$project_id" && -n "$app_id" ]]; then
     log_success "Firebase configuration extracted successfully"
     echo "API Key: $api_key"
@@ -93,22 +93,22 @@ get_firebase_config() {
 # Function to get service account JSON from environment
 get_service_account_json() {
   local env_file="${1:-.env.local}"
-  
+
   if [[ ! -f "$env_file" ]]; then
     log_error "Environment file not found: $env_file"
     return 1
   fi
-  
+
   local encoded_json
   encoded_json=$(grep "^FIREBASE_SERVICE_ACCOUNT_JSON=" "$env_file" | cut -d'=' -f2- | tr -d '"')
-  
+
   if [[ -z "$encoded_json" ]]; then
     log_error "FIREBASE_SERVICE_ACCOUNT_JSON not found in $env_file"
     return 1
   fi
-  
+
   log_info "Decoding service account JSON from environment..."
-  
+
   # Try to decode as base64 first
   if echo "$encoded_json" | base64 -d 2>/dev/null | jq empty 2>/dev/null; then
     echo "$encoded_json" | base64 -d
@@ -127,21 +127,21 @@ update_env_var() {
   local var_name="$2"
   local var_value="$3"
   local backup="${4:-true}"
-  
+
   if [[ ! -f "$env_file" ]]; then
     log_info "Creating new environment file: $env_file"
     touch "$env_file"
   fi
-  
+
   if [[ "$backup" == "true" ]]; then
     cp "$env_file" "${env_file}.backup.$(date +%Y%m%d-%H%M%S)"
     log_info "Backed up existing environment file"
   fi
-  
+
   # Escape special characters in the value
   local escaped_value
   escaped_value=$(printf '%s\n' "$var_value" | sed 's/[[\.*^$()+?{|]/\\&/g')
-  
+
   if grep -q "^${var_name}=" "$env_file"; then
     # Update existing variable
     if command -v gsed >/dev/null 2>&1; then
@@ -160,14 +160,14 @@ update_env_var() {
 # Function to validate environment file
 validate_env_file() {
   local env_file="${1:-.env.local}"
-  
+
   if [[ ! -f "$env_file" ]]; then
     log_error "Environment file not found: $env_file"
     return 1
   fi
-  
+
   log_info "Validating environment file: $env_file"
-  
+
   local required_vars=(
     "NEXT_PUBLIC_FIREBASE_API_KEY"
     "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"
@@ -175,18 +175,18 @@ validate_env_file() {
     "NEXT_PUBLIC_FIREBASE_APP_ID"
     "FIREBASE_SERVICE_ACCOUNT_JSON"
   )
-  
+
   local missing_vars=()
-  
+
   for var in "${required_vars[@]}"; do
     if ! grep -q "^${var}=" "$env_file" || [[ -z "$(grep "^${var}=" "$env_file" | cut -d'=' -f2-)" ]]; then
       missing_vars+=("$var")
     fi
   done
-  
+
   if [[ ${#missing_vars[@]} -eq 0 ]]; then
     log_success "All required environment variables are present"
-    
+
     # Validate service account JSON
     local sa_json
     if sa_json=$(get_service_account_json "$env_file"); then
@@ -200,7 +200,7 @@ validate_env_file() {
       log_error "Failed to decode service account JSON"
       return 1
     fi
-    
+
   else
     log_error "Missing required environment variables:"
     for var in "${missing_vars[@]}"; do
@@ -213,9 +213,9 @@ validate_env_file() {
 # Function to generate environment template
 generate_env_template() {
   local template_file="${1:-.env.example}"
-  
+
   log_info "Generating environment template: $template_file"
-  
+
   cat > "$template_file" <<EOF
 # Firebase Web (Client) Configuration
 NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here
@@ -237,7 +237,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 # (Optional but recommended) Google AI / Genkit key
 GOOGLE_GENAI_API_KEY=your_google_ai_api_key_here
 EOF
-  
+
   log_success "Environment template generated: $template_file"
 }
 
@@ -245,12 +245,12 @@ EOF
 copy_env_template() {
   local source_file="${1:-.env.example}"
   local target_file="${2:-.env.local}"
-  
+
   if [[ ! -f "$source_file" ]]; then
     log_error "Source environment file not found: $source_file"
     return 1
   fi
-  
+
   if [[ -f "$target_file" ]]; then
     log_warn "Target file already exists: $target_file"
     read -p "Do you want to overwrite it? (y/N): " confirm
@@ -259,7 +259,7 @@ copy_env_template() {
       return 0
     fi
   fi
-  
+
   cp "$source_file" "$target_file"
   log_success "Copied $source_file to $target_file"
   log_info "Please edit $target_file and fill in your actual values"
@@ -268,24 +268,24 @@ copy_env_template() {
 # Function to show environment status
 show_env_status() {
   local env_file="${1:-.env.local}"
-  
+
   log_info "Environment Status Report"
   log_info "========================"
-  
+
   if [[ -f "$env_file" ]]; then
     log_success "Environment file exists: $env_file"
-    
+
     if validate_env_file "$env_file"; then
       log_success "Environment file is valid"
     else
       log_error "Environment file has issues"
     fi
-    
+
     # Show non-sensitive configuration
     log_info ""
     log_info "Firebase Configuration:"
     get_firebase_config "$env_file" 2>/dev/null || log_warn "Failed to extract Firebase config"
-    
+
   else
     log_error "Environment file not found: $env_file"
     log_info "Run: $0 copy-template to create one from .env.example"
@@ -295,7 +295,7 @@ show_env_status() {
 # Main function for when script is run directly
 main() {
   local command="${1:-status}"
-  
+
   case "$command" in
     "encode")
       local json_file="${2:-}"
