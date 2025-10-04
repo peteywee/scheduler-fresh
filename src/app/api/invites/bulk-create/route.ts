@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase.server";
+import { generateInviteCode } from "@/lib/auth-utils";
+import { generateShortCode } from "@/lib/types";
 
 const bulkCreateSchema = z.object({
   orgId: z.string(),
@@ -21,8 +23,8 @@ export async function POST(req: Request) {
     let createdCount = 0;
 
     for (const user of users) {
-      const code = Math.random().toString(36).substring(2, 10);
-      const shortCode = Math.random().toString(36).substring(2, 8);
+      const code = generateInviteCode();
+      const shortCode = generateShortCode(orgId, code);
 
       const newInvite = {
         code,
