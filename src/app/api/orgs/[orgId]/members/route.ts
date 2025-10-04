@@ -7,9 +7,9 @@ import { OrgMember } from "@/lib/types";
 
 export async function GET(
   request: NextRequest,
-  context: { params: Record<string, string> }
+  context: unknown
 ) {
-  const { params } = context;
+  const { params } = context as { params: { orgId: string } };
   try {
     const session = await getSession(request);
     if (!session?.uid) {
