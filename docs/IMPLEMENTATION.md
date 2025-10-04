@@ -107,7 +107,7 @@ Seeds emulator with:
 ### Prerequisites
 
 - Node.js 20+
-- npm package manager (canonical package-lock.json)
+- pnpm package manager
 - Firebase CLI (`npm install -g firebase-tools`)
 
 ### Installation
@@ -116,7 +116,7 @@ Seeds emulator with:
 
    ```bash
    # Root project
-   npm ci
+   pnpm install
 
    # Functions
    cd functions
@@ -135,7 +135,7 @@ Seeds emulator with:
 
 ```bash
 # Start firestore emulator and run rules tests
-npm run test:rules
+pnpm run test:rules
 ```
 
 This command:
@@ -155,7 +155,7 @@ firebase emulators:start --only auth,firestore,functions
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
 TS_NODE_TRANSPILE_ONLY=1 \
-TS_NODE_TRANSPILE_ONLY=1 npm exec -- ts-node scripts/seed/seed.emulator.ts
+pnpm ts-node scripts/seed/seed.emulator.ts
 ```
 
 ### Development Workflow
@@ -163,7 +163,7 @@ TS_NODE_TRANSPILE_ONLY=1 npm exec -- ts-node scripts/seed/seed.emulator.ts
 1. **Start all emulators**:
 
    ```bash
-   npm run dev:api
+   pnpm run dev:api
    ```
 
    This starts:
@@ -176,12 +176,12 @@ TS_NODE_TRANSPILE_ONLY=1 npm exec -- ts-node scripts/seed/seed.emulator.ts
 2. **Start web app**:
 
    ```bash
-   npm run dev:web
+   pnpm run dev:web
    ```
 
 3. **Run both concurrently**:
    ```bash
-   npm run dev
+   pnpm run dev
    ```
 
 ## Usage

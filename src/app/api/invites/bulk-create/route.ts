@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { firestore } from "@/lib/firebase.server";
+import { adminDb } from "@/lib/firebase.server";
 
 const bulkCreateSchema = z.object({
   orgId: z.string(),
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const json = await req.json();
     const { orgId, users } = bulkCreateSchema.parse(json);
 
-    const invitesCollection = firestore.collection(`organizations/${orgId}/invites`);
+  const invitesCollection = adminDb().collection(`orgs/${orgId}/invites`);
     let createdCount = 0;
 
     for (const user of users) {
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, createdCount });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ success: false, error: error.errors }, { status: 400 });
+      return NextResponse.json({ success: false, error: error.issues }, { status: 400 });
     }
     console.error("Bulk invite creation error:", error);
     return NextResponse.json({ success: false, error: "An unexpected error occurred." }, { status: 500 });

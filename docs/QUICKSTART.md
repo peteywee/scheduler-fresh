@@ -204,29 +204,29 @@ Must have: parentAdmin === true && parentId === <requested parentId>
 
 ```bash
 # Install dependencies
-npm ci
+pnpm install
 cd functions && npm install && cd ..
 
 # Start all emulators
-npm run dev:api
+pnpm run dev:api
 
 # Start web app
-npm run dev:web
+pnpm run dev:web
 
 # Both together
-npm run dev
+pnpm run dev
 ```
 
 ### Testing
 
 ```bash
 # Run rules tests
-npm run test:rules
+pnpm run test:rules
 
 # Seed emulator
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
-TS_NODE_TRANSPILE_ONLY=1 npm exec -- ts-node scripts/seed/seed.emulator.ts
+pnpm ts-node scripts/seed/seed.emulator.ts
 ```
 
 ### Building
@@ -236,10 +236,10 @@ TS_NODE_TRANSPILE_ONLY=1 npm exec -- ts-node scripts/seed/seed.emulator.ts
 cd functions && npm run build
 
 # Typecheck web
-npm run typecheck
+pnpm run typecheck
 
 # Lint
-npm run lint
+pnpm run lint
 ```
 
 ### Deployment

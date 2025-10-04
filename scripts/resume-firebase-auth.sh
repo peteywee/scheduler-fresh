@@ -4,14 +4,15 @@ set -u  # (avoid -e so we don’t stop on benign re-runs)
 echo "==> Ensuring we’re in project root"
 cd "$(dirname "$0")"
 
-echo "==> Ensure npm present"
-if ! command -v npm >/dev/null 2>&1; then
-  echo "npm not found. Please install Node and npm before continuing."
-  exit 1
+echo "==> Ensure pnpm present"
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "pnpm not found. Installing…"
+  curl -fsSL https://get.pnpm.io/install.sh | sh -
+  exec $SHELL -l
 fi
 
 echo "==> Install auth deps (safe to re-run)"
-npm install --no-audit --no-fund firebase firebase-admin zod --save
+pnpm add firebase firebase-admin zod >/dev/null 2>&1 || true
 
 echo "==> Create folders (no-op if they exist)"
 mkdir -p src/lib
