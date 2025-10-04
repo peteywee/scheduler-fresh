@@ -1,4 +1,4 @@
-'use server';
+"use server";
 
 /**
  * @fileOverview AI-powered conflict flagging tool for schedule management.
@@ -8,33 +8,45 @@
  * - ConflictFlaggingOutput - Return type for the flagConflicts function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from "@/ai/genkit";
+import { z } from "genkit";
 
 const ConflictFlaggingInputSchema = z.object({
   employeeAvailabilityDocs: z
     .string()
-    .describe('A text document containing information about employee availability, including days, times, and any restrictions.'),
-  currentSchedule: z.string().describe('A text document describing the current schedule.'),
+    .describe(
+      "A text document containing information about employee availability, including days, times, and any restrictions.",
+    ),
+  currentSchedule: z
+    .string()
+    .describe("A text document describing the current schedule."),
 });
 export type ConflictFlaggingInput = z.infer<typeof ConflictFlaggingInputSchema>;
 
 const ConflictFlaggingOutputSchema = z.object({
   flaggedConflicts: z
     .string()
-    .describe('A summary of potential scheduling conflicts identified by the AI, including employee names, dates, times, and reasons for the conflict.'),
-  conflictDetails: z.array(z.string()).describe('Detailed information about each conflict'),
+    .describe(
+      "A summary of potential scheduling conflicts identified by the AI, including employee names, dates, times, and reasons for the conflict.",
+    ),
+  conflictDetails: z
+    .array(z.string())
+    .describe("Detailed information about each conflict"),
 });
-export type ConflictFlaggingOutput = z.infer<typeof ConflictFlaggingOutputSchema>;
+export type ConflictFlaggingOutput = z.infer<
+  typeof ConflictFlaggingOutputSchema
+>;
 
-export async function flagConflicts(input: ConflictFlaggingInput): Promise<ConflictFlaggingOutput> {
+export async function flagConflicts(
+  input: ConflictFlaggingInput,
+): Promise<ConflictFlaggingOutput> {
   return flagConflictsFlow(input);
 }
 
 const conflictFlaggingPrompt = ai.definePrompt({
-  name: 'conflictFlaggingPrompt',
-  input: {schema: ConflictFlaggingInputSchema},
-  output: {schema: ConflictFlaggingOutputSchema},
+  name: "conflictFlaggingPrompt",
+  input: { schema: ConflictFlaggingInputSchema },
+  output: { schema: ConflictFlaggingOutputSchema },
   prompt: `You are an AI assistant designed to identify potential scheduling conflicts.
 
   Analyze the provided employee availability documents and the current schedule to identify any conflicts.
@@ -51,12 +63,12 @@ const conflictFlaggingPrompt = ai.definePrompt({
 
 const flagConflictsFlow = ai.defineFlow(
   {
-    name: 'flagConflictsFlow',
+    name: "flagConflictsFlow",
     inputSchema: ConflictFlaggingInputSchema,
     outputSchema: ConflictFlaggingOutputSchema,
   },
-  async input => {
-    const {output} = await conflictFlaggingPrompt(input);
+  async (input) => {
+    const { output } = await conflictFlaggingPrompt(input);
     return output!;
-  }
+  },
 );

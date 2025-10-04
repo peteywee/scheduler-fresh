@@ -34,14 +34,53 @@ export default function BulkInviteForm({
     setError("");
 
     try {
-      const lines = csvData.trim().split("\n");
-      const users = lines.slice(1).map((line) => {
-        const [email, role] = line.split(",");
-        return { email: email.trim(), role: role.trim() };
-      });
+      // Normalize and parse CSV safely
+      const raw = csvData.replace(/^\uFEFF/, "").trim(); // strip BOM
+      const lines = raw.split(/\r?\n/);
+      // Optional header detection: if first line contains 'email' and 'role', skip it
+      const startIdx =
+        lines[0]?.toLowerCase().includes("email") &&
+        lines[0]?.toLowerCase().includes("role")
+          ? 1
+          : 0;
 
+      const allowedRoles = new Set(["employee", "manager", "admin"]);
+      const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      const users: { email: string; role: string }[] = [];
+      const errors: string[] = [];
+
+      for (let i = startIdx; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line || line.startsWith("#")) continue; // skip empty/comments
+        const parts = line.split(",").map((s) => s.trim());
+        if (parts.length < 2) {
+          errors.push(`Line ${i + 1}: expected "email,role"`);
+          continue;
+        }
+        const [email, role] = parts;
+        if (!emailRe.test(email)) {
+          errors.push(`Line ${i + 1}: invalid email "${email}"`);
+          continue;
+        }
+        if (!allowedRoles.has(role)) {
+          errors.push(
+            `Line ${i + 1}: invalid role "${role}" (allowed: employee, manager, admin)`,
+          );
+          continue;
+        }
+        users.push({ email, role });
+      }
+
+      if (errors.length) {
+        setError(`Invalid CSV:\n${errors.join("\n")}`);
+        setIsLoading(false);
+        return;
+      }
       if (users.length === 0) {
-        throw new Error("No user data provided.");
+        setError("No valid user rows found.");
+        setIsLoading(false);
+        return;
       }
 
       const payload = {
@@ -128,11 +167,7 @@ export default function BulkInviteForm({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1"
-            >
+            <Button type="submit" disabled={isLoading} className="flex-1">
               {isLoading ? "Importing..." : "Import Users"}
             </Button>
           </div>

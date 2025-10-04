@@ -40,4 +40,6 @@ Thumbs.db
 
 # Build artifacts
 tsconfig.tsbuildinfo
+functions/lib/
+functions/package-lock.json
 

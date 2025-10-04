@@ -12,7 +12,8 @@ export async function GET(req: NextRequest) {
   const parentId = searchParams.get("parentId");
   const periodId = searchParams.get("periodId");
 
-  if (!parentId || !periodId) return bad(400, "parentId and periodId are required");
+  if (!parentId || !periodId)
+    return bad(400, "parentId and periodId are required");
 
   // Expect an ID token (Authorization: Bearer <token>) from client
   const authz = req.headers.get("authorization") || "";
@@ -33,33 +34,59 @@ export async function GET(req: NextRequest) {
 
   const db = adminDb();
   const snap = await db
-    .collection("parents").doc(parentId)
-    .collection("ledgers").doc(periodId)
+    .collection("parents")
+    .doc(parentId)
+    .collection("ledgers")
+    .doc(periodId)
     .collection("lines")
     .get();
 
-  const rows = [["parentId","subOrgId","staffRef","venueId","periodId","hours","billRate","amount","sourceAttendanceId","createdAt"]];
-  snap.forEach(d => {
+  const rows = [
+    [
+      "parentId",
+      "subOrgId",
+      "staffRef",
+      "venueId",
+      "periodId",
+      "hours",
+      "billRate",
+      "amount",
+      "sourceAttendanceId",
+      "createdAt",
+    ],
+  ];
+  snap.forEach((d) => {
     const x = d.data();
     rows.push([
-      x.parentId, x.subOrgId, x.staffRef, x.venueId, x.periodId,
-      String(x.hours ?? ""), String(x.billRate ?? ""), String(x.amount ?? ""),
-      x.sourceAttendanceId ?? "", String(x.createdAt ?? "")
+      x.parentId,
+      x.subOrgId,
+      x.staffRef,
+      x.venueId,
+      x.periodId,
+      String(x.hours ?? ""),
+      String(x.billRate ?? ""),
+      String(x.amount ?? ""),
+      x.sourceAttendanceId ?? "",
+      String(x.createdAt ?? ""),
     ]);
   });
 
-  const csv = rows.map(r =>
-    r.map(v => {
-      const s = String(v ?? "");
-      return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    }).join(",")
-  ).join("\n");
+  const csv = rows
+    .map((r) =>
+      r
+        .map((v) => {
+          const s = String(v ?? "");
+          return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        })
+        .join(","),
+    )
+    .join("\n");
 
   return new NextResponse(csv, {
     status: 200,
     headers: {
       "content-type": "text/csv; charset=utf-8",
-      "content-disposition": `attachment; filename="ledger_${parentId}_${periodId}.csv"`
-    }
+      "content-disposition": `attachment; filename="ledger_${parentId}_${periodId}.csv"`,
+    },
   });
 }

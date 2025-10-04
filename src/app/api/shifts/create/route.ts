@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const json = await request.json();
     const parsedData = CreateShiftRequestSchema.parse(json);
 
-    // Security: verify org access
+    // Verify user has permission to create shifts in this org
     const isAllowed = await verifyOrgAccess(session.uid, parsedData.orgId, [
       "admin",
       "manager",
@@ -34,7 +34,6 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
-    // --- END SECURITY CHECK ---
 
     const shiftRef = adminDb()
       .collection(`orgs/${parsedData.orgId}/shifts`)

@@ -29,13 +29,18 @@ function validateCsrf(req: NextRequest): boolean {
   return Boolean(header && cookie && header === cookie);
 }
 
-function errorResponse(status: number, code: string, message: string, details?: unknown) {
+function errorResponse(
+  status: number,
+  code: string,
+  message: string,
+  details?: unknown,
+) {
   return new NextResponse(JSON.stringify({ code, message, details }), {
     status,
     headers: {
       "Content-Type": "application/json",
-      "Vary": "Origin"
-    }
+      Vary: "Origin",
+    },
   });
 }
 
@@ -58,7 +63,11 @@ export async function POST(req: NextRequest) {
   try {
     decoded = await adminAuth().verifySessionCookie(session, true);
   } catch {
-    return errorResponse(401, "invalid-session", "Session is invalid or expired.");
+    return errorResponse(
+      401,
+      "invalid-session",
+      "Session is invalid or expired.",
+    );
   }
   const actorUid = decoded.uid;
 
@@ -66,17 +75,26 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return errorResponse(400, "invalid-json", "Request body must be valid JSON.");
+    return errorResponse(
+      400,
+      "invalid-json",
+      "Request body must be valid JSON.",
+    );
   }
 
   const parsed = ApproveRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return errorResponse(400, "validation-error", "Invalid request payload.", parsed.error.flatten());
+    return errorResponse(
+      400,
+      "validation-error",
+      "Invalid request payload.",
+      parsed.error.flatten(),
+    );
   }
 
   const { requestId, approved, role, notes, orgId } = parsed.data;
 
-  if (!ALLOWED_ROLES.includes(role as typeof ALLOWED_ROLES[number])) {
+  if (!ALLOWED_ROLES.includes(role as (typeof ALLOWED_ROLES)[number])) {
     return errorResponse(400, "invalid-role", "Role not permitted.");
   }
 
@@ -86,7 +104,11 @@ export async function POST(req: NextRequest) {
   }
   const hasAdminRights = await isUserOrgAdmin(actorUid, orgId);
   if (!hasAdminRights) {
-    return errorResponse(403, "forbidden", "Admin access required for this organization.");
+    return errorResponse(
+      403,
+      "forbidden",
+      "Admin access required for this organization.",
+    );
   }
 
   const firestore = db();
@@ -96,7 +118,10 @@ export async function POST(req: NextRequest) {
     const result = await firestore.runTransaction(async (tx) => {
       const snap = await tx.get(requestRef);
       if (!snap.exists) {
-        return { status: 404 as const, error: errorResponse(404, "not-found", "Join request not found.") };
+        return {
+          status: 404 as const,
+          error: errorResponse(404, "not-found", "Join request not found."),
+        };
       }
 
       const data = snap.data() as {
@@ -106,7 +131,14 @@ export async function POST(req: NextRequest) {
       };
 
       if (data.status !== "pending") {
-        return { status: 409 as const, error: errorResponse(409, "already-processed", "Request has already been processed.") };
+        return {
+          status: 409 as const,
+          error: errorResponse(
+            409,
+            "already-processed",
+            "Request has already been processed.",
+          ),
+        };
       }
 
       const reviewedAt = new Date();
@@ -120,15 +152,15 @@ export async function POST(req: NextRequest) {
         status: approved ? "approved" : "rejected",
         reviewedAt,
         reviewedBy: actorUid,
-        reviewNotes: notes ?? null
+        reviewNotes: notes ?? null,
       });
 
       return {
         status: 200 as const,
         success: {
           status: approved ? "approved" : "rejected",
-          reviewedAt: reviewedAt.toISOString()
-        }
+          reviewedAt: reviewedAt.toISOString(),
+        },
       };
     });
 
@@ -140,18 +172,20 @@ export async function POST(req: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Vary": "Origin"
-      }
+        Vary: "Origin",
+      },
     });
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error(JSON.stringify({
-      event: "approve_join_request_failed",
-      orgId,
-      requestId,
-      actorUid,
-      error: errorMessage
-    }));
+    console.error(
+      JSON.stringify({
+        event: "approve_join_request_failed",
+        orgId,
+        requestId,
+        actorUid,
+        error: errorMessage,
+      }),
+    );
     return errorResponse(500, "internal-error", "Failed to process request.");
   }
 }
