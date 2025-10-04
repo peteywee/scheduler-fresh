@@ -1,46 +1,36 @@
-# DeepSource config for Next.js 15 + TypeScript 5 + Docker
 version = 1
 
-# ── Analyzers ──────────────────────────────────────────────
+# Enable JavaScript/TypeScript analyzer
 [[analyzers]]
 name = "javascript"
 enabled = true
 
   [analyzers.meta]
-  dialect = "typescript"         # "javascript" or "typescript"
-  module_system = "es-modules"   # "commonjs" | "es-modules" | "amd"
-  project_type = "node"
+  # Runtime version for Node.js — use 22.x if your repo is on Node 22
+  runtime_version = "22.x"
+  test_frameworks = ["jest", "playwright"]
 
+# Enable Dockerfile analyzer
 [[analyzers]]
 name = "docker"
 enabled = true
 
+# Enable Shell analyzer
+[[analyzers]]
+name = "shell"
+enabled = true
+
+# Enable Secrets analyzer (detects API keys, tokens, etc.)
 [[analyzers]]
 name = "secrets"
 enabled = true
 
-# ── Transformers (Formatters) ──────────────────────────────
+# Prettier transformer for consistent formatting
 [[transformers]]
 name = "prettier"
 enabled = true
 
-# ── Paths & ignores ────────────────────────────────────────
-[ignore]
-patterns = [
-  "node_modules/**",
-  ".next/**",
-  "out/**",
-  "dist/**",
-  "build/**",
-  "coverage/**",
-  ".cache/**",
-  "*.lock",
-]
-
-# ── Reporting ──────────────────────────────────────────────
-[report]
-severity = "error"  # "info" | "warning" | "error"
-
-# ── Test patterns ──────────────────────────────────────────
-[test_patterns]
-patterns = ["**/*.test.ts", "**/*.spec.ts", "**/__tests__/**"]
+# ESLint transformer for lint rules
+[[transformers]]
+name = "eslint"
+enabled = true
