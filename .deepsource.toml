@@ -1,1 +1,44 @@
+# .deep/source.toml
+# Configuration file for Deep Source analysis
+# Docs: https://deepsource.io/docs/
+
 version = 1
+
+[[analyzers]]
+name = "javascript"
+enabled = true
+runtime = "nodejs"
+
+  [analyzers.meta]
+  dialect = "typescript"   # can be "javascript" if no TS
+  module_system = "esnext" # commonjs, es6, etc.
+
+[[analyzers]]
+name = "python"
+enabled = false
+
+[[analyzers]]
+name = "docker"
+enabled = true
+
+[[transformers]]
+name = "prettier"
+enabled = true
+
+[[transformers]]
+name = "black"
+enabled = false
+
+[ignore]
+# Glob patterns for files/folders to ignore from analysis
+patterns = [
+  "node_modules/**",
+  "dist/**",
+  "build/**",
+  ".next/**",
+  "*.lock",
+]
+
+[report]
+# Configure reporting level
+severity = "error" # options: info, warning, error
