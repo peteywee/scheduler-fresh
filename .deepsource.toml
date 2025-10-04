@@ -1,36 +1,145 @@
+# DeepSource configuration for Scheduler-Fresh
+# Next.js 15 + TypeScript 5 + Firebase + Docker + PWA
 version = 1
 
-# Enable JavaScript/TypeScript analyzer
+# ── Test Patterns ───────────────────────────────────────────
+test_patterns = [
+  "**/*.test.ts",
+  "**/*.test.tsx",
+  "**/*.spec.ts",
+  "**/*.spec.tsx",
+  "**/__tests__/**",
+  "**/test/**",
+  "src/test/**",
+]
+
+# ── Documentation Patterns ──────────────────────────────────
+documentation = [
+  "docs/**",
+  "*.md",
+  "README*",
+]
+
+# ── JavaScript/TypeScript Analyzer ──────────────────────────
 [[analyzers]]
 name = "javascript"
 enabled = true
 
   [analyzers.meta]
-  # Runtime version for Node.js — use 22.x if your repo is on Node 22
-  runtime_version = "22.x"
-  test_frameworks = ["jest", "playwright"]
+  dialect = "typescript"
+  style_guide = "airbnb"
+  environment = [
+    "browser",
+    "nodejs",
+    "es2022"
+  ]
+  module_system = "es-modules"
+  project_type = "node"
+  skip_doc_coverage = ["test", "spec"]
+  dependency_file_paths = [
+    "package.json",
+    "functions/package.json"
+  ]
+  tsconfig_paths = [
+    "tsconfig.json",
+    "functions/tsconfig.json"
+  ]
 
-# Enable Dockerfile analyzer
+# ── Docker Analyzer ─────────────────────────────────────────
 [[analyzers]]
 name = "docker"
 enabled = true
 
-# Enable Shell analyzer
-[[analyzers]]
-name = "shell"
-enabled = true
-
-# Enable Secrets analyzer (detects API keys, tokens, etc.)
+# ── Secrets Scanner ─────────────────────────────────────────
 [[analyzers]]
 name = "secrets"
 enabled = true
 
-# Prettier transformer for consistent formatting
+# ── Shell Script Analyzer ───────────────────────────────────
+[[analyzers]]
+name = "shell"
+enabled = true
+
+  [analyzers.meta]
+  dialect = "bash"
+
+# ── SQL Analyzer (for Firestore queries) ────────────────────
+[[analyzers]]
+name = "sql"
+enabled = false  # Enable if using SQL
+
+# ── Test Coverage Analyzer ──────────────────────────────────
+[[analyzers]]
+name = "test-coverage"
+enabled = true
+
+  [analyzers.meta]
+  coverage_file_path = "coverage/lcov.info"
+
+# ── Prettier Transformer ────────────────────────────────────
 [[transformers]]
 name = "prettier"
 enabled = true
 
-# ESLint transformer for lint rules
-[[transformers]]
-name = "eslint"
-enabled = true
+# ── Paths & Ignores ─────────────────────────────────────────
+[ignore]
+patterns = [
+  # Dependencies
+  "node_modules/**",
+  "**/node_modules/**",
+  "pnpm-lock.yaml",
+  "package-lock.json",
+  "yarn.lock",
+  
+  # Build outputs
+  ".next/**",
+  "out/**",
+  "dist/**",
+  "build/**",
+  ".output/**",
+  
+  # Testing & Coverage
+  "coverage/**",
+  ".nyc_output/**",
+  "__coverage__/**",
+  
+  # Cache & Temp
+  ".cache/**",
+  ".temp/**",
+  ".tmp/**",
+  "*.cache",
+  
+  # Firebase
+  ".firebase/**",
+  "firebase-debug.log",
+  "firestore-debug.log",
+  "ui-debug.log",
+  
+  # Environment & Config
+  ".env*",
+  "*.local",
+  
+  # Generated files
+  "*.generated.*",
+  "*.d.ts",
+  
+  # IDE
+  ".vscode/**",
+  ".idea/**",
+  
+  # Misc
+  "*.min.js",
+  "*.min.css",
+  "public/sw.js",
+  "public/workbox-*.js",
+  
+  # Backups
+  "*.bak",
+  "*.backup",
+]
+
+# ── Reporting Configuration ─────────────────────────────────
+[report]
+severity = "error"  # "info" | "warning" | "error"
+exclude_types = []
+exclude_patterns = []

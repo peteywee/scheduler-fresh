@@ -18,12 +18,24 @@ The implementation follows a parent-child organizational model where:
 orgs/{orgId}/                           # Sub-organization data
   attendance/{eventId}                  # Clock in/out events
   members/{uid}                         # Organization membership
+  invites/{inviteId}                    # Role-scoped invite codes (admin managed)
+  joinRequests/{requestId}              # Pending access requests (staff initiated)
+  public/profile                        # Optional directory metadata (listed flag gated)
+  shifts/{shiftId}                      # Scheduling entries (admin/manager)
 
 parents/{parentId}/                     # Parent organization data (read-only via claims)
   contracts/{subOrgId}                  # Billing contracts with sub-orgs
   ledgers/{periodId}/                   # Billing period ledgers
     lines/{lineId}                      # Individual billing line items (append-only)
 ```
+
+## Security highlights
+
+- Members must exist in `orgs/{orgId}/members/{uid}` to read org data; admins/managers control membership.
+- Attendance is append-only for staff (pending only) with approvals mediated by admins/managers.
+- Join requests can be submitted by authenticated users but only org admins/managers may adjudicate.
+- Invite and shift management remain restricted to admin/manager roles; public profiles expose data only when explicitly flagged `listed`.
+- Parent ledgers/contracts are client read-only for users bearing `{ parentAdmin: true, parentId }` claims—writes remain server-only.
 
 ## Implementation Details
 
