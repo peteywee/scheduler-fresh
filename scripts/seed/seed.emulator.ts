@@ -3,7 +3,9 @@ import * as admin from "firebase-admin";
 
 async function main() {
   if (!process.env.FIRESTORE_EMULATOR_HOST) {
-    console.error("Set FIRESTORE_EMULATOR_HOST (and AUTH) to seed the emulator.");
+    console.error(
+      "Set FIRESTORE_EMULATOR_HOST (and AUTH) to seed the emulator.",
+    );
     process.exit(1);
   }
   if (!admin.apps.length) admin.initializeApp();
@@ -16,10 +18,14 @@ async function main() {
   const parentAdminUid = "padmin-uid";
 
   await db.doc(`orgs/${orgId}`).set({ orgId, name: "Org1", parentId });
-  await db.doc(`orgs/${orgId}/members/${adminUid}`).set({ uid: adminUid, orgId, role: "admin", createdAt: Date.now() });
+  await db
+    .doc(`orgs/${orgId}/members/${adminUid}`)
+    .set({ uid: adminUid, orgId, role: "admin", createdAt: Date.now() });
 
   await db.doc(`parents/${parentId}/contracts/${orgId}`).set({
-    billRate: 22.5, rounding: "nearest-15", period: "biweekly"
+    billRate: 22.5,
+    rounding: "nearest-15",
+    period: "biweekly",
   });
 
   // Create parent admin user in emulator and set claims
@@ -28,12 +34,15 @@ async function main() {
   } catch {
     // User may already exist - ignore error
   }
-  await auth.setCustomUserClaims(parentAdminUid, { parentAdmin: true, parentId });
+  await auth.setCustomUserClaims(parentAdminUid, {
+    parentAdmin: true,
+    parentId,
+  });
 
   console.log("Seed complete");
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error(e);
   process.exit(1);
 });

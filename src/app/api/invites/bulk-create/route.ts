@@ -10,7 +10,7 @@ const bulkCreateSchema = z.object({
     z.object({
       email: z.string().email(),
       role: z.enum(["admin", "manager", "employee"]),
-    })
+    }),
   ),
 });
 
@@ -19,16 +19,25 @@ export async function POST(req: Request) {
     // AuthN
     const session = await getSession(req);
     if (!session?.uid) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
 
     const json = await req.json();
     const { orgId, users } = bulkCreateSchema.parse(json);
 
     // AuthZ
-    const allowed = await verifyOrgAccess(session.uid, orgId, ["admin", "manager"]);
+    const allowed = await verifyOrgAccess(session.uid, orgId, [
+      "admin",
+      "manager",
+    ]);
     if (!allowed) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      );
     }
 
     const db = adminDb();
@@ -59,9 +68,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, createdCount });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ success: false, error: error.issues }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: error.issues },
+        { status: 400 },
+      );
     }
     console.error("Bulk invite creation error:", error);
-    return NextResponse.json({ success: false, error: "An unexpected error occurred." }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "An unexpected error occurred." },
+      { status: 500 },
+    );
   }
 }

@@ -24,7 +24,10 @@ export async function getSession(request?: Request) {
   if (!request) return getServerUser();
 
   const cookieHeader = request.headers.get("cookie") || "";
-  const match = cookieHeader.split(";").map(s => s.trim()).find(s => s.startsWith("__session="));
+  const match = cookieHeader
+    .split(";")
+    .map((s) => s.trim())
+    .find((s) => s.startsWith("__session="));
   const session = match ? decodeURIComponent(match.split("=")[1] || "") : null;
   if (!session) return null;
   try {

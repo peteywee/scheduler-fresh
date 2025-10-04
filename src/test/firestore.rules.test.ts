@@ -1,8 +1,5 @@
 import { beforeEach, describe, it } from "vitest";
-import {
-  assertFails,
-  assertSucceeds,
-} from "@firebase/rules-unit-testing";
+import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
 import type {
   RulesTestContext,
   RulesTestEnvironment,
@@ -10,7 +7,7 @@ import type {
 
 declare global {
   // Provided by src/test/rules-setup.ts
-   
+
   var testEnv: RulesTestEnvironment;
 }
 
