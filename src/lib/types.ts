@@ -196,8 +196,9 @@ export function sanitizeOrgId(name: string): string {
 export const ShiftSchema = z.object({
   id: z.string(),
   orgId: z.string(),
-  venueId: z.string().optional(),
-  standId: z.string().optional(),
+
+  venueId: z.string().optional(), // Reference to venue where shift takes place
+  standId: z.string().optional(), // Reference to stand/booth/zone within venue
   start: z.date(),
   end: z.date(),
   title: z.string().optional(),
@@ -208,3 +209,29 @@ export const ShiftSchema = z.object({
 });
 
 export type Shift = z.infer<typeof ShiftSchema>;
+
+// Venue data model
+export const VenueSchema = z.object({
+  id: z.string(),
+  orgId: z.string(),
+  name: z.string().min(1, "Venue name is required"),
+  description: z.string().optional(),
+  address: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type Venue = z.infer<typeof VenueSchema>;
+
+// Stand/Booth/Zone data model (child of Venue)
+export const StandSchema = z.object({
+  id: z.string(),
+  venueId: z.string(), // Parent venue reference
+  orgId: z.string(),
+  name: z.string().min(1, "Stand name is required"), // e.g., "Booth 12", "Zone A"
+  description: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type Stand = z.infer<typeof StandSchema>;
