@@ -6,7 +6,13 @@ import Link from "next/link";
 import { CalendarCheck, ArrowRight, Users, Building } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -15,7 +21,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 function JoinPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  
+
   const [inviteCode, setInviteCode] = useState("");
   const [orgName, setOrgName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +35,9 @@ function JoinPageContent() {
       // Support QR links that pass separate orgId and code by combining to expected format
       const combined = `${orgId}-${code}`;
       setInviteCode(combined);
-      setOrgName(orgId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()));
+      setOrgName(
+        orgId.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+      );
       return;
     }
     if (code) {
@@ -37,7 +45,9 @@ function JoinPageContent() {
       // Parse org name from code if possible
       const match = code.match(/^([a-zA-Z0-9_-]+)-([a-zA-Z0-9]+)$/);
       if (match) {
-        setOrgName(match[1].replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()));
+        setOrgName(
+          match[1].replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+        );
       }
     }
   }, [searchParams]);
@@ -61,7 +71,7 @@ function JoinPageContent() {
 
       const csrfToken = document.cookie
         .split("; ")
-        .find(row => row.startsWith("XSRF-TOKEN="))
+        .find((row) => row.startsWith("XSRF-TOKEN="))
         ?.split("=")[1];
 
       if (!csrfToken) {
@@ -107,13 +117,16 @@ function JoinPageContent() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
             <CalendarCheck className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold font-headline">Fresh Schedules</span>
+            <span className="text-2xl font-bold font-headline">
+              Fresh Schedules
+            </span>
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Join Your Team
           </h1>
           <p className="text-gray-600 dark:text-gray-300 max-w-md mx-auto">
-            Join your organization to start managing schedules and coordinating with your team.
+            Join your organization to start managing schedules and coordinating
+            with your team.
           </p>
         </div>
 
@@ -160,9 +173,9 @@ function JoinPageContent() {
                 </Alert>
               )}
 
-              <Button 
-                onClick={handleJoinWithCode} 
-                disabled={isLoading} 
+              <Button
+                onClick={handleJoinWithCode}
+                disabled={isLoading}
                 className="w-full"
               >
                 {isLoading ? "Joining..." : "Join Organization"}
@@ -193,9 +206,9 @@ function JoinPageContent() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
-                onClick={handleSearchOrgs} 
-                variant="outline" 
+              <Button
+                onClick={handleSearchOrgs}
+                variant="outline"
                 className="w-full"
               >
                 Browse Organizations
@@ -240,14 +253,16 @@ function JoinPageContent() {
 
 export default function JoinPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <CalendarCheck className="h-8 w-8 text-primary mx-auto mb-4" />
-          <p>Loading...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <CalendarCheck className="h-8 w-8 text-primary mx-auto mb-4" />
+            <p>Loading...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <JoinPageContent />
     </Suspense>
   );

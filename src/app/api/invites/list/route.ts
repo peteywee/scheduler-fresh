@@ -53,7 +53,9 @@ function allowOrigin(req: NextRequest): boolean {
   return getAllowedOrigins().includes(origin);
 }
 
-export async function GET(req: NextRequest): Promise<NextResponse<ListInvitesResponse>> {
+export async function GET(
+  req: NextRequest,
+): Promise<NextResponse<ListInvitesResponse>> {
   if (!allowOrigin(req)) {
     return new NextResponse("Forbidden origin", { status: 403 });
   }
@@ -63,7 +65,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ListInvitesRes
   if (!session) {
     return NextResponse.json(
       { success: false, error: "Authentication required" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -75,7 +77,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ListInvitesRes
     if (!orgId) {
       return NextResponse.json(
         { success: false, error: "No organization found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -84,7 +86,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ListInvitesRes
     if (!isAdmin) {
       return NextResponse.json(
         { success: false, error: "Admin access required" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -95,7 +97,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ListInvitesRes
       .orderBy("createdAt", "desc")
       .get();
 
-    const invites: InviteResponse[] = invitesSnapshot.docs.map(doc => {
+    const invites: InviteResponse[] = invitesSnapshot.docs.map((doc) => {
       const data = doc.data() as InviteData;
       return {
         code: data.code,
@@ -119,7 +121,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ListInvitesRes
     console.error("Error listing invites:", error);
     return NextResponse.json(
       { success: false, error: "Failed to list invites" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

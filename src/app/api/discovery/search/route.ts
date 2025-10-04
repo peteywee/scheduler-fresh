@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
     console.error("Error searching organizations:", error);
     return NextResponse.json(
       { success: false, error: "Failed to search organizations" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

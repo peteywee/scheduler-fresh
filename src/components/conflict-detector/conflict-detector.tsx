@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useFormState } from 'react-dom';
-import { BotMessageSquare } from 'lucide-react';
+import { useState } from "react";
+import { useFormState } from "react-dom";
+import { BotMessageSquare } from "lucide-react";
 
-import type { ConflictFlaggingOutput } from '@/ai/flows/conflict-flagging';
-import { detectConflictsAction } from '@/app/actions/conflict-actions';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import type { ConflictFlaggingOutput } from "@/ai/flows/conflict-flagging";
+import { detectConflictsAction } from "@/app/actions/conflict-actions";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+} from "@/components/ui/accordion";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 const initialState: {
   result: ConflictFlaggingOutput | null;
@@ -38,7 +38,6 @@ const exampleSchedule = `
 - Sat: Peter Jones 10am-6pm, Jane Doe 10am-4pm
 `.trim();
 
-
 export default function ConflictDetector() {
   const [state, formAction] = useFormState(detectConflictsAction, initialState);
   const [availability, setAvailability] = useState(exampleAvailability);
@@ -46,7 +45,10 @@ export default function ConflictDetector() {
 
   return (
     <div className="space-y-6">
-      <form action={formAction} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <form
+        action={formAction}
+        className="grid grid-cols-1 md:grid-cols-2 gap-6"
+      >
         <div className="space-y-2">
           <Label htmlFor="availability">Employee Availability</Label>
           <Textarea
@@ -82,25 +84,24 @@ export default function ConflictDetector() {
           <Alert>
             <BotMessageSquare className="h-4 w-4" />
             <AlertTitle>AI Analysis Complete</AlertTitle>
-            <AlertDescription>
-              {state.result.flaggedConflicts}
-            </AlertDescription>
+            <AlertDescription>{state.result.flaggedConflicts}</AlertDescription>
           </Alert>
 
-          {state.result.conflictDetails && state.result.conflictDetails.length > 0 && (
-             <Accordion type="single" collapsible className="w-full">
+          {state.result.conflictDetails &&
+            state.result.conflictDetails.length > 0 && (
+              <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="item-1">
-                    <AccordionTrigger>View Conflict Details</AccordionTrigger>
-                    <AccordionContent>
-                        <ul className="list-disc pl-5 space-y-2">
-                            {state.result.conflictDetails.map((detail, index) => (
-                                <li key={index}>{detail}</li>
-                            ))}
-                        </ul>
-                    </AccordionContent>
+                  <AccordionTrigger>View Conflict Details</AccordionTrigger>
+                  <AccordionContent>
+                    <ul className="list-disc pl-5 space-y-2">
+                      {state.result.conflictDetails.map((detail, index) => (
+                        <li key={index}>{detail}</li>
+                      ))}
+                    </ul>
+                  </AccordionContent>
                 </AccordionItem>
-            </Accordion>
-          )}
+              </Accordion>
+            )}
         </div>
       )}
 
