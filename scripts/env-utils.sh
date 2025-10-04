@@ -232,6 +232,10 @@ GOOGLE_GENAI_API_KEY=your_google_ai_api_key_here
 
 # Development Settings
 NODE_ENV=development
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# (Optional but recommended) Google AI / Genkit key
+GOOGLE_GENAI_API_KEY=your_google_ai_api_key_here
 EOF
   
   log_success "Environment template generated: $template_file"

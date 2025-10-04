@@ -148,20 +148,20 @@ Before pushing, run the quality checks or use the task runner preset to keep the
 The new `check:ports` script ensures common development ports are available before we attempt to bind servers.
 
 ```bash
-# Default check (3000, 8080, 9099, 9199)
+# Quick scan (defaults to 3000, 8080, 9099, 9199)
 pnpm run check:ports
 
-# Custom list
+# Custom list (remember the `--` when forwarding args through pnpm)
 pnpm run check:ports -- 3000 4000 8080
 
-# JSON output for tooling
-CHECK_PORTS_JSON=1 pnpm run check:ports
+# JSON summary for tooling
+pnpm run check:ports -- --json 3000 8080
 
-# Silent mode for scripting
-pnpm run check:ports --silent 3000 8080
+# Silent CI probe (exit code only)
+pnpm run check:ports -- --silent 3000
 ```
 
-If any port is occupied, the script prints a friendly summary plus remediation tips (for example `pnpm run kill:ports`). This automation is wired into `dev`, `dev:web`, `dev:web:turbo`, `dev:turbo`, and `dev:api`, preventing the “silent failure” scenario where the emulator suite or Next.js dev server quits without context.
+The CLI now prints a colourised dashboard, automatically suggests a `kill-port` command when conflicts arise, and honours environment switches such as `CHECK_PORTS_JSON=1`, `CHECK_PORTS_HOST`, or `CHECK_PORTS_DEFAULT="3000,8080"`. This automation is wired into `dev`, `dev:web`, `dev:web:turbo`, `dev:turbo`, and `dev:api`, preventing the “silent failure” scenario where the emulator suite or Next.js dev server quits without context.
 
 ## Performance Playbook
 
