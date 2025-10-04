@@ -30,7 +30,9 @@ for (const arg of argv) {
     if (parts.length > 1 && parts[1]) {
       positional.push(...parts[1].split(","));
     } else {
-      console.warn(`Flag '${trimmedArg}' is missing a value after '=' and was ignored.`);
+      console.warn(
+        `Flag '${trimmedArg}' is missing a value after '=' and was ignored.`,
+      );
     }
   } else if (trimmedArg.startsWith("--")) {
     console.warn(`Unknown flag '${trimmedArg}' ignored.`);
@@ -90,7 +92,9 @@ async function main() {
     if (!options.silent && !options.json) {
       const busyList = busy.map(({ port }) => port).join(", ");
       console.error(`\nSome ports are in use: ${busyList}`);
-      console.error("Try 'pnpm run kill:ports' or stop the conflicting process manually.");
+      console.error(
+        "Try 'pnpm run kill:ports' or stop the conflicting process manually.",
+      );
     }
     process.exitCode = 2;
     return;
