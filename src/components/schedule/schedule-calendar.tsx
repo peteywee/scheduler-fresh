@@ -185,7 +185,9 @@ export default function ScheduleCalendar({
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         shift={selectedShift}
-        orgId={"your-current-org-id"} // TODO: wire current org id
+
+
+        orgId={orgId} // This needs to be passed down from props
       />
     </div>
   );

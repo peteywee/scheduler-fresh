@@ -1,0 +1,46 @@
+# DeepSource config for Next.js 15 + TypeScript 5 + Docker
+version = 1
+
+# ── Analyzers ──────────────────────────────────────────────
+[[analyzers]]
+name = "javascript"
+enabled = true
+
+  [analyzers.meta]
+  dialect = "typescript"         # "javascript" or "typescript"
+  module_system = "es-modules"   # "commonjs" | "es-modules" | "amd"
+  project_type = "node"
+
+[[analyzers]]
+name = "docker"
+enabled = true
+
+[[analyzers]]
+name = "secrets"
+enabled = true
+
+# ── Transformers (Formatters) ──────────────────────────────
+[[transformers]]
+name = "prettier"
+enabled = true
+
+# ── Paths & ignores ────────────────────────────────────────
+[ignore]
+patterns = [
+  "node_modules/**",
+  ".next/**",
+  "out/**",
+  "dist/**",
+  "build/**",
+  "coverage/**",
+  ".cache/**",
+  "*.lock",
+]
+
+# ── Reporting ──────────────────────────────────────────────
+[report]
+severity = "error"  # "info" | "warning" | "error"
+
+# ── Test patterns ──────────────────────────────────────────
+[test_patterns]
+patterns = ["**/*.test.ts", "**/*.spec.ts", "**/__tests__/**"]
