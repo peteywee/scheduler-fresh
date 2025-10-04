@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  CalendarCheck,
-  ArrowRight,
-} from "lucide-react";
+import { CalendarCheck, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -60,7 +57,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
             </p>
           </div>
         </div>
-        
+
         <div className="rounded-lg bg-muted p-4">
           <h4 className="font-medium">Getting started is simple:</h4>
           <ol className="mt-2 list-decimal list-inside space-y-1 text-sm text-muted-foreground">
@@ -71,10 +68,10 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         </div>
 
         <div className="flex justify-end">
-            <Button onClick={onNext} data-testid="welcome-next">
-              Get Started
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+          <Button onClick={onNext} data-testid="welcome-next">
+            Get Started
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>

@@ -5,10 +5,7 @@ import { getSession } from "@/lib/session";
 import { adminDb } from "@/lib/firebase.server";
 import { OrgMember } from "@/lib/types";
 
-export async function GET(
-  request: NextRequest,
-  context: unknown
-) {
+export async function GET(request: NextRequest, context: unknown) {
   const { params } = context as { params: { orgId: string } };
   try {
     const session = await getSession(request);
@@ -25,12 +22,19 @@ export async function GET(
       .get();
 
     if (!requesterMemberDoc.exists) {
-      return new NextResponse("Forbidden: You are not a member of this organization.", { status: 403 });
+      return new NextResponse(
+        "Forbidden: You are not a member of this organization.",
+        { status: 403 },
+      );
     }
 
     // Fetch all members of the organization
-  const membersSnapshot = await adminDb().collection(`orgs/${orgId}/members`).get();
-  const members = membersSnapshot.docs.map((doc): OrgMember => doc.data() as OrgMember);
+    const membersSnapshot = await adminDb()
+      .collection(`orgs/${orgId}/members`)
+      .get();
+    const members = membersSnapshot.docs.map(
+      (doc): OrgMember => doc.data() as OrgMember,
+    );
 
     return NextResponse.json(members);
   } catch (error) {

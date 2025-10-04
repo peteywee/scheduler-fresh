@@ -10,7 +10,7 @@ const db = admin.firestore();
 
 export async function replicateApprovedAttendance(
   change: Change<admin.firestore.DocumentSnapshot>,
-  ctx: EventContext
+  ctx: EventContext,
 ) {
   const after = change.after.exists ? change.after.data() : null;
   const before = change.before.exists ? change.before.data() : null;
@@ -55,7 +55,7 @@ export async function replicateApprovedAttendance(
   const line = {
     parentId,
     subOrgId: orgId,
-    staffRef: staffId,   // no PII here; parent sees only a reference
+    staffRef: staffId, // no PII here; parent sees only a reference
     venueId,
     periodId,
     hours,
@@ -66,8 +66,10 @@ export async function replicateApprovedAttendance(
   };
 
   const dest = db
-    .collection("parents").doc(parentId)
-    .collection("ledgers").doc(periodId)
+    .collection("parents")
+    .doc(parentId)
+    .collection("ledgers")
+    .doc(periodId)
     .collection("lines");
 
   // Append-only write

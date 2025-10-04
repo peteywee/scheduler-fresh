@@ -8,7 +8,10 @@ export type Contract = {
   period?: "weekly" | "biweekly" | "monthly";
 };
 
-export async function getParentForOrg(db: admin.firestore.Firestore, orgId: string): Promise<string | null> {
+export async function getParentForOrg(
+  db: admin.firestore.Firestore,
+  orgId: string,
+): Promise<string | null> {
   const orgRef = db.collection("orgs").doc(orgId);
   const snap = await orgRef.get();
   if (!snap.exists) return null;
@@ -19,9 +22,13 @@ export async function getParentForOrg(db: admin.firestore.Firestore, orgId: stri
 export async function getContract(
   db: admin.firestore.Firestore,
   parentId: string,
-  subOrgId: string
+  subOrgId: string,
 ): Promise<Contract | null> {
-  const ref = db.collection("parents").doc(parentId).collection("contracts").doc(subOrgId);
+  const ref = db
+    .collection("parents")
+    .doc(parentId)
+    .collection("contracts")
+    .doc(subOrgId);
   const snap = await ref.get();
   if (!snap.exists) return null;
   const data = snap.data();
@@ -29,7 +36,7 @@ export async function getContract(
     parentId,
     subOrgId,
     billRate: Number(data?.billRate || 0),
-    rounding: (data?.rounding || "none"),
-    period: (data?.period || "biweekly"),
+    rounding: data?.rounding || "none",
+    period: data?.period || "biweekly",
   };
 }

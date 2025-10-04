@@ -30,6 +30,7 @@ For a complete setup, run the master configuration script:
 ```
 
 This will:
+
 - Configure GCP project and enable required APIs
 - Set up Firebase project and extract configuration
 - Create service accounts with proper roles
@@ -58,6 +59,7 @@ Configure your Google Cloud Platform project:
 ```
 
 **What it does:**
+
 - Authenticates with Google Cloud
 - Sets up default project configuration
 - Enables required APIs (Firebase, Firestore, Secret Manager, AI Platform, etc.)
@@ -77,6 +79,7 @@ Set up your Firebase project and extract configuration:
 ```
 
 **What it does:**
+
 - Authenticates with Firebase
 - Initializes Firebase configuration
 - Creates web app if needed
@@ -106,6 +109,7 @@ Create and manage service accounts for Firebase and AI operations:
 ```
 
 **Service Accounts Created:**
+
 - **Firebase Service Account**: `scheduler-fresh-firebase@PROJECT_ID.iam.gserviceaccount.com`
   - Roles: Firebase Admin, Firestore Service Agent, Storage Admin
 - **AI Service Account**: `scheduler-fresh-ai@PROJECT_ID.iam.gserviceaccount.com`
@@ -170,6 +174,7 @@ Manage environment variables and encoding/decoding:
 The setup process manages these environment variables:
 
 ### Firebase Web (Client) Configuration
+
 ```bash
 NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
@@ -178,12 +183,14 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id_here
 ```
 
 ### Firebase Admin (Server) Configuration
+
 ```bash
 # Service account JSON (base64 encoded or raw JSON)
 FIREBASE_SERVICE_ACCOUNT_JSON=your_service_account_json_or_base64
 ```
 
 ### AI Configuration
+
 ```bash
 # Google AI API key for Genkit
 GOOGLE_GENAI_API_KEY=your_google_ai_api_key_here
@@ -222,21 +229,25 @@ GOOGLE_GENAI_API_KEY=your_google_ai_api_key_here
 ### Common Issues and Solutions
 
 #### "Permission Denied" Errors
+
 - Ensure you have the required IAM roles in your GCP project
 - Run `gcloud auth login` to re-authenticate
 - Check that the project ID is correct
 
 #### "Secret Not Found" Errors
+
 - Verify the secret exists: `./scripts/secrets-management.sh list PROJECT_ID`
 - Check Secret Manager API is enabled
 - Ensure service account has `secretmanager.secretAccessor` role
 
 #### "Invalid JSON" Errors
+
 - Validate JSON format: `echo "$json" | jq empty`
 - Check for escaped characters or encoding issues
 - Use the encoding utilities to properly format service account JSON
 
 #### Firebase Emulator Issues
+
 - Ensure `firebase.json` exists and is properly configured
 - Check that required ports (8080, 9099, 9199) are available
 - Run `pnpm run dev:api` to start emulators
@@ -244,6 +255,7 @@ GOOGLE_GENAI_API_KEY=your_google_ai_api_key_here
 ### Debug Mode
 
 Enable debug output by setting environment variable:
+
 ```bash
 export DEBUG=1
 ./scripts/setup-cli-config.sh full
