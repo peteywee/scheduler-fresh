@@ -38,7 +38,11 @@ export default function BulkInviteForm({
       const raw = csvData.replace(/^\uFEFF/, "").trim(); // strip BOM
       const lines = raw.split(/\r?\n/);
       // Optional header detection: if first line contains 'email' and 'role', skip it
-      const startIdx = lines[0]?.toLowerCase().includes("email") && lines[0]?.toLowerCase().includes("role") ? 1 : 0;
+      const startIdx =
+        lines[0]?.toLowerCase().includes("email") &&
+        lines[0]?.toLowerCase().includes("role")
+          ? 1
+          : 0;
 
       const allowedRoles = new Set(["employee", "manager", "admin"]);
       const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -60,7 +64,9 @@ export default function BulkInviteForm({
           continue;
         }
         if (!allowedRoles.has(role)) {
-          errors.push(`Line ${i + 1}: invalid role "${role}" (allowed: employee, manager, admin)`);
+          errors.push(
+            `Line ${i + 1}: invalid role "${role}" (allowed: employee, manager, admin)`,
+          );
           continue;
         }
         users.push({ email, role });
@@ -161,11 +167,7 @@ export default function BulkInviteForm({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1"
-            >
+            <Button type="submit" disabled={isLoading} className="flex-1">
               {isLoading ? "Importing..." : "Import Users"}
             </Button>
           </div>
