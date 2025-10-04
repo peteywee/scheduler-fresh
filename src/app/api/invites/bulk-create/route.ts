@@ -10,7 +10,7 @@ const bulkCreateSchema = z.object({
     z.object({
       email: z.string().email(),
       role: z.enum(["admin", "manager", "employee"]),
-    })
+    }),
   ),
 });
 
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     const json = await req.json();
     const { orgId, users } = bulkCreateSchema.parse(json);
 
-  const invitesCollection = adminDb().collection(`orgs/${orgId}/invites`);
+    const invitesCollection = adminDb().collection(`orgs/${orgId}/invites`);
     let createdCount = 0;
 
     for (const user of users) {
@@ -43,9 +43,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, createdCount });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ success: false, error: error.issues }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: error.issues },
+        { status: 400 },
+      );
     }
     console.error("Bulk invite creation error:", error);
-    return NextResponse.json({ success: false, error: "An unexpected error occurred." }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "An unexpected error occurred." },
+      { status: 500 },
+    );
   }
 }
