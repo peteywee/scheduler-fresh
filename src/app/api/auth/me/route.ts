@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase.server";
-import {
-  getUserCustomClaims,
-  getUserOrganizations,
-} from "@/lib/auth-utils";
+import { getUserCustomClaims, getUserOrganizations } from "@/lib/auth-utils";
 import type { CustomClaims, Organization } from "@/lib/types";
 
 function getAllowedOrigins(): string[] {

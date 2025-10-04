@@ -1,46 +1,145 @@
-# DeepSource config for Next.js 15 + TypeScript 5 + Docker
+# DeepSource configuration for Scheduler-Fresh
+# Next.js 15 + TypeScript 5 + Firebase + Docker + PWA
 version = 1
 
-# ── Analyzers ──────────────────────────────────────────────
+# ── Test Patterns ───────────────────────────────────────────
+test_patterns = [
+  "**/*.test.ts",
+  "**/*.test.tsx",
+  "**/*.spec.ts",
+  "**/*.spec.tsx",
+  "**/__tests__/**",
+  "**/test/**",
+  "src/test/**",
+]
+
+# ── Documentation Patterns ──────────────────────────────────
+documentation = [
+  "docs/**",
+  "*.md",
+  "README*",
+]
+
+# ── JavaScript/TypeScript Analyzer ──────────────────────────
 [[analyzers]]
 name = "javascript"
 enabled = true
 
   [analyzers.meta]
-  dialect = "typescript"         # "javascript" or "typescript"
-  module_system = "es-modules"   # "commonjs" | "es-modules" | "amd"
+  dialect = "typescript"
+  style_guide = "airbnb"
+  environment = [
+    "browser",
+    "nodejs",
+    "es2022"
+  ]
+  module_system = "es-modules"
   project_type = "node"
+  skip_doc_coverage = ["test", "spec"]
+  dependency_file_paths = [
+    "package.json",
+    "functions/package.json"
+  ]
+  tsconfig_paths = [
+    "tsconfig.json",
+    "functions/tsconfig.json"
+  ]
 
+# ── Docker Analyzer ─────────────────────────────────────────
 [[analyzers]]
 name = "docker"
 enabled = true
 
+# ── Secrets Scanner ─────────────────────────────────────────
 [[analyzers]]
 name = "secrets"
 enabled = true
 
-# ── Transformers (Formatters) ──────────────────────────────
+# ── Shell Script Analyzer ───────────────────────────────────
+[[analyzers]]
+name = "shell"
+enabled = true
+
+  [analyzers.meta]
+  dialect = "bash"
+
+# ── SQL Analyzer (for Firestore queries) ────────────────────
+[[analyzers]]
+name = "sql"
+enabled = false  # Enable if using SQL
+
+# ── Test Coverage Analyzer ──────────────────────────────────
+[[analyzers]]
+name = "test-coverage"
+enabled = true
+
+  [analyzers.meta]
+  coverage_file_path = "coverage/lcov.info"
+
+# ── Prettier Transformer ────────────────────────────────────
 [[transformers]]
 name = "prettier"
 enabled = true
 
-# ── Paths & ignores ────────────────────────────────────────
+# ── Paths & Ignores ─────────────────────────────────────────
 [ignore]
 patterns = [
+  # Dependencies
   "node_modules/**",
+  "**/node_modules/**",
+  "pnpm-lock.yaml",
+  "package-lock.json",
+  "yarn.lock",
+  
+  # Build outputs
   ".next/**",
   "out/**",
   "dist/**",
   "build/**",
+  ".output/**",
+  
+  # Testing & Coverage
   "coverage/**",
+  ".nyc_output/**",
+  "__coverage__/**",
+  
+  # Cache & Temp
   ".cache/**",
-  "*.lock",
+  ".temp/**",
+  ".tmp/**",
+  "*.cache",
+  
+  # Firebase
+  ".firebase/**",
+  "firebase-debug.log",
+  "firestore-debug.log",
+  "ui-debug.log",
+  
+  # Environment & Config
+  ".env*",
+  "*.local",
+  
+  # Generated files
+  "*.generated.*",
+  "*.d.ts",
+  
+  # IDE
+  ".vscode/**",
+  ".idea/**",
+  
+  # Misc
+  "*.min.js",
+  "*.min.css",
+  "public/sw.js",
+  "public/workbox-*.js",
+  
+  # Backups
+  "*.bak",
+  "*.backup",
 ]
 
-# ── Reporting ──────────────────────────────────────────────
+# ── Reporting Configuration ─────────────────────────────────
 [report]
 severity = "error"  # "info" | "warning" | "error"
-
-# ── Test patterns ──────────────────────────────────────────
-[test_patterns]
-patterns = ["**/*.test.ts", "**/*.spec.ts", "**/__tests__/**"]
+exclude_types = []
+exclude_patterns = []

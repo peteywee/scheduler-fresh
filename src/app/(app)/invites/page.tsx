@@ -3,13 +3,39 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { QrCode, Plus, Copy, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -30,7 +56,7 @@ async function getCsrfToken(): Promise<string> {
   await fetch("/api/auth/csrf", { method: "GET", credentials: "include" });
   const token = document.cookie
     .split("; ")
-    .find(row => row.startsWith("XSRF-TOKEN="))
+    .find((row) => row.startsWith("XSRF-TOKEN="))
     ?.split("=")[1];
   return token || "";
 }
@@ -41,9 +67,11 @@ export default function InvitesPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  
+
   // Form state
-  const [role, setRole] = useState<"admin" | "manager" | "employee">("employee");
+  const [role, setRole] = useState<"admin" | "manager" | "employee">(
+    "employee",
+  );
   const [expiresIn, setExpiresIn] = useState("30"); // days
   const [maxUses, setMaxUses] = useState("10");
   const [notes, setNotes] = useState("");
@@ -63,7 +91,7 @@ export default function InvitesPage() {
         setInvites(data.invites || []);
       }
     } catch (error) {
-      console.error('Failed to load invites:', error);
+      console.error("Failed to load invites:", error);
       toast({
         title: "Error",
         description: "Failed to load invites",
@@ -78,7 +106,7 @@ export default function InvitesPage() {
     try {
       setCreating(true);
       const csrf = await getCsrfToken();
-      
+
       const response = await fetch("/api/invites/create", {
         method: "POST",
         headers: {
@@ -113,7 +141,8 @@ export default function InvitesPage() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create invite",
+        description:
+          error instanceof Error ? error.message : "Failed to create invite",
         variant: "destructive",
       });
     } finally {
@@ -152,7 +181,7 @@ export default function InvitesPage() {
         throw new Error("Failed to revoke invite");
       }
     } catch (error) {
-      console.error('Failed to revoke invite:', error);
+      console.error("Failed to revoke invite:", error);
       toast({
         title: "Error",
         description: "Failed to revoke invite",
@@ -181,9 +210,11 @@ export default function InvitesPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Invite Management</h1>
-          <p className="text-muted-foreground">Create and manage organization invites</p>
+          <p className="text-muted-foreground">
+            Create and manage organization invites
+          </p>
         </div>
-        
+
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button>
@@ -198,11 +229,16 @@ export default function InvitesPage() {
                 Generate an invite code to add new members to your organization.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div>
                 <Label htmlFor="role">Role</Label>
-                <Select value={role} onValueChange={(value) => setRole(value as "admin" | "manager" | "employee")}>
+                <Select
+                  value={role}
+                  onValueChange={(value) =>
+                    setRole(value as "admin" | "manager" | "employee")
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -250,7 +286,10 @@ export default function InvitesPage() {
               </div>
 
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCreateDialog(false)}
+                >
                   Cancel
                 </Button>
                 <Button onClick={createInvite} disabled={creating}>
@@ -274,7 +313,9 @@ export default function InvitesPage() {
             <div className="text-center py-4">Loading invites...</div>
           ) : invites.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground mb-4">No invites created yet</p>
+              <p className="text-muted-foreground mb-4">
+                No invites created yet
+              </p>
               <Button onClick={() => setShowCreateDialog(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Your First Invite
@@ -295,7 +336,9 @@ export default function InvitesPage() {
               <TableBody>
                 {invites.map((invite) => (
                   <TableRow key={invite.code}>
-                    <TableCell className="font-mono">{invite.shortCode}</TableCell>
+                    <TableCell className="font-mono">
+                      {invite.shortCode}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">{invite.role}</Badge>
                     </TableCell>
@@ -303,7 +346,9 @@ export default function InvitesPage() {
                       {invite.currentUses}/{invite.maxUses || "∞"}
                     </TableCell>
                     <TableCell>
-                      {invite.expiresAt ? formatDate(invite.expiresAt) : "Never"}
+                      {invite.expiresAt
+                        ? formatDate(invite.expiresAt)
+                        : "Never"}
                     </TableCell>
                     <TableCell>{getStatusBadge(invite)}</TableCell>
                     <TableCell>
@@ -319,7 +364,9 @@ export default function InvitesPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => window.open(invite.qrCodeUrl, "_blank")}
+                            onClick={() =>
+                              window.open(invite.qrCodeUrl, "_blank")
+                            }
                           >
                             <QrCode className="h-4 w-4" />
                           </Button>

@@ -29,7 +29,7 @@ function allowOrigin(req: NextRequest): boolean {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ code: string }> }
+  { params }: { params: Promise<{ code: string }> },
 ) {
   const { code } = await params;
   if (!allowOrigin(req)) {
@@ -44,7 +44,7 @@ export async function POST(
   if (!session) {
     return NextResponse.json(
       { success: false, error: "Authentication required" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -56,7 +56,7 @@ export async function POST(
     if (!orgId) {
       return NextResponse.json(
         { success: false, error: "No organization found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -65,7 +65,7 @@ export async function POST(
     if (!isAdmin) {
       return NextResponse.json(
         { success: false, error: "Admin access required" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -78,7 +78,7 @@ export async function POST(
     if (!inviteDoc.exists) {
       return NextResponse.json(
         { success: false, error: "Invite not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -95,7 +95,7 @@ export async function POST(
     console.error("Error revoking invite:", error);
     return NextResponse.json(
       { success: false, error: "Failed to revoke invite" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

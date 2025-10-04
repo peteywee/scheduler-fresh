@@ -1,13 +1,13 @@
-declare module 'next-pwa' {
-  import { NextConfig } from 'next';
-  
+declare module "next-pwa" {
+  import { NextConfig } from "next";
+
   interface PWAConfig {
     dest?: string;
     disable?: boolean;
     register?: boolean;
     skipWaiting?: boolean;
     sw?: string;
-      runtimeCaching?: RuntimeCachingEntry[] | RuntimeCachingEntry;
+    runtimeCaching?: RuntimeCachingEntry[] | RuntimeCachingEntry;
     fallbacks?: {
       document?: string;
       image?: string;
@@ -15,7 +15,7 @@ declare module 'next-pwa' {
       video?: string;
       font?: string;
     };
-        cache?: 'force-cache' | 'no-cache' | string;
+    cache?: "force-cache" | "no-cache" | string;
     reloadOnOnline?: boolean;
     dynamicStartUrlRedirect?: string;
     cacheStartUrl?: boolean;
@@ -24,6 +24,8 @@ declare module 'next-pwa' {
     workboxOptions?: Record<string, unknown>;
   }
 
-  function withPWA(pwaConfig: PWAConfig): (nextConfig?: NextConfig) => NextConfig;
+  function withPWA(
+    pwaConfig: PWAConfig,
+  ): (nextConfig?: NextConfig) => NextConfig;
   export default withPWA;
 }

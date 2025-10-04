@@ -133,61 +133,25 @@ export default function ScheduleCalendar({
         </div>
       </div>
 
-      <div className="grid grid-cols-7 border rounded-lg h-96 p-2 gap-2 overflow-auto">
-        {shifts.length === 0 && (
-          <p className="text-muted-foreground col-span-7">
-            No shifts yet — click "Populate sample week" to add demo shifts or
-            "Add Shift" to create one.
-          </p>
-        )}
-
-        {shifts.map((shift) => {
-          const staffId = shift.assignedTo?.[0] ?? "unassigned";
-          const color = colorForId(staffId);
-          return (
-            <div
-              key={shift.id}
-              className="bg-white shadow-sm rounded p-2 relative"
-              style={{ borderLeft: `4px solid ${color}` }}
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="font-medium">{shift.title}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {shift.start?.toString?.()} - {shift.end?.toString?.()}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    aria-label={`Edit ${shift.title}`}
-                    onClick={() => handleEditShift(shift)}
-                    className="p-1 hover:bg-slate-100 rounded"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-                  <button
-                    aria-label={`Delete ${shift.title}`}
-                    onClick={() =>
-                      setShifts((s) => s.filter((s2) => s2.id !== shift.id))
-                    }
-                    className="p-1 hover:bg-slate-100 rounded"
-                  >
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      {/* This is where you will build your calendar grid.
+        Map over the `shifts` state to display them.
+        Each shift should have an `onClick` that calls `handleEditShift(shift)`.
+      */}
+      <div className="grid grid-cols-7 border rounded-lg h-96 p-2">
+        <p className="text-muted-foreground">Calendar grid goes here...</p>
+        {/* Example of displaying a shift */}
+        {shifts.map((shift) => (
+          <div key={shift.id} onClick={() => handleEditShift(shift)}>
+            {shift.title}
+          </div>
+        ))}
       </div>
 
       <ShiftEditorDialog
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         shift={selectedShift}
-
-
-        orgId={orgId} // This needs to be passed down from props
+        orgId={""} // TODO: Pass orgId from parent component
       />
     </div>
   );
