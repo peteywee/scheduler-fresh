@@ -94,9 +94,9 @@ Fixed issues found during analysis:
 Main branch passes all checks:
 
 ```bash
-✅ pnpm run typecheck - NO ERRORS
-✅ pnpm run lint --max-warnings=0 - NO WARNINGS
-✅ pnpm run build - SUCCESS
+✅ npm run typecheck - NO ERRORS
+✅ npm run lint --max-warnings=0 - NO WARNINGS
+✅ npm run build - SUCCESS
 ```
 
 ## Recommended Next Steps
@@ -141,10 +141,10 @@ cd scheduler-fresh
 git checkout main
 
 # Install and test
-pnpm install
-pnpm run typecheck
-pnpm run lint --max-warnings=0
-pnpm run build
+p npm ci
+p npm run typecheck
+p npm run lint --max-warnings=0
+p npm run build
 
 # All should pass ✅
 ```

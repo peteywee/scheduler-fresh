@@ -197,6 +197,6 @@
 
 - Follow the architectural patterns established in `.github/copilot-instructions.md`
 - Use the existing component structure and naming conventions
-- Test all changes using `pnpm run typecheck`, `pnpm run lint`, and `pnpm run build`
+- Test all changes using `npm run typecheck`, `npm run lint`, and `npm run build`
 - Prefer small, incremental changes over large refactors
 - Always maintain security-first approach as outlined in the project guidelines

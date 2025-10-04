@@ -11,37 +11,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.17.1
-          # Do not run install here; we run an explicit, controlled install below.
-          # This prevents the action from failing early when it can't detect a lockfile path.
-          run_install: false
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "pnpm"
+          cache: "npm"
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit --progress=false
 
       - name: Lint
-        run: pnpm run lint
+        run: npm run lint
 
       - name: Typecheck
-        run: pnpm run typecheck
+        run: npm run typecheck
 
       - name: Test
-        run: pnpm run test:run
+        run: npm run test:run
         env:
           NODE_ENV: test
 
       - name: Test Firestore Rules
-        run: pnpm run test:rules
+        run: npm run test:rules
         env:
           NODE_ENV: test
 
       - name: Build
-        run: pnpm run build
+        run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"

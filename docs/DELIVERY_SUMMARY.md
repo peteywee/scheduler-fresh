@@ -133,10 +133,11 @@ functions/
 ### Manual Testing (via Emulator)
 
 1. Start emulators: `pnpm run dev:api`
-2. Seed data: `TS_NODE_TRANSPILE_ONLY=1 pnpm ts-node scripts/seed/seed.emulator.ts`
-3. Test attendance flow in Emulator UI
-4. Verify ledger creation
-5. Test CSV export with curl/Postman
+1. Start emulators: `npm run dev:api`
+1. Seed data: `TS_NODE_TRANSPILE_ONLY=1 npm exec -- ts-node scripts/seed/seed.emulator.ts`
+1. Test attendance flow in Emulator UI
+1. Verify ledger creation
+1. Test CSV export with curl/Postman
 
 ## Non-Functional Requirements Met
 
