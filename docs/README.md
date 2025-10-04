@@ -37,6 +37,10 @@ The repository prioritises reproducible environments, least-privilege data acces
 
 ## Environment Setup
 
+**🚀 Quick Start:** Follow the [Environment Setup Guide](./ENV_SETUP.md) for step-by-step instructions.
+
+**📋 Issues & Fixes:** Check [Actionable Issues](./ACTIONABLE_ISSUES.md) for known problems and solutions.
+
 The `scripts/` directory contains one-click helpers for bootstrapping Firebase and GCP credentials:
 
 ```bash
@@ -56,6 +60,16 @@ Populate `.env.local` with the Firebase web config and any feature flags. Use th
 ```bash
 ./scripts/secrets-management.sh sync-from-secrets <gcp-project> .env.local
 ```
+
+### Essential Setup Steps
+
+1. **Copy environment template**: `cp .env.example .env.local`
+2. **Configure Firebase credentials** (see [ENV_SETUP.md](./ENV_SETUP.md))
+3. **Create service account**: `./scripts/service-accounts.sh create <project-id>`
+4. **Validate setup**: `./scripts/env-utils.sh validate .env.local`
+5. **Start development**: `pnpm run dev`
+
+For detailed troubleshooting and advanced configuration, see [ENV_SETUP.md](./ENV_SETUP.md).
 
 ## Everyday Development Workflow
 
@@ -188,13 +202,24 @@ Together, these habits keep development responsive and ensure production remains
 
 ## Reference Documentation
 
-- [`docs/architecture.md`](docs/architecture.md) – technical architecture, auth patterns, AI integration
-- [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) – domain model, Firestore structure, API routes
-- [`docs/blueprint.md`](docs/blueprint.md) – product feature map and UX guidelines
-- [`.github/copilot-instructions.md`](../.github/copilot-instructions.md) – agent-facing playbook for automation and code conventions
-- [`docs/BRANCH_CLEANUP.md`](docs/BRANCH_CLEANUP.md) – guidance for repository hygiene
+### Getting Started
 
-Need something else documented? Open an issue with the desired section and we’ll expand from there.
+- **[Environment Setup Guide](./ENV_SETUP.md)** – Step-by-step environment configuration
+- **[Actionable Issues](./ACTIONABLE_ISSUES.md)** – Known issues with clear fixes and testable outcomes
+
+### Architecture & Implementation
+
+- [`architecture.md`](architecture.md) – technical architecture, auth patterns, AI integration
+- [`IMPLEMENTATION.md`](IMPLEMENTATION.md) – domain model, Firestore structure, API routes
+- [`blueprint.md`](blueprint.md) – product feature map and UX guidelines
+- [`firebase-gcp-cli-setup.md`](firebase-gcp-cli-setup.md) – Firebase and GCP CLI configuration
+
+### Project Maintenance
+
+- [`.github/copilot-instructions.md`](../.github/copilot-instructions.md) – agent-facing playbook for automation and code conventions
+- [`BRANCH_CLEANUP.md`](BRANCH_CLEANUP.md) – guidance for repository hygiene
+
+Need something else documented? Open an issue with the desired section and we'll expand from there.
 
 # Scheduler
 
