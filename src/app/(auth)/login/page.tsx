@@ -45,7 +45,7 @@ export default function LoginPage() {
   const { signInWithGoogle, signInWithEmail } = useAuth();
   const _router = useRouter();
   const { toast } = useToast();
-  
+
   // Handle first-time user routing
   useAuthRedirect();
 

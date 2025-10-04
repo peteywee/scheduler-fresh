@@ -1,4 +1,9 @@
-import { initializeTestEnvironment, RulesTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
+import {
+  initializeTestEnvironment,
+  RulesTestEnvironment,
+  assertSucceeds,
+  assertFails,
+} from "@firebase/rules-unit-testing";
 import { readFileSync } from "node:fs";
 import { describe, it, beforeAll, afterAll } from "vitest";
 
@@ -27,7 +32,9 @@ describe("Parents ledger & attendance rules", () => {
     const ctx = testEnv.authenticatedContext("anyone");
     const db = ctx.firestore();
     await assertFails(
-      db.doc(`parents/${parentId}/ledgers/2025-W40/lines/x`).set({ hello: "world" })
+      db
+        .doc(`parents/${parentId}/ledgers/2025-W40/lines/x`)
+        .set({ hello: "world" }),
     );
   });
 
@@ -36,9 +43,16 @@ describe("Parents ledger & attendance rules", () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       const adb = context.firestore();
       await adb.doc(`parents/${parentId}/ledgers/2025-W40/lines/line-1`).set({
-        parentId, subOrgId: orgId, staffRef: staffUid, venueId: "v1",
-        periodId: "2025-W40", hours: 4, billRate: 20, amount: 80,
-        sourceAttendanceId: "att-1", createdAt: Date.now(),
+        parentId,
+        subOrgId: orgId,
+        staffRef: staffUid,
+        venueId: "v1",
+        periodId: "2025-W40",
+        hours: 4,
+        billRate: 20,
+        amount: 80,
+        sourceAttendanceId: "att-1",
+        createdAt: Date.now(),
       });
     });
 
@@ -48,13 +62,13 @@ describe("Parents ledger & attendance rules", () => {
     } as any);
     const parentDb = parentCtx.firestore();
     await assertSucceeds(
-      parentDb.collection(`parents/${parentId}/ledgers/2025-W40/lines`).get()
+      parentDb.collection(`parents/${parentId}/ledgers/2025-W40/lines`).get(),
     );
 
     const strangerCtx = testEnv.authenticatedContext("stranger");
     const strangerDb = strangerCtx.firestore();
     await assertFails(
-      strangerDb.collection(`parents/${parentId}/ledgers/2025-W40/lines`).get()
+      strangerDb.collection(`parents/${parentId}/ledgers/2025-W40/lines`).get(),
     );
   });
 
@@ -63,8 +77,12 @@ describe("Parents ledger & attendance rules", () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       const adb = context.firestore();
       await adb.doc(`orgs/${orgId}`).set({ orgId, name: "Org1", parentId });
-      await adb.doc(`orgs/${orgId}/members/${adminUid}`).set({ uid: adminUid, orgId, role: "admin", createdAt: Date.now() });
-      await adb.doc(`orgs/${orgId}/members/${staffUid}`).set({ uid: staffUid, orgId, role: "member", createdAt: Date.now() });
+      await adb
+        .doc(`orgs/${orgId}/members/${adminUid}`)
+        .set({ uid: adminUid, orgId, role: "admin", createdAt: Date.now() });
+      await adb
+        .doc(`orgs/${orgId}/members/${staffUid}`)
+        .set({ uid: staffUid, orgId, role: "member", createdAt: Date.now() });
     });
 
     // staff creates pending
@@ -76,9 +94,9 @@ describe("Parents ledger & attendance rules", () => {
         tenantId: orgId,
         staffId: staffUid,
         venueId: "v1",
-        clockIn: Date.now() - 60*60*1000,
+        clockIn: Date.now() - 60 * 60 * 1000,
         status: "pending",
-      })
+      }),
     );
 
     // admin approves
@@ -90,7 +108,7 @@ describe("Parents ledger & attendance rules", () => {
         status: "approved",
         approvedBy: adminUid,
         approvedAt: Date.now(),
-      })
+      }),
     );
   });
 });

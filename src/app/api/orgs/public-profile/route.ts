@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   if (!session) {
     return NextResponse.json(
       { success: false, error: "Authentication required" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     if (!orgId) {
       return NextResponse.json(
         { success: false, error: "No organization found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     if (!isAdmin) {
       return NextResponse.json(
         { success: false, error: "Admin access required" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
     console.error("Error getting public profile:", error);
     return NextResponse.json(
       { success: false, error: "Failed to get public profile" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json(
       { success: false, error: "Authentication required" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
     if (!orgId) {
       return NextResponse.json(
         { success: false, error: "No organization found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     if (!isAdmin) {
       return NextResponse.json(
         { success: false, error: "Admin access required" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -129,14 +129,17 @@ export async function POST(req: NextRequest) {
     if (typeof listed !== "boolean") {
       return NextResponse.json(
         { success: false, error: "Listed must be a boolean" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    if (listed && (!name || typeof name !== "string" || name.trim().length === 0)) {
+    if (
+      listed &&
+      (!name || typeof name !== "string" || name.trim().length === 0)
+    ) {
       return NextResponse.json(
         { success: false, error: "Name is required when listing organization" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -144,13 +147,17 @@ export async function POST(req: NextRequest) {
       listed,
       name: name?.trim() || "",
       city: city?.trim() || "",
-      tags: Array.isArray(tags) ? tags.filter(t => typeof t === "string") : [],
+      tags: Array.isArray(tags)
+        ? tags.filter((t) => typeof t === "string")
+        : [],
       updatedAt: new Date(),
       updatedBy: uid,
     };
 
     // Update public profile
-    await getDb().doc(`orgs/${orgId}/public/profile`).set(profileData, { merge: true });
+    await getDb()
+      .doc(`orgs/${orgId}/public/profile`)
+      .set(profileData, { merge: true });
 
     return NextResponse.json({
       success: true,
@@ -160,7 +167,7 @@ export async function POST(req: NextRequest) {
     console.error("Error updating public profile:", error);
     return NextResponse.json(
       { success: false, error: "Failed to update public profile" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

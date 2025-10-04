@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 const PUBLIC_PATHS = [
   "/",
   "/login",
-  "/signup", 
+  "/signup",
   "/join",
   "/discover",
   "/onboarding",
@@ -33,7 +33,7 @@ export async function middleware(request: NextRequest) {
 
   // Check for session cookie for protected routes
   const sessionCookie = request.cookies.get("__session");
-  
+
   if (!sessionCookie) {
     // Redirect to login for unauthenticated users
     return NextResponse.redirect(new URL("/login", request.url));

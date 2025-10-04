@@ -39,24 +39,24 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json(
       { success: false, error: "Authentication required" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
   try {
     const { adminAuth, switchUserPrimaryOrg } = await loadFirebaseAdmin();
-    
+
     const decoded = await adminAuth().verifySessionCookie(session, true);
     const uid = decoded.uid;
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
     const parseResult = SwitchOrgRequestSchema.safeParse(body);
-    
+
     if (!parseResult.success) {
       return NextResponse.json(
         { success: false, error: "Invalid request data" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -74,11 +74,12 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Error switching organization:", error);
-    
-    const errorMessage = error instanceof Error ? error.message : "Failed to switch organization";
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to switch organization";
     return NextResponse.json(
       { success: false, error: errorMessage },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -3,18 +3,24 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
-  CalendarCheck, 
-  Search, 
-  Users, 
-  Building, 
+import {
+  CalendarCheck,
+  Search,
+  Users,
+  Building,
   ArrowRight,
   UserPlus,
-  Clock
+  Clock,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -46,7 +52,7 @@ export default function DiscoverPage() {
     try {
       const params = new URLSearchParams();
       if (query) params.append("q", query);
-      
+
       const response = await fetch(`/api/orgs/search?${params}`);
       const data = await response.json();
 
@@ -80,7 +86,7 @@ export default function DiscoverPage() {
 
       const csrfToken = document.cookie
         .split("; ")
-        .find(row => row.startsWith("XSRF-TOKEN="))
+        .find((row) => row.startsWith("XSRF-TOKEN="))
         ?.split("=")[1];
 
       if (!csrfToken) {
@@ -93,9 +99,9 @@ export default function DiscoverPage() {
           "Content-Type": "application/json",
           "x-csrf-token": csrfToken,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           orgId,
-          message: "I would like to join this organization."
+          message: "I would like to join this organization.",
         }),
       });
 
@@ -122,7 +128,9 @@ export default function DiscoverPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
             <CalendarCheck className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold font-headline">Fresh Schedules</span>
+            <span className="text-2xl font-bold font-headline">
+              Fresh Schedules
+            </span>
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Discover Organizations
@@ -197,7 +205,7 @@ export default function DiscoverPage() {
                   </div>
 
                   {org.allowsRequests ? (
-                    <Button 
+                    <Button
                       onClick={() => requestAccess(org.id)}
                       disabled={requestingAccess === org.id}
                       className="w-full"
@@ -227,10 +235,12 @@ export default function DiscoverPage() {
             <Card>
               <CardContent className="text-center py-8">
                 <Building className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No Organizations Found</h3>
+                <h3 className="text-lg font-medium mb-2">
+                  No Organizations Found
+                </h3>
                 <p className="text-muted-foreground mb-4">
-                  {searchQuery 
-                    ? "No organizations match your search criteria." 
+                  {searchQuery
+                    ? "No organizations match your search criteria."
                     : "No public organizations are available for discovery yet."}
                 </p>
                 <Button variant="outline" onClick={() => router.push("/join")}>
