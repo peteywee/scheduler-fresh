@@ -1,44 +1,56 @@
-# .deep/source.toml
-# Configuration file for Deep Source analysis
+# .deepsource.toml
+# DeepSource config — Next.js + TypeScript + Docker
 # Docs: https://deepsource.io/docs/
 
 version = 1
 
+# ── Analyzers ────────────────────────────────────────────────────────────────
 [[analyzers]]
 name = "javascript"
 enabled = true
-runtime = "nodejs"
 
   [analyzers.meta]
-  dialect = "typescript"   # can be "javascript" if no TS
-  module_system = "esnext" # commonjs, es6, etc.
-
-[[analyzers]]
-name = "python"
-enabled = false
+  dialect = "typescript"     # "javascript" or "typescript"
+  module_system = "es-modules"  # valid: "commonjs" | "es-modules" | "amd"
+  # project_type can help DeepSource tune rules; "node" is a safe default for Next.js
+  project_type = "node"
 
 [[analyzers]]
 name = "docker"
 enabled = true
 
+# Add more if you use them:
+# [[analyzers]]
+# name = "secrets"
+# enabled = true
+
+# ── Transformers (formatters) ────────────────────────────────────────────────
 [[transformers]]
 name = "prettier"
 enabled = true
 
-[[transformers]]
-name = "black"
-enabled = false
+# Example: enable Black only if you have Python
+# [[transformers]]
+# name = "black"
+# enabled = false
 
+# ── Paths & ignores ─────────────────────────────────────────────────────────
 [ignore]
-# Glob patterns for files/folders to ignore from analysis
 patterns = [
   "node_modules/**",
+  ".next/**",
+  "out/**",
   "dist/**",
   "build/**",
-  ".next/**",
+  "coverage/**",
+  ".cache/**",
   "*.lock",
 ]
 
+# ── Reporting ────────────────────────────────────────────────────────────────
 [report]
-# Configure reporting level
-severity = "error" # options: info, warning, error
+severity = "error"  # "info" | "warning" | "error"
+
+# ── Optional: mark tests so rules understand fixtures/mocks ──────────────────
+# [test_patterns]
+# patterns = ["**/*.test.ts", "**/*.spec.ts", "**/__tests__/**"]
