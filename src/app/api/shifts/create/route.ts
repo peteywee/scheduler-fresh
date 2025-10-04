@@ -23,14 +23,22 @@ export async function POST(request: Request) {
     const json = await request.json();
     const parsedData = CreateShiftRequestSchema.parse(json);
 
-      // Security: verify org access
-      const isAllowed = await verifyOrgAccess(session.uid, parsedData.orgId, ["admin", "manager"]);
+    // Security: verify org access
+    const isAllowed = await verifyOrgAccess(session.uid, parsedData.orgId, [
+      "admin",
+      "manager",
+    ]);
     if (!isAllowed) {
-      return new NextResponse("Forbidden: You do not have permission to create shifts.", { status: 403 });
+      return new NextResponse(
+        "Forbidden: You do not have permission to create shifts.",
+        { status: 403 },
+      );
     }
     // --- END SECURITY CHECK ---
 
-  const shiftRef = adminDb().collection(`orgs/${parsedData.orgId}/shifts`).doc();
+    const shiftRef = adminDb()
+      .collection(`orgs/${parsedData.orgId}/shifts`)
+      .doc();
 
     const newShift = {
       ...parsedData,

@@ -66,11 +66,17 @@ function printHelp() {
   console.log("Usage: node scripts/check-ports.mjs [options] [ports...]");
   console.log("Options:");
   console.log("  --silent, -s          Suppress human output");
-  console.log("  --json                 Emit JSON summary (or CHECK_PORTS_JSON=1)");
+  console.log(
+    "  --json                 Emit JSON summary (or CHECK_PORTS_JSON=1)",
+  );
   console.log("  --host <addr>          Host to probe (default 127.0.0.1)");
-  console.log("  --timeout <ms>         Fail after <ms> while probing (default 2000)");
+  console.log(
+    "  --timeout <ms>         Fail after <ms> while probing (default 2000)",
+  );
   console.log("  --no-suggest           Skip remediation hints");
-  console.log("  --label <text>         Include a label in the summary (e.g. 'dev:web')");
+  console.log(
+    "  --label <text>         Include a label in the summary (e.g. 'dev:web')",
+  );
   console.log("  --verbose              Print extra diagnostics");
   console.log("  --help, -h             Show this help message");
   console.log("\nExamples:");
@@ -89,7 +95,7 @@ function parseArgs(argv) {
     suggest: boolFrom(process.env.CHECK_PORTS_SUGGEST, true),
     label: process.env.CHECK_PORTS_LABEL || null,
     ports: parsePortTokens(
-      process.env.CHECK_PORTS_DEFAULT ? [process.env.CHECK_PORTS_DEFAULT] : []
+      process.env.CHECK_PORTS_DEFAULT ? [process.env.CHECK_PORTS_DEFAULT] : [],
     ),
   };
 
@@ -197,11 +203,17 @@ async function probePort(port, host, timeoutMs) {
 function renderHumanSummary(options, results) {
   if (options.silent || options.json) return;
 
-  const labelSuffix = options.label ? colorize(` (${options.label})`, "dim") : "";
-  console.log(colorize(`┏━━━━━━━━━━━━━━━━━━━━━━━ PORT HEALTH${labelSuffix}`, "cyan"));
+  const labelSuffix = options.label
+    ? colorize(` (${options.label})`, "dim")
+    : "";
+  console.log(
+    colorize(`┏━━━━━━━━━━━━━━━━━━━━━━━ PORT HEALTH${labelSuffix}`, "cyan"),
+  );
   console.log(colorize(`┃ Host: ${options.host}`, "gray"));
   console.log(colorize(`┃ Timeout: ${options.timeout}ms`, "gray"));
-  console.log(colorize("┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "gray"));
+  console.log(
+    colorize("┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "gray"),
+  );
 
   const longestPort = Math.max(...results.map((r) => String(r.port).length));
   for (const result of results) {
@@ -219,12 +231,17 @@ function renderHumanSummary(options, results) {
 
     if (!result.free && options.verbose && result.error) {
       console.log(
-        colorize(`┃    └─ ${result.error.code || "error"}: ${result.error.message}`, "gray"),
+        colorize(
+          `┃    └─ ${result.error.code || "error"}: ${result.error.message}`,
+          "gray",
+        ),
       );
     }
   }
 
-  console.log(colorize("└────────────────────────────────────────────", "gray"));
+  console.log(
+    colorize("└────────────────────────────────────────────", "gray"),
+  );
 }
 
 function emitJson(options, results) {
@@ -273,7 +290,9 @@ async function main() {
   options.ports = unique(options.ports);
 
   if (!options.ports.length) {
-    console.error("No ports specified. Provide ports via CLI or CHECK_PORTS_DEFAULT.");
+    console.error(
+      "No ports specified. Provide ports via CLI or CHECK_PORTS_DEFAULT.",
+    );
     process.exit(2);
   }
 

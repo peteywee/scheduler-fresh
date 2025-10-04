@@ -26,7 +26,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-
 // Create a Zod schema for the form
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -35,7 +34,6 @@ const formSchema = z.object({
   assignedTo: z.array(z.string()).optional(),
 });
 
-
 interface ShiftEditorDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -43,7 +41,12 @@ interface ShiftEditorDialogProps {
   orgId: string;
 }
 
-export function ShiftEditorDialog({ isOpen, onOpenChange, shift, orgId }: ShiftEditorDialogProps) {
+export function ShiftEditorDialog({
+  isOpen,
+  onOpenChange,
+  shift,
+  orgId,
+}: ShiftEditorDialogProps) {
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [submitting, setSubmitting] = useState(false);
   // resolver typing mismatch between @hookform/resolvers and this project's zod version;
@@ -89,10 +92,10 @@ export function ShiftEditorDialog({ isOpen, onOpenChange, shift, orgId }: ShiftE
           <DialogTitle>{shift ? "Edit Shift" : "Add Shift"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-                <Label htmlFor="title">Title</Label>
-                <Input id="title" {...form.register("title")} />
-            </div>
+          <div>
+            <Label htmlFor="title">Title</Label>
+            <Input id="title" {...form.register("title")} />
+          </div>
 
           <div>
             <Label>Assign To</Label>
@@ -118,10 +121,18 @@ export function ShiftEditorDialog({ isOpen, onOpenChange, shift, orgId }: ShiftE
 
           <DialogFooter>
             <div className="flex items-center gap-3">
-              <Button type="submit" disabled={submitting} aria-disabled={submitting}>
+              <Button
+                type="submit"
+                disabled={submitting}
+                aria-disabled={submitting}
+              >
                 {submitting ? "Saving…" : "Save"}
               </Button>
-              {submitting ? <span className="text-sm text-muted-foreground">Saving changes…</span> : null}
+              {submitting ? (
+                <span className="text-sm text-muted-foreground">
+                  Saving changes…
+                </span>
+              ) : null}
             </div>
           </DialogFooter>
         </form>

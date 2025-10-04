@@ -18,10 +18,16 @@ function colorForId(id: string) {
   return `hsl(${hue} 70% 50%)`;
 }
 
-export default function ScheduleCalendar({ orgId = "demo" }: { orgId?: string }) {
+export default function ScheduleCalendar({
+  orgId = "demo",
+}: {
+  orgId?: string;
+}) {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedShift, setSelectedShift] = useState<Shift | undefined>(undefined);
+  const [selectedShift, setSelectedShift] = useState<Shift | undefined>(
+    undefined,
+  );
 
   // TODO: Fetch shifts from the API in a useEffect hook
   useEffect(() => {
@@ -43,10 +49,14 @@ export default function ScheduleCalendar({ orgId = "demo" }: { orgId?: string })
             return {
               id: typeof rec.id === "string" ? rec.id : undefined,
               orgId: typeof rec.orgId === "string" ? rec.orgId : orgId,
-              venueId: typeof rec.venueId === "string" ? rec.venueId : undefined,
-              standId: typeof rec.standId === "string" ? rec.standId : undefined,
+              venueId:
+                typeof rec.venueId === "string" ? rec.venueId : undefined,
+              standId:
+                typeof rec.standId === "string" ? rec.standId : undefined,
               title: typeof rec.title === "string" ? rec.title : undefined,
-              assignedTo: Array.isArray(rec.assignedTo) ? (rec.assignedTo as string[]) : undefined,
+              assignedTo: Array.isArray(rec.assignedTo)
+                ? (rec.assignedTo as string[])
+                : undefined,
               notes: typeof rec.notes === "string" ? rec.notes : undefined,
               start: s.start ? new Date(s.start) : new Date(),
               end: s.end ? new Date(s.end) : new Date(),
@@ -111,30 +121,54 @@ export default function ScheduleCalendar({ orgId = "demo" }: { orgId?: string })
           </Button>
         </div>
         <div>
-          <Button variant="outline" onClick={() => console.log("Export schedule (TODO)")}>Export</Button>
+          <Button
+            variant="outline"
+            onClick={() => console.log("Export schedule (TODO)")}
+          >
+            Export
+          </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-7 border rounded-lg h-96 p-2 gap-2 overflow-auto">
         {shifts.length === 0 && (
-          <p className="text-muted-foreground col-span-7">No shifts yet — click "Populate sample week" to add demo shifts or "Add Shift" to create one.</p>
+          <p className="text-muted-foreground col-span-7">
+            No shifts yet — click "Populate sample week" to add demo shifts or
+            "Add Shift" to create one.
+          </p>
         )}
 
         {shifts.map((shift) => {
           const staffId = shift.assignedTo?.[0] ?? "unassigned";
           const color = colorForId(staffId);
           return (
-            <div key={shift.id} className="bg-white shadow-sm rounded p-2 relative" style={{ borderLeft: `4px solid ${color}` }}>
+            <div
+              key={shift.id}
+              className="bg-white shadow-sm rounded p-2 relative"
+              style={{ borderLeft: `4px solid ${color}` }}
+            >
               <div className="flex justify-between items-start">
                 <div>
                   <div className="font-medium">{shift.title}</div>
-                  <div className="text-sm text-muted-foreground">{shift.start?.toString?.()} - {shift.end?.toString?.()}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {shift.start?.toString?.()} - {shift.end?.toString?.()}
+                  </div>
                 </div>
                 <div className="flex gap-2">
-                  <button aria-label={`Edit ${shift.title}`} onClick={() => handleEditShift(shift)} className="p-1 hover:bg-slate-100 rounded">
+                  <button
+                    aria-label={`Edit ${shift.title}`}
+                    onClick={() => handleEditShift(shift)}
+                    className="p-1 hover:bg-slate-100 rounded"
+                  >
                     <Edit2 className="h-4 w-4" />
                   </button>
-                  <button aria-label={`Delete ${shift.title}`} onClick={() => setShifts(s => s.filter(s2 => s2.id !== shift.id))} className="p-1 hover:bg-slate-100 rounded">
+                  <button
+                    aria-label={`Delete ${shift.title}`}
+                    onClick={() =>
+                      setShifts((s) => s.filter((s2) => s2.id !== shift.id))
+                    }
+                    className="p-1 hover:bg-slate-100 rounded"
+                  >
                     <Trash2 className="h-4 w-4 text-red-600" />
                   </button>
                 </div>
