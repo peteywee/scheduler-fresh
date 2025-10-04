@@ -227,7 +227,8 @@ function discoverTasks(): Task[] {
           attempts: 0,
           maxRetries: MAX_RETRIES,
         });
-      const child = spawn(t.cmd, { cwd: t.cwd, stdio: ["ignore", "pipe", "pipe"], shell: true });
+      }
+    } catch {
       // ignore
     }
   }
