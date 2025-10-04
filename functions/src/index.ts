@@ -4,7 +4,7 @@ import { replicateApprovedAttendance } from "./replicateAttendance";
 // Trigger on updates to org attendance documents
 export const onAttendanceWrite = functions.firestore
   .document("orgs/{orgId}/attendance/{eventId}")
-  .onWrite(async (change, context) => {
+  .onWrite(async (change: unknown, context: unknown) => {
     try {
       await replicateApprovedAttendance(change, context);
     } catch (err) {

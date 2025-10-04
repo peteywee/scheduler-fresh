@@ -1,14 +1,15 @@
 // src/app/api/orgs/[orgId]/members/route.ts
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { adminDb } from "@/lib/firebase.server";
 import { OrgMember } from "@/lib/types";
 
 export async function GET(
-  request: Request,
-  { params }: { params: { orgId: string } }
+  request: NextRequest,
+  context: { params: Record<string, string> }
 ) {
+  const { params } = context;
   try {
     const session = await getSession(request);
     if (!session?.uid) {
@@ -18,7 +19,7 @@ export async function GET(
     const { orgId } = params;
 
     // Security Check: Verify the requester is a member of the organization
-    const requesterMemberDoc = await adminDb
+    const requesterMemberDoc = await adminDb()
       .collection(`orgs/${orgId}/members`)
       .doc(session.uid)
       .get();
@@ -28,8 +29,8 @@ export async function GET(
     }
 
     // Fetch all members of the organization
-    const membersSnapshot = await adminDb.collection(`orgs/${orgId}/members`).get();
-    const members = membersSnapshot.docs.map(doc => doc.data() as OrgMember);
+  const membersSnapshot = await adminDb().collection(`orgs/${orgId}/members`).get();
+  const members = membersSnapshot.docs.map((doc): OrgMember => doc.data() as OrgMember);
 
     return NextResponse.json(members);
   } catch (error) {

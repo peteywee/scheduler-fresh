@@ -30,5 +30,5 @@ Path: `package.json`
 ## Notes
 
 - Ensure the `firebase` and `firebase-admin` versions are compatible when running emulator or functions locally.
-- Pin or test dependency upgrades in a separate branch; this repo now standardizes on npm for lockfile and CI.
+- Pin or test dependency upgrades in a separate branch; this repo uses pnpm/monorepo-friendly tooling.
 - Security: run dependency audits (Dependabot/GitHub security alerts) regularly; CI prints known vulnerabilities on push.

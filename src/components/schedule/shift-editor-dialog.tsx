@@ -45,8 +45,11 @@ interface ShiftEditorDialogProps {
 
 export function ShiftEditorDialog({ isOpen, onOpenChange, shift, orgId }: ShiftEditorDialogProps) {
   const [members, setMembers] = useState<OrgMember[]>([]);
+  // resolver typing mismatch between @hookform/resolvers and this project's zod version;
+  // it's safe to cast here.
   const form = useForm({
-    resolver: zodResolver(formSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(formSchema as any),
     defaultValues: {
       title: shift?.title || "",
       start: shift?.start?.toISOString().substring(0, 16) || "",
