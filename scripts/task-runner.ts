@@ -25,7 +25,7 @@ const ROOT = process.cwd();
 const CONCURRENCY = Number(process.env.CONCURRENCY) || 3;
 const MAX_RETRIES = Number(process.env.MAX_RETRIES) || 3;
 const DISCOVER_PACKAGES = true;
-const DEFAULT_EXCLUDE_PATTERNS = ["\bkill\b", "\bstop\b", "\btask-runner\b"];
+const DEFAULT_EXCLUDE_PATTERNS = ["\\bkill\\b", "\\bstop\\b", "\\btask-runner\\b"];
 const CONFIG_PATH =
   process.env.TASK_CONFIG_PATH || path.join(ROOT, "task-runner.config.json");
 const DISABLE_FLAG_FILENAME = ".task-runner.disabled";
