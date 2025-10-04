@@ -23,13 +23,11 @@ export async function POST(request: Request) {
     const json = await request.json();
     const parsedData = CreateShiftRequestSchema.parse(json);
 
-
-    // Security: verify org access
+    // Verify user has permission to create shifts in this org
     const isAllowed = await verifyOrgAccess(session.uid, parsedData.orgId, [
       "admin",
       "manager",
     ]);
-
     if (!isAllowed) {
       return new NextResponse(
         "Forbidden: You do not have permission to create shifts.",

@@ -125,19 +125,19 @@ export function ShiftEditorDialog({
 
           <div>
             <Label htmlFor="venueId">Venue ID (Optional)</Label>
-            <Input 
-              id="venueId" 
-              placeholder="e.g., venue-123" 
-              {...form.register("venueId")} 
+            <Input
+              id="venueId"
+              placeholder="e.g., venue-123"
+              {...form.register("venueId")}
             />
           </div>
 
           <div>
             <Label htmlFor="standId">Stand/Booth/Zone ID (Optional)</Label>
-            <Input 
-              id="standId" 
-              placeholder="e.g., booth-12, zone-a" 
-              {...form.register("standId")} 
+            <Input
+              id="standId"
+              placeholder="e.g., booth-12, zone-a"
+              {...form.register("standId")}
             />
           </div>
 

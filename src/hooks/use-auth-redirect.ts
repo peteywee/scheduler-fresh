@@ -46,8 +46,9 @@ export function useAuthRedirect() {
         if (!mounted) return;
 
         // Check if user has org claims
-        const hasOrgClaims = data.customClaims?.orgId || 
-                           (data.customClaims?.orgIds && data.customClaims.orgIds.length > 0);
+        const hasOrgClaims =
+          data.customClaims?.orgId ||
+          (data.customClaims?.orgIds && data.customClaims.orgIds.length > 0);
 
         if (!hasOrgClaims) {
           // First-time user, redirect to onboarding
