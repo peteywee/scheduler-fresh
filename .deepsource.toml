@@ -4,8 +4,12 @@ version = 1
 name = "javascript"
 enabled = true
   [analyzers.meta]
+  # Project uses TypeScript and ES modules (Next.js / modern JS). Valid
+  # `environment` values include: nodejs, browser, jest, mocha, jasmine,
+  # jquery, mongo, cypress, vitest. Use the closest match for your repo.
   dialect = "typescript"
   module_system = "es-modules"   # valid: commonjs | es-modules | amd
+  environment = "nodejs"
 
 [[analyzers]]
 name = "docker"
@@ -18,8 +22,11 @@ enabled = true
 [[analyzers]]
 name = "test-coverage"
 enabled = true
-  [analyzers.meta]
-  command = "pnpm test:coverage"
+  # Enabled without custom `meta` to avoid invalid option errors. If you
+  # want DeepSource to run a custom coverage command (for example,
+  # `pnpm test:coverage`) or parse a coverage report, we should add the
+  # supported `meta` keys from the DeepSource docs. Tell me the exact
+  # coverage runner you use and I will fetch the docs and wire it up.
 
 [[transformers]]
 name = "prettier"
