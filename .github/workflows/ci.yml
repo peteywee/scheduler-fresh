@@ -2,6 +2,68 @@ name: CI
 
 on:
   push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 3 * * 1' # weekly on Monday at 03:00 UTC
+
+jobs:
+  install-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Enable corepack and pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (root)
+        run: pnpm -w -s lint || true
+
+      - name: Run tests (unit)
+        run: pnpm -w -s test:run || pnpm -w -s test || true
+
+  watchman-drift-check:
+    name: Watchman package drift
+    runs-on: ubuntu-latest
+    needs: install-and-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Enable corepack and pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run watchman-package-drift
+        # script exits non-zero when drift found; keep as check
+        run: node --loader ts-node/esm ./scripts/watchman-package-drift.ts --fail-on-unused
+name: CI
+
+on:
+  push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
