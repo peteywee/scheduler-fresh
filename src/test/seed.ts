@@ -1,12 +1,18 @@
 import { RulesTestEnvironment } from "@firebase/rules-unit-testing";
 
+interface OrgExtra {
+  name?: string;
+  parentId?: string;
+  [key: string]: unknown; // allow future extension while avoiding any
+}
+
 export interface SeedOrgMembersOptions {
   orgId: string;
   adminUid: string; // primary admin
   memberUids?: string[]; // additional member (non-admin) user ids
   includeUserDocs?: boolean; // default true
   roles?: Record<string, string>; // optional explicit role mapping per uid
-  orgData?: Record<string, any>; // additional org fields
+  orgData?: OrgExtra; // additional org fields (typed as unknown values)
 }
 
 export interface SeedResult {
@@ -38,7 +44,7 @@ export async function seedOrgWithMembers(
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
 
-    await db.doc(`orgs/${orgId}`).set({
+      await db.doc(`orgs/${orgId}`).set({
       orgId,
       name: orgData.name || `Org ${orgId}`,
       ownerUid: adminUid,
