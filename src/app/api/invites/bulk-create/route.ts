@@ -87,7 +87,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       );
     }
     // Intentionally minimal logging to avoid leaking PII; include message only.
-     
+
     console.error("Bulk invite creation error", (error as Error).message);
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred." },

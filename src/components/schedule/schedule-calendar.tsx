@@ -15,7 +15,7 @@ type UIShift = {
   createdAt: Date;
   updatedAt: Date;
 };
-import { ShiftEditorDialog, type ShiftLike } from "./shift-editor-dialog";
+import { ShiftEditorDialog } from "./shift-editor-dialog";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 
@@ -114,7 +114,8 @@ export default function ScheduleCalendar({
   };
 
   // Temporary adapter to satisfy ShiftEditorDialog until full canonical Shift integration
-  function adaptToShiftLike(s: UIShift): ShiftLike {
+  // Local minimal shape passed into ShiftEditorDialog; keep in sync if its interface changes.
+  function adaptToShiftLike(s: UIShift) {
     return {
       ...s,
       eventId: "temp-event",

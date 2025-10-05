@@ -25,6 +25,6 @@ export function profilerEnd(label: string) {
   const total = writes.reduce((a, b) => a + b.bytes, 0);
   const max = writes.reduce((m, b) => (b.bytes > m ? b.bytes : m), 0);
   console.log(
-    `[rules-profiler] END ${label} durationMs=${dur} writes=${writes.length} maxDocBytes=${max} totalBytes=${total}`
+    `[rules-profiler] END ${label} durationMs=${dur} writes=${writes.length} maxDocBytes=${max} totalBytes=${total}`,
   );
 }

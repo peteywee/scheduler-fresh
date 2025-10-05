@@ -1,17 +1,17 @@
 {
   "folders": [
     {
-      "path": "."
-    }
+      "path": ".",
+    },
   ],
   "settings": {
     "files.exclude": {
       "**/node_modules": true,
-      "**/.next": true
+      "**/.next": true,
     },
     "search.exclude": {
       "**/node_modules": true,
-      "**/.next": true
-    }
-  }
+      "**/.next": true,
+    },
+  },
 }

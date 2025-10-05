@@ -4,17 +4,18 @@ import type {
   RulesTestContext,
   RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
+import { seedOrgWithMembers } from "./seed";
 
-declare global {
-  // Provided by src/test/rules-setup.ts
+// Global testEnv typing provided via rules-setup.ts (globalThis augmentation)
 
-  var testEnv: RulesTestEnvironment;
-}
+// Explicitly assert globalThis has testEnv (set in rules-setup before tests run)
+const getEnv = (): RulesTestEnvironment =>
+  (globalThis as any).testEnv as RulesTestEnvironment;
 
 const ORG_ID = "org-1";
 
 describe("Firestore security rules", () => {
-  let testEnv: RulesTestEnvironment;
+  // Use global.testEnv provided by rules-setup.ts
   let adminCtx: RulesTestContext;
   let memberCtx: RulesTestContext;
   let outsiderCtx: RulesTestContext;
@@ -31,10 +32,15 @@ describe("Firestore security rules", () => {
   };
 
   beforeEach(async () => {
-    testEnv = global.testEnv;
-    await testEnv.clearFirestore();
+    const env = getEnv();
+    await env.clearFirestore();
 
-    const now = new Date().toISOString();
+    const { now } = await seedOrgWithMembers(env, {
+      orgId: ORG_ID,
+      adminUid: "alice",
+      memberUids: ["bob"],
+      orgData: { name: "Test Organization" },
+    });
 
     orgSeed = {
       orgId: ORG_ID,
@@ -46,41 +52,7 @@ describe("Firestore security rules", () => {
       updatedBy: "alice",
     };
 
-    await testEnv.withSecurityRulesDisabled(async (context) => {
-      const db = context.firestore();
-
-      await db.doc(`users/alice`).set({
-        uid: "alice",
-        orgId: ORG_ID,
-        createdAt: now,
-      });
-
-      await db.doc(`users/bob`).set({
-        uid: "bob",
-        orgId: ORG_ID,
-        createdAt: now,
-      });
-
-      await db.doc(`orgs/${ORG_ID}`).set(orgSeed);
-
-      await db.doc(`orgs/${ORG_ID}/members/alice`).set({
-        uid: "alice",
-        orgId: ORG_ID,
-        role: "admin",
-        addedBy: "alice",
-        createdAt: now,
-      });
-
-      await db.doc(`orgs/${ORG_ID}/members/bob`).set({
-        uid: "bob",
-        orgId: ORG_ID,
-        role: "member",
-        addedBy: "alice",
-        createdAt: now,
-      });
-    });
-
-    adminCtx = testEnv.authenticatedContext("alice", {
+    adminCtx = env.authenticatedContext("alice", {
       orgId: ORG_ID,
       orgIds: [ORG_ID],
       orgRole: "admin",
@@ -88,7 +60,7 @@ describe("Firestore security rules", () => {
       admin: true,
     });
 
-    memberCtx = testEnv.authenticatedContext("bob", {
+    memberCtx = env.authenticatedContext("bob", {
       orgId: ORG_ID,
       orgIds: [ORG_ID],
       orgRole: "employee",
@@ -96,7 +68,7 @@ describe("Firestore security rules", () => {
       admin: false,
     });
 
-    outsiderCtx = testEnv.authenticatedContext("eve", {
+    outsiderCtx = env.authenticatedContext("eve", {
       orgId: "org-2",
       orgIds: ["org-2"],
       orgRole: "employee",
@@ -104,7 +76,7 @@ describe("Firestore security rules", () => {
       admin: false,
     });
 
-    unauthCtx = testEnv.unauthenticatedContext();
+    unauthCtx = env.unauthenticatedContext();
   });
 
   describe("organization documents", () => {
@@ -127,12 +99,20 @@ describe("Firestore security rules", () => {
     });
 
     it("denies admins when user document orgId mismatches claim", async () => {
-      await testEnv.withSecurityRulesDisabled(async (context) => {
+      const env = getEnv();
+      await env.withSecurityRulesDisabled(async (context: any) => {
         await context.firestore().doc(`users/alice`).update({ orgId: "org-2" });
       });
-
+      // Recreate context to avoid any cached state
+      const staleAdminCtx = env.authenticatedContext("alice", {
+        orgId: ORG_ID,
+        orgIds: [ORG_ID],
+        orgRole: "admin",
+        orgRoles: { [ORG_ID]: "admin" },
+        admin: true,
+      });
       await assertFails(
-        adminCtx.firestore().doc(`orgs/${ORG_ID}`).update({
+        staleAdminCtx.firestore().doc(`orgs/${ORG_ID}`).update({
           orgId: orgSeed.orgId,
           name: "Should fail",
           updatedAt: new Date().toISOString(),

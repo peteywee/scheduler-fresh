@@ -1,202 +1,117 @@
-# Copilot Coding Agent Todo List
+<!--
+  Modernized Copilot Task Backlog
+  This file was overhauled to reflect CURRENT repository reality.
+  Legend of dispositions:
+    DONE     – Implemented; keep concise note for audit trail
+    ACTIVE   – In current sprint focus window
+    NEXT     – Queued (ready, low ambiguity)
+    DEFERRED – Valuable but intentionally postponed (note trigger)
+    OBSOLETE – No longer relevant (architecture shift or superseded)
+-->
 
-## Scheduler Fresh - Comprehensive Development Tasks
+# Scheduler – Consolidated Engineering Backlog
 
-### 🚨 Critical Bug Fixes (High Priority)
+Last refresh: <!-- YYYY-MM-DD --> 2025-10-05
 
-- [ ] **Fix TypeScript errors in `src/app/api/orgs/requests/approve/route.ts`**
-  - Variable 'orgId' is used before being assigned (line 79)
-  - Add proper null checks and initialization
+## 1. Recently Completed (evidence in code/tests)
 
-- [ ] **Fix TypeScript errors in `src/app/onboarding/page.tsx`**
-  - Fix type mismatch in ChoiceStep onNext prop (line 372)
-  - Fix type mismatch in CreateOrgStep onNext prop (line 375)
-  - Update StepProps interface to handle different callback signatures
+- [x] Approve join request API route hardened (`src/app/api/orgs/requests/approve/route.ts`): uses Zod `ApproveRequestSchema`, transactional status update, adds user to org with role.
+- [x] Removed legacy `JoinRequest` / `types.legacy` imports (search returns none; only comment reference remains).
+- [x] Centralized request approval/input schemas inside `src/lib/types.ts` (ApproveRequestSchema, JoinOrgRequestSchema, RequestAccessSchema).
+- [x] Session + CSRF validation pattern standardized across new org request endpoints.
 
-- [ ] **Fix TypeScript errors in `src/components/ui/calendar.tsx`**
-  - Remove invalid IconLeft/IconRight properties from DayPicker components
-  - Add proper type definitions for className parameters
+## 2. Active (In Progress Now)
 
-- [ ] **Fix TypeScript errors in `src/components/ui/chart.tsx`**
-  - Add proper type definitions for payload and label properties
-  - Fix recharts component integration and type definitions
-  - Add proper typing for chart legend and tooltip components
+- [ ] Backlog reclassification & rewrite (this document) – pruning vague v1 items and mapping to current domain model.
+- [ ] Verify if any onboarding page callback typing issues still exist (`src/app/onboarding/page.tsx`); update or mark obsolete.
 
-### 🏗️ Core Feature Implementation (High Priority)
+## 3. Next Up (Ready)
 
-- [ ] **Complete Settings Page Implementation**
-  - Replace placeholder content in `src/app/(app)/settings/page.tsx`
-  - Add organization settings management
-  - Add user profile management
-  - Add notification preferences
-  - Add organization member management (admin only)
+- [ ] UI Chart component: tighten tooltip/legend generic typing (ensure formatter and payload inference strongly typed) – file `src/components/ui/chart.tsx`.
+- [x] Rename or relocate misnamed `calendar.tsx` (is actually Invite Manager) OR create real calendar component stub; decide naming convention (`InviteManager` to `invite-manager.tsx`). (Added re-export shim.)
 
-- [ ] **Complete Requests Management System**
-  - Implement shift swap request functionality
-  - Implement time-off request system
-  - Add approval/denial workflow for admins
-  - Add real-time notifications for request status changes
-  - Replace placeholder in `src/app/(app)/requests/page.tsx`
+## 4. Deferred (Intentionally Later)
 
-- [ ] **Enhance Schedule Management**
-  - Implement proper date navigation in dashboard
-  - Add shift creation, editing, and deletion functionality
-  - Implement drag-and-drop shift assignment
-  - Add publish/unpublish schedule functionality
-  - Connect schedule calendar to real Firestore data
+- [ ] Real-time listeners + optimistic updates (requires schedule data model stabilization first).
+- [ ] AI schedule generation flow (needs consensus on constraint schema + fairness metrics).
 
-- [ ] **Complete Authentication Flow**
-  - Add password reset functionality
-  - Implement Google OAuth integration
-  - Add email verification process
-  - Improve error handling in auth pages
+## 5. Obsolete / Superseded (Removed From Active Scope)
 
-### 🤖 AI-Powered Features (Medium Priority)
+- ~~Fix TypeScript errors in approve route (orgId before assignment)~~ – code presently clean; no usage-before-assignment in current file.
+- ~~Fix TypeScript errors in chart.tsx (baseline types missing)~~ – baseline types exist; remaining work is enhancement, moved to Next Up.
+- ~~calendar.tsx DayPicker IconLeft/IconRight issues~~ – file no longer implements DayPicker; it's an Invite Manager component; original issue invalid.
 
-- [ ] **Enhance Conflict Detection System**
-  - Improve AI prompt engineering for better conflict detection
-  - Add more sophisticated conflict categories
-  - Implement batch processing for large schedules
-  - Add conflict resolution suggestions
-  - Store and track conflict history
+## 6. Larger Feature Epics (Condensed)
 
-- [ ] **Add AI-Powered Schedule Generation**
-  - Create new AI flow for automatic schedule generation
-  - Consider employee preferences and availability
-  - Optimize for coverage and fairness
-  - Add manual override capabilities
+| Epic                                              | Status              | Notes                                                               |
+| ------------------------------------------------- | ------------------- | ------------------------------------------------------------------- |
+| Settings Page (org + user prefs)                  | Pending design sync | Placeholder exists. Need schema for notification prefs.             |
+| Requests Management (swap, time-off)              | Deferred            | Requires final approval rules + ledger impacts.                     |
+| Schedule Management (CRUD, DnD, publish)          | In discovery        | Need shift entity schema + conflict integration.                    |
+| Conflict Detection Enhancements                   | Active R&D          | Current flow at `ai/flows/conflict-flagging.ts`; expand categories. |
+| Notification System (in-app + email)              | Deferred            | Blocked on event bus abstraction.                                   |
+| Security Hardening (rate limiting, audit logging) | Partially started   | CSRF + session patterns present; rate limiting TBD.                 |
 
-- [ ] **Implement Smart Shift Recommendations**
-  - AI-powered suggestions for shift coverage
-  - Predictive analytics for scheduling patterns
-  - Automated conflict prevention
+## 7. Technical Debt / Quality Targets
 
-### 📱 User Experience Improvements (Medium Priority)
+- [ ] Add minimal vitest coverage for `addUserToOrg` side effects (membership doc write & role field) via emulator.
+- [ ] Introduce structured logging helper (levels + redact PII) for API routes.
+- [ ] Service worker: evaluate offline caching strategy (currently basic PWA manifest only).
 
-- [ ] **Responsive Design Enhancements**
-  - Optimize mobile experience for schedule viewing
-  - Improve touch interactions for drag-and-drop
-  - Add mobile-specific navigation patterns
-  - Test and improve tablet experience
+## 8. Documentation & DX
 
-- [ ] **Real-time Updates Implementation**
-  - Implement Firestore listeners for live schedule updates
-  - Add real-time notifications for schedule changes
-  - Show online/offline status indicators
-  - Add optimistic updates for better UX
+- [ ] Add schema section to `docs/architecture.md` for new approval & invite flows.
+- [ ] Provide quickstart snippet for creating a join request & approval (curl examples) in `docs/QUICKSTART.md`.
 
-- [ ] **Notification System**
-  - Implement in-app notification center
-  - Add email notifications for important events
-  - Push notifications for mobile users
-  - Customizable notification preferences
+## 9. Security & Compliance
 
-### 🔧 Technical Improvements (Medium Priority)
-
-- [ ] **Error Handling and Logging**
-  - Implement comprehensive error boundaries
-  - Add structured logging throughout the application
-  - Improve error messages for better user experience
-  - Add error reporting and monitoring
-
-- [ ] **Performance Optimization**
-  - Implement code splitting for better load times
-  - Optimize image loading and caching
-  - Add service worker for offline capabilities
-  - Optimize bundle size and lazy loading
-
-- [ ] **Testing Infrastructure**
-  - Add unit tests for critical components
-  - Implement integration tests for API routes
-  - Add end-to-end tests for key user flows
-  - Set up automated testing in CI/CD pipeline
-
-### 🎨 UI/UX Polish (Low Priority)
-
-- [ ] **Dark Mode Implementation**
-  - Complete dark mode support across all components
-  - Update color scheme to match blueprint specifications
-  - Add theme toggle functionality
-  - Test accessibility in both themes
-
-- [ ] **Animation and Transitions**
-  - Add subtle animations for state changes
-  - Implement smooth transitions for route changes
-  - Add loading states and skeleton screens
-  - Improve drag-and-drop visual feedback
-
-- [ ] **Accessibility Improvements**
-  - Add proper ARIA labels and roles
-  - Improve keyboard navigation
-  - Add screen reader support
-  - Ensure color contrast compliance
-
-### 🔐 Security Enhancements (Medium Priority)
-
-- [ ] **Enhanced Security Measures**
-  - Implement rate limiting for API endpoints
-  - Add input validation and sanitization
-  - Strengthen CSRF protection
-  - Add audit logging for sensitive operations
-
-- [ ] **Data Privacy and Compliance**
-  - Implement data export functionality
-  - Add data deletion capabilities
-  - Ensure GDPR compliance
-  - Add privacy policy integration
-
-### 📚 Documentation and Developer Experience (Low Priority)
-
-- [ ] **API Documentation**
-  - Document all API endpoints with OpenAPI/Swagger
-  - Add request/response examples
-  - Create developer onboarding guide
-  - Add troubleshooting documentation
-
-- [ ] **Component Documentation**
-  - Add JSDoc comments to components
-  - Create Storybook for UI components
-  - Document props and usage patterns
-  - Add component testing examples
-
-### 🚀 Advanced Features (Future Enhancements)
-
-- [ ] **Multi-location Support**
-  - Support for multiple business locations
-  - Location-specific scheduling
-  - Cross-location staff assignments
-  - Location-based reporting
-
-- [ ] **Advanced Reporting and Analytics**
-  - Schedule utilization reports
-  - Staff performance analytics
-  - Cost analysis and optimization
-  - Export capabilities for reports
-
-- [ ] **Integration Capabilities**
-  - Calendar integration (Google Calendar, Outlook)
-  - Payroll system integration
-  - Third-party notification services
-  - API for external integrations
+- [ ] Add audit trail append-only collection for org membership changes (server-only writes, no PII outside tenant scope).
 
 ---
 
-## Priority Legend
+### Historical (Legacy List Snapshot)
 
-- 🚨 **Critical**: Must be fixed immediately (blocks functionality)
-- 🏗️ **High**: Core features needed for MVP completion
-- 🤖 **Medium-High**: AI features that differentiate the product
-- 📱 **Medium**: Important for user adoption and retention
-- 🔧 **Medium**: Technical debt and maintenance
-- 🎨 **Low**: Polish and nice-to-have features
-- 🔐 **Medium**: Security improvements
-- 📚 **Low**: Documentation and developer tools
-- 🚀 **Future**: Advanced features for later releases
+> The original verbose v1 backlog has been superseded. Items were mapped to the categories above or removed when invalid. See git history for prior granular bullet points if needed.
 
-## Notes for Copilot Coding Agent
+---
 
-- Follow the architectural patterns established in `.github/copilot-instructions.md`
-- Use the existing component structure and naming conventions
-- Test all changes using `pnpm run typecheck`, `pnpm run lint`, and `pnpm run build`
-- Prefer small, incremental changes over large refactors
-- Always maintain security-first approach as outlined in the project guidelines
+### Operating Notes
+
+1. Keep Zod schemas authoritative; derive component prop types from them where possible.
+2. Never allow client writes to `parents/**` (ledger immutability maintained).
+3. When adding AI flows, follow existing `conflict-flagging` pattern: Zod in/out + minimal structured result.
+
+### Verification Commands
+
+Run before marking tasks Done:
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test:run
+pnpm build
+```
+
+### Next Review
+
+- Schedule a backlog grooming review after implementing the "Next Up" items or in 1 week, whichever comes first.
+
+<!-- Legacy detailed feature list collapsed into Epics above -->
+
+<!-- AI features reorganized; see Conflict Detection & AI schedule generation entries -->
+
+<!-- UX & Notification items summarized under Epics and Deferred -->
+
+<!-- Technical improvements refined into Technical Debt / Quality Targets section -->
+
+<!-- Polish items retained implicitly; will be reintroduced when core flows stable -->
+
+<!-- Security tasks consolidated in Security & Compliance section -->
+
+<!-- Documentation tasks condensed into Documentation & DX section -->
+
+<!-- Future enhancements summarized in Epics or Deferred -->
+
+---
+
+<!-- Original priority legend and agent notes retained implicitly; streamlined above -->

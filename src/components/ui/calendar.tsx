@@ -73,6 +73,8 @@ interface InviteManagerProps {
   isAdmin: boolean;
 }
 
+// NOTE: This component was historically named calendar.tsx but is actually an Invite Manager.
+// It is re-exported via invite-manager.tsx; future imports should prefer that path.
 export default function InviteManager({
   orgId,
   orgName,

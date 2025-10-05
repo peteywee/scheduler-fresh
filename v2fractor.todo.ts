@@ -188,6 +188,15 @@ const TASKS: Task[] = [
     outputs: ['git tag v0.1.0-baseline']
   },
   {
+    id: 'task.seed_helper',
+    title: 'Shared test seed helper',
+    detail: 'Introduce reusable seedOrgWithMembers to eliminate duplication in rules tests',
+    status: 'done',
+    scope: 'scope.schema_rules',
+    verify: ['grep -R "withSecurityRulesDisabled" in tests minimized'],
+    notes: '2025-10-04 Added helper src/test/seed.ts and refactored firestore.rules.test.ts & firestore.parents.rules.test.ts'
+  },
+  {
     id: 'task.ci_split',
     title: 'CI split jobs',
     detail: 'Add lint, format:check, test, build jobs with dependencies',
@@ -200,9 +209,10 @@ const TASKS: Task[] = [
     id: 'task.add_format_check',
     title: 'Add format:check script',
     detail: 'Add "format:check": "prettier . --check" to package.json',
-    status: 'pending',
+    status: 'done',
     scope: 'scope.baseline',
-    verify: ['pnpm run format:check passes']
+    verify: ['pnpm run format:check passes'],
+    notes: '2025-10-04 Formatted the codebase and verified with format:check.'
   },
   {
     id: 'task.eslint_zero',

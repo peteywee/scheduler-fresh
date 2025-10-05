@@ -43,3 +43,8 @@ tsconfig.tsbuildinfo
 functions/lib/
 functions/package-lock.json
 
+# Ignore ad-hoc local todo scratch files (keep canonical docs/COPILOT_TODOS.md tracked)
+todo*.md
+TODO*.md
+*.todo.md
+*.todo.ts

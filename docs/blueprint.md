@@ -1,3 +1,5 @@
+> [DEPRECATED – incorporated into `architecture.md` and backlog structure on 2025-10-04] Do not extend. Remove after LEGACY_CLEANUP matrix completed.
+
 # **App Name**: Fresh Schedules
 
 ## Core Features:
