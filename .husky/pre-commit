@@ -1,3 +1,11 @@
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
+
+pnpm -s lint-staged || true
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
+
+pnpm -w -s -r lint-staged || true
 # Robust pnpm resolution for local/CI/agent shells
 export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
 export PATH="$PNPM_HOME:$PATH"
