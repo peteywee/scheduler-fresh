@@ -1,0 +1,12 @@
+{
+  "low": true,
+  "moderate": true,
+  "high": true,
+  "critical": true,
+  "allowlist": [],
+  "path": ".",
+  "report": {
+    "type": "full",
+    "path": "./security-audit-report.json"
+  }
+}

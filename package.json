@@ -26,9 +26,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings=0",
     "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "build": "next build",
     "test": "vitest",
-    "test:run": "vitest run --exclude \"src/**/firestore*.test.ts\"",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:rules": "firebase emulators:exec --only firestore 'vitest run --config vitest.rules.config.ts'",
     "test:rerun": "bash ./scripts/rerun-tests.sh",
     "test:e2e": "playwright test",
@@ -41,7 +43,12 @@
     "rules:test": "vitest run --config vitest.rules.config.ts",
     "emu": "firebase emulators:start --only firestore,functions,auth",
     "emu:exec": "firebase emulators:exec --only firestore \"vitest run --config vitest.config.ts\"",
-    "task-runner": "node --import ./scripts/task-runner-register.mjs ./scripts/task-runner.ts"
+    "task-runner": "node --import ./scripts/task-runner-register.mjs ./scripts/task-runner.ts",
+    "versions:sync": "node ./scripts/version-sync.mjs",
+    "versions:check": "node ./scripts/version-sync.mjs --check",
+    "deps:check": "node ./scripts/dep-check.mjs",
+    "security:audit": "node ./scripts/security-audit.mjs",
+    "deps:overview": "node ./scripts/gen-deps-overview.mjs"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx,js,jsx}": [
@@ -108,6 +115,7 @@
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^5.0.4",
+    "@vitest/coverage-v8": "3.2.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.36.0",
     "eslint-plugin-react": "^7.37.1",
@@ -127,6 +135,9 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.44.1",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "depcheck": "^1.4.7",
+    "audit-ci": "^7.1.0",
+    "detect-port": "^1.5.1"
   }
 }
