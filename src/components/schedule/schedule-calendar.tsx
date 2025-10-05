@@ -3,29 +3,30 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Shift } from "@/lib/types";
-import { ShiftEditorDialog } from "./shift-editor-dialog";
+// Using a lightweight UI shift type (decoupled from canonical branded types)
+// TODO: Refactor to use domain Shift with proper eventId/positions/status when backend wiring is ready.
+type UIShift = {
+  id: string;
+  orgId: string;
+  title?: string;
+  start: Date;
+  end: Date;
+  assignedTo?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+};
+import { ShiftEditorDialog, type ShiftLike } from "./shift-editor-dialog";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit2, Trash2 } from "lucide-react";
-
-// Deterministic color generator for staff id -> color
-function colorForId(id: string) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue} 70% 50%)`;
-}
+import { PlusCircle } from "lucide-react";
 
 export default function ScheduleCalendar({
   orgId = "demo",
 }: {
   orgId?: string;
 }) {
-  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [shifts, setShifts] = useState<UIShift[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedShift, setSelectedShift] = useState<Shift | undefined>(
+  const [selectedShift, setSelectedShift] = useState<UIShift | undefined>(
     undefined,
   );
 
@@ -69,7 +70,7 @@ export default function ScheduleCalendar({
           })
           .filter((s) => Boolean(s.id && s.orgId && s.start && s.end));
 
-        setShifts(parsed as Shift[]);
+        setShifts(parsed as UIShift[]);
       })
       .catch((e) => console.error("Failed to fetch shifts", e));
   }, [orgId]);
@@ -77,7 +78,7 @@ export default function ScheduleCalendar({
   // Demo/helper: populate a few sample shifts to speed up initial setup
   const populateSample = () => {
     const now = Date.now();
-    const sample: Shift[] = [
+    const sample: UIShift[] = [
       {
         id: "s1",
         orgId: "demo",
@@ -107,10 +108,20 @@ export default function ScheduleCalendar({
     setIsDialogOpen(true);
   };
 
-  const handleEditShift = (shift: Shift) => {
+  const handleEditShift = (shift: UIShift) => {
     setSelectedShift(shift);
     setIsDialogOpen(true);
   };
+
+  // Temporary adapter to satisfy ShiftEditorDialog until full canonical Shift integration
+  function adaptToShiftLike(s: UIShift): ShiftLike {
+    return {
+      ...s,
+      eventId: "temp-event",
+      positions: [] as unknown[],
+      status: "open",
+    };
+  }
 
   return (
     <div>
@@ -150,8 +161,8 @@ export default function ScheduleCalendar({
       <ShiftEditorDialog
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        shift={selectedShift}
-        orgId={""} // TODO: Pass orgId from parent component
+        shift={selectedShift ? adaptToShiftLike(selectedShift) : undefined}
+        orgId={orgId}
       />
     </div>
   );

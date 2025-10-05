@@ -4,6 +4,17 @@ import { adminDb } from "@/lib/firebase.server";
 import { generateInviteCode } from "@/lib/auth-utils";
 import { generateShortCode } from "@/lib/types";
 
+// Types for bulk invite creation
+interface BulkInviteUserInput {
+  email: string;
+  role: "admin" | "manager" | "employee";
+}
+
+interface BulkInviteRequestBody {
+  orgId: string;
+  users: BulkInviteUserInput[];
+}
+
 const bulkCreateSchema = z.object({
   orgId: z.string(),
   users: z.array(
@@ -14,20 +25,23 @@ const bulkCreateSchema = z.object({
   ),
 });
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<NextResponse> {
   try {
     // TODO: Implement getSession from auth context
     // const session = await getSession(req);
-    const session = null as any;
-    if (!session?.uid) {
+    const session: { uid: string } | null = null;
+    if (!session) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 },
       );
     }
+    const { uid: _uid } = session; // placeholder until auth implemented
 
-    const json = await req.json();
-    const { orgId, users } = bulkCreateSchema.parse(json);
+    const json: unknown = await req.json();
+    const { orgId, users } = bulkCreateSchema.parse(
+      json as BulkInviteRequestBody,
+    );
 
     // TODO: Implement verifyOrgAccess for org-level permissions
     // const allowed = await verifyOrgAccess(session.uid, orgId, ["admin", "manager"]);
@@ -65,14 +79,16 @@ export async function POST(req: Request) {
 
     await batch.commit();
     return NextResponse.json({ success: true, createdCount });
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: error.issues },
         { status: 400 },
       );
     }
-    console.error("Bulk invite creation error:", error);
+    // Intentionally minimal logging to avoid leaking PII; include message only.
+     
+    console.error("Bulk invite creation error", (error as Error).message);
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred." },
       { status: 500 },

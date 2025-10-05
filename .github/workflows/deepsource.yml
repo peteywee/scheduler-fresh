@@ -1,16 +1,74 @@
+# Enhanced DeepSource workflow with proper permissions, caching, and reproducible env
 name: DeepSource
+
 on:
   push:
     branches: ["**"]
   pull_request:
     branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+concurrency:
+  group: deepsource-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "10.17.1"
 
 jobs:
   scan:
+    name: DeepSource Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Optional: run typecheck & lint before DeepSource (fast-fail if broken)
+      - name: Typecheck
+        run: pnpm run typecheck
+      - name: Lint
+        run: pnpm run lint --max-warnings=0
+
+      - name: Install DeepSource CLI
+        run: |
+          curl -fsSL https://deepsource.io/cli | sh
+
       - name: DeepSource Scan
-        uses: deepsourcelabs/test-action@v1
         env:
           DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
+        run: |
+          ./bin/deepsource report --analyzer javascript --key javascript --value .
+          ./bin/deepsource report --analyzer typescript --key typescript --value .
+          ./bin/deepsource upload --dsn "$DEEPSOURCE_DSN"
+
+      - name: Upload DeepSource logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepsource-logs
+          path: .
+          retention-days: 5

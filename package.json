@@ -8,6 +8,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
+    "watch:drift": "ts-node --transpile-only scripts/watchman-package-drift.ts",
     "check:ports": "node ./scripts/check-ports.mjs",
     "dev:web:start": "next dev -p 3000",
     "dev:web:start:turbo": "next dev --turbopack -p 3000",
