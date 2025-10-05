@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminInit } from "@/lib/firebase.server";
 import { getFirestore } from "firebase-admin/firestore";
-import { RequestAccessSchema, JoinRequest } from "@/lib/types";
+import { RequestAccessSchema } from "@/lib/types"; // no JoinRequest import (interface internalized)
+
+interface JoinRequestShape {
+  id: string;
+  orgId: string;
+  requestedBy: string;
+  requestedByEmail: string;
+  requestedByName: string;
+  message?: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: Date;
+}
 
 // Lazy initialize to avoid build-time errors
 function getDb() {
@@ -119,7 +130,7 @@ export async function POST(req: NextRequest) {
     const requestRef = getDb().collection(`orgs/${orgId}/joinRequests`).doc();
     const now = new Date();
 
-    const joinRequest: JoinRequest = {
+    const joinRequest: JoinRequestShape = {
       id: requestRef.id,
       orgId,
       requestedBy: uid,

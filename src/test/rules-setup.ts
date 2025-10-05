@@ -6,14 +6,14 @@ import {
 import { readFileSync } from "fs";
 import { resolve } from "path";
 
-let testEnv: RulesTestEnvironment;
+let testEnvLocal: RulesTestEnvironment;
 
 beforeAll(async () => {
   // Load the actual Firestore rules
   const rulesPath = resolve(__dirname, "../../firestore.rules");
   const rulesContent = readFileSync(rulesPath, "utf8");
 
-  testEnv = await initializeTestEnvironment({
+  testEnvLocal = await initializeTestEnvironment({
     projectId: "demo-test-project",
     firestore: {
       rules: rulesContent,
@@ -23,16 +23,25 @@ beforeAll(async () => {
   });
 
   // Make the test environment available globally
-  global.testEnv = testEnv;
+  (globalThis as unknown as { testEnv: RulesTestEnvironment }).testEnv =
+    testEnvLocal;
 });
 
 afterAll(async () => {
-  if (testEnv) {
-    await testEnv.cleanup();
+  if (testEnvLocal) {
+    await testEnvLocal.cleanup();
   }
 });
 
 // Type declaration for global test environment
 declare global {
-  var testEnv: RulesTestEnvironment;
+  // Augment globalThis with testEnv (assigned at runtime)
+  // Using interface merge avoids var/let redeclaration issues.
+
+  // Provide typing for testEnv on globalThis
+  // (consumer files cast through (globalThis as any).testEnv)
+
+  interface GlobalThis {
+    testEnv: RulesTestEnvironment;
+  }
 }

@@ -1,0 +1,70 @@
+{
+  "name": "scheduler-fresh (Next.js + pnpm + Firebase)",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22",
+      "nodeGypDependencies": true
+    },
+    "ghcr.io/devcontainers-contrib/features/pnpm:2": {
+      "version": "latest"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-azuretools.vscode-docker",
+        "eamodio.gitlens",
+        "bradlc.vscode-tailwindcss",
+        "Prisma.prisma",
+        "yoavbls.pretty-ts-errors",
+        "streetsidesoftware.code-spell-checker"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenv.prettier-vscode",
+        "files.eol": "\n",
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "eslint.packageManager": "pnpm",
+        "eslint.validate": [
+          "typescript",
+          "typescriptreact",
+          "javascript",
+          "javascriptreact",
+          "json"
+        ],
+        "prettier.requireConfig": true
+      }
+    }
+  },
+  "containerEnv": {
+    "FORCE_COLOR": "1"
+  },
+  "remoteEnv": {
+    "NEXT_TELEMETRY_DISABLED": "1"
+  },
+  "workspaceFolder": "/workspaces/scheduler-fresh",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/scheduler-fresh,type=bind,consistency=cached",
+  "mounts": [
+    "type=volume,source=npm-cache,target=/home/node/.npm",
+    "type=volume,source=pnpm-store,target=/home/node/.local/share/pnpm/store/v3"
+  ],
+  "forwardPorts": [3000, 3001, 4000, 8080, 8085, 9099],
+  "portsAttributes": {
+    "3000": { "label": "Next.js" },
+    "4000": { "label": "API / Emulators" },
+    "8080": { "label": "Firebase Emulator UI" }
+  },
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "4gb"
+  },
+  "updateContentCommand": "corepack enable && pnpm --version && pnpm install --frozen-lockfile || pnpm install",
+  "postCreateCommand": "git config --global --add safe.directory /workspaces/scheduler-fresh && node -v && pnpm -v",
+  "postStartCommand": "echo 'Dev container ready.'",
+  "runArgs": ["--env", "TZ=America/Chicago"],
+  "remoteUser": "node"
+}

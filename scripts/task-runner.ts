@@ -1,4 +1,3 @@
-#!/usr/bin/env -S node --import ./scripts/task-runner-register.mjs
 /*
  A simple task runner:
  - Discovers npm scripts from package.json files (root + subfolders) and .vscode/tasks.json
@@ -25,7 +24,12 @@ const ROOT = process.cwd();
 const CONCURRENCY = Number(process.env.CONCURRENCY) || 3;
 const MAX_RETRIES = Number(process.env.MAX_RETRIES) || 3;
 const DISCOVER_PACKAGES = true;
-const DEFAULT_EXCLUDE_PATTERNS = ["\bkill\b", "\bstop\b", "\btask-runner\b"];
+// Default exclusion regexes (word boundaries). Keep minimal to avoid skipping legitimate tasks.
+const DEFAULT_EXCLUDE_PATTERNS = [
+  "\\bkill\\b",
+  "\\bstop\\b",
+  "\\btask-runner\\b",
+];
 const CONFIG_PATH =
   process.env.TASK_CONFIG_PATH || path.join(ROOT, "task-runner.config.json");
 const DISABLE_FLAG_FILENAME = ".task-runner.disabled";
@@ -46,6 +50,7 @@ type CompiledFilter = {
   matcher: (value: string) => boolean;
 };
 
+/** Determine if task runner is disabled via env or flag file */
 function getDisableReason(): string | null {
   const envValue = process.env.TASK_RUNNER_DISABLED;
   if (envValue && envValue !== "0" && envValue.toLowerCase() !== "false") {
@@ -59,16 +64,19 @@ function getDisableReason(): string | null {
   return null;
 }
 
+/** Escape string for literal-safe RegExp */
 function escapeForLiteralRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/** Compile multiple filter patterns */
 function compileFilterList(patterns: string[]): CompiledFilter[] {
   return patterns
     .map((pattern) => compileFilter(pattern))
     .filter((filter): filter is CompiledFilter => Boolean(filter));
 }
 
+/** Compile a single pattern; fall back to literal if invalid */
 function compileFilter(pattern: string): CompiledFilter | null {
   const trimmed = pattern.trim();
   if (!trimmed) return null;
@@ -92,6 +100,7 @@ function compileFilter(pattern: string): CompiledFilter | null {
   }
 }
 
+/** Read comma-separated env var into pattern list */
 function readEnvPatterns(envKey: "TASK_INCLUDE" | "TASK_EXCLUDE"): string[] {
   const raw = process.env[envKey];
   if (!raw) return [];
@@ -101,6 +110,7 @@ function readEnvPatterns(envKey: "TASK_INCLUDE" | "TASK_EXCLUDE"): string[] {
     .filter(Boolean);
 }
 
+/** Default exclude patterns unless ALLOW_DESTRUCTIVE=1 */
 function loadDefaultExcludes(): CompiledFilter[] {
   if (process.env.ALLOW_DESTRUCTIVE === "1") {
     return [];
@@ -108,6 +118,7 @@ function loadDefaultExcludes(): CompiledFilter[] {
   return compileFilterList(DEFAULT_EXCLUDE_PATTERNS);
 }
 
+/** Load JSON config for presets */
 function loadConfig(): TaskRunnerConfig {
   try {
     if (!fs.existsSync(CONFIG_PATH)) {
@@ -131,6 +142,7 @@ function loadConfig(): TaskRunnerConfig {
   }
 }
 
+/** Resolve preset include/exclude patterns */
 function resolvePresetPatterns(
   config: TaskRunnerConfig,
   names: string[],
@@ -163,6 +175,7 @@ function resolvePresetPatterns(
   return { includePatterns, excludePatterns };
 }
 
+/** Evaluate include/exclude filters */
 function passesFilters(
   task: Task,
   includes: CompiledFilter[],
@@ -175,12 +188,10 @@ function passesFilters(
   ) {
     return false;
   }
-  if (excludes.some((f) => surfaces.some((value) => f.matcher(value)))) {
-    return false;
-  }
-  return true;
+  return !excludes.some((f) => surfaces.some((value) => f.matcher(value)));
 }
 
+/** Recursively locate package.json files */
 function findPackageJsonPaths(dir: string): string[] {
   const results: string[] = [];
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -202,6 +213,7 @@ function findPackageJsonPaths(dir: string): string[] {
   return results;
 }
 
+/** Discover runnable tasks from package.json + vscode tasks */
 function discoverTasks(): Task[] {
   const tasks: Task[] = [];
 
@@ -266,16 +278,19 @@ function discoverTasks(): Task[] {
   return uniq;
 }
 
+/** Spawn a task process and stream prefixed logs */
 function runTask(t: Task) {
   t.attempts++;
   console.log(
     `[TASK START] ${t.id} (attempt ${t.attempts}/${t.maxRetries + 1}) -> ${t.cmd} @ ${t.cwd}`,
   );
-  const parts = t.cmd.split(" ");
+  // Use shell-quote to safely parse command and avoid shell injection
+  // Basic naive split (quotes not deeply handled to avoid extra dependency)
+  const parts = t.cmd.split(/\s+/);
   const child = spawn(parts[0], parts.slice(1), {
     cwd: t.cwd,
     stdio: ["ignore", "pipe", "pipe"],
-    shell: true,
+    shell: false,
   });
 
   child.stdout.on("data", (d) => process.stdout.write(`[${t.id}] ${d}`));
@@ -294,17 +309,23 @@ function runTask(t: Task) {
   });
 }
 
+/**
+ * Main entry point for the task runner.
+ * Discovers tasks, applies filters, and executes them with concurrency control.
+ * Handles graceful shutdown on signals and provides detailed logging.
+ * @throws {Error} When tasks fail, runner is disabled, or no tasks found
+ */
 async function main() {
   const disableReason = getDisableReason();
   if (disableReason) {
     console.log(`[TASK RUNNER DISABLED] ${disableReason}`);
-    process.exit(0);
+    throw new Error("Task runner is disabled");
   }
 
   const discovered = discoverTasks();
   if (discovered.length === 0) {
     console.log("No tasks discovered.");
-    process.exit(0);
+    throw new Error("No tasks found");
   }
 
   const config = loadConfig();
@@ -366,7 +387,7 @@ async function main() {
 
   if (filtered.length === 0) {
     console.log("No tasks remaining after applying filters. Exiting.");
-    process.exit(0);
+    throw new Error("No tasks remaining after filtering");
   }
 
   console.log(
@@ -375,75 +396,81 @@ async function main() {
 
   if (process.env.DRY_RUN === "1") {
     console.log("DRY_RUN=1 set. Listing tasks without executing:");
-    for (const t of filtered) {
-      console.log(` - ${t.id} :: ${t.cmd} @ ${t.cwd}`);
+    for (const task of filtered) {
+      console.log(` - ${task.id} :: ${task.cmd} @ ${task.cwd}`);
     }
     console.log("Exiting early due to dry-run mode.");
-    process.exit(0);
+    return; // Successful dry run
   }
 
   const queue = [...filtered];
   const failed: { task: Task; lastCode: number | null }[] = [];
 
   let running = 0;
+  let shouldExit = false;
+  // placeholder hook (reserved for future metrics instrumentation)
 
-  // no-op placeholder for tracking if needed later
-  void 0;
-
-  async function tick() {
-    while (running < CONCURRENCY && queue.length > 0) {
-      const t = queue.shift()!;
+  function tick() {
+    while (running < CONCURRENCY && queue.length > 0 && !shouldExit) {
+      const task = queue.shift();
+      if (!task) break;
       running++;
-      runTask(t).then(({ success, code }) => {
+      runTask(task).then(({ success, code }) => {
         running--;
-        if (success) {
-          // done
-        } else {
-          if (t.attempts <= t.maxRetries) {
-            console.log(`[TASK RETRY] ${t.id} scheduling retry #${t.attempts}`);
-            // small backoff
+        if (!success) {
+          if (task.attempts <= task.maxRetries) {
+            console.log(
+              `[TASK RETRY] ${task.id} scheduling retry #${task.attempts}`,
+            );
             setTimeout(
-              () => queue.push(t),
-              1000 * Math.min(30, t.attempts * 2),
+              () => queue.push(task),
+              1000 * Math.min(30, task.attempts * 2),
             );
           } else {
-            console.log(`[TASK FAIL] ${t.id} exhausted retries`);
-            failed.push({ task: t, lastCode: code });
+            console.log(`[TASK FAIL] ${task.id} exhausted retries`);
+            failed.push({ task, lastCode: code });
           }
         }
-        // continue scheduling
         setImmediate(tick);
       });
     }
 
-    // if nothing running and queue empty, we're done
-    if (running === 0 && queue.length === 0) {
+    if (running === 0 && (queue.length === 0 || shouldExit)) {
       console.log("All tasks processed.");
       if (failed.length > 0) {
         console.log("Summary of failed tasks:");
         for (const f of failed)
           console.log(` - ${f.task.id} lastExit=${f.lastCode}`);
-        process.exit(2);
+        throw new Error(`${failed.length} tasks failed`);
       } else {
         console.log("All tasks succeeded.");
-        process.exit(0);
+        return; // Success
       }
     }
   }
 
-  process.on("SIGINT", () => {
-    console.log("Received SIGINT, exiting...");
-    process.exit(130);
-  });
-  process.on("SIGTERM", () => {
-    console.log("Received SIGTERM, exiting...");
-    process.exit(143);
-  });
+  // Graceful shutdown handlers
+  const handleShutdown = (signal: string) => {
+    console.log(
+      `Received ${signal}, stopping new tasks and waiting for running tasks to complete...`,
+    );
+    shouldExit = true;
+    // Clear the queue to prevent new tasks from starting
+    queue.length = 0;
+    // The tick function will handle cleanup when running reaches 0
+  };
+
+  process.on("SIGINT", () => handleShutdown("SIGINT"));
+  process.on("SIGTERM", () => handleShutdown("SIGTERM"));
 
   tick();
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
+main().catch((error) => {
+  console.error(error);
+  // Set exit code based on error type for shell scripts
+  const exitCode = error.message.includes("tasks failed") ? 2 : 1;
+  throw new Error(
+    `Task runner failed with exit code ${exitCode}: ${error.message}`,
+  );
 });

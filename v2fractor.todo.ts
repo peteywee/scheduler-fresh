@@ -23,6 +23,31 @@ export interface Task {
   notes?: string;
 }
 
+/**
+ * A cohesive group of related refactor tasks tracked as a single deliverable boundary.
+ *
+ * Semantics / Intent:
+ * - Groups tasks that should land together to minimize cross‑churn.
+ * - Drives reporting & gating (e.g. critical scopes must complete before later phases).
+ * - Completion is determined externally (consumer logic) by either:
+ *   1. Every referenced task reaching status 'done', or
+ *   2. All textual conditions in `doneWhen` being satisfied.
+ *
+ * Invariants (expected by consuming utilities):
+ * - `id` is a stable unique machine identifier (namespaced, e.g. "scope.baseline").
+ * - Every string in `tasks` must correspond to a Task.id within the master TASKS array.
+ * - `critical === true` implies higher sequencing / gating attention in orchestration UIs.
+ * - `parallelizable === true` means tasks inside may progress concurrently (subject to each task's own dependencies).
+ *
+ * Fields:
+ * @property id               Stable unique scope identifier.
+ * @property name             Human‑readable short label for display.
+ * @property objective        Concise statement of the outcome / value delivered when the scope is complete.
+ * @property tasks            Array of task IDs that belong to this scope (ordering may convey execution preference).
+ * @property critical         Marks scope as essential for overall release viability (can influence dashboards).
+ * @property parallelizable   Indicates tasks in this scope are designed for parallel execution (no enforced serialization).
+ * @property doneWhen         Declarative completion criteria (all must be true) used in addition to raw task status checks.
+ */
 export interface Scope {
   id: string;
   name: string;

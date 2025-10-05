@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminInit } from "@/lib/firebase.server";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
-import { ApproveRequestSchema } from "@/lib/types";
+import { ApproveRequestSchema, ApproveRequest } from "@/lib/types";
 import { addUserToOrg, isUserOrgAdmin } from "@/lib/auth-utils";
 
 // Lazy init Firestore (avoids init at build)
@@ -92,7 +92,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { requestId, approved, role, notes, orgId } = parsed.data;
+  const { requestId, approved, role, notes, orgId } =
+    parsed.data as ApproveRequest;
 
   if (!ALLOWED_ROLES.includes(role as (typeof ALLOWED_ROLES)[number])) {
     return errorResponse(400, "invalid-role", "Role not permitted.");

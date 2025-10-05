@@ -23,3 +23,11 @@ if command -v pnpm >/dev/null 2>&1; then
 else
   npx --yes lint-staged
 fi
+
+# Enforce dependency version consistency (fails commit on drift)
+if command -v pnpm >/dev/null 2>&1; then
+  if ! pnpm run versions:check; then
+    echo "❌ Version drift detected. Run 'pnpm run versions:sync' to update references." >&2
+    exit 1
+  fi
+fi

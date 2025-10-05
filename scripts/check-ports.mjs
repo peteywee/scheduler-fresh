@@ -1,5 +1,11 @@
 #!/usr/bin/env node
-import net from "node:net";
+/*
+ * Port Check Script
+ * Checks if specified ports are available for development servers
+ * Uses detect-port library for reliable port detection
+ */
+
+import detectPort from "detect-port";
 import process from "node:process";
 
 const DEFAULT_PORTS = [3000, 8080, 9099, 9199];
@@ -47,21 +53,14 @@ const explicitPorts = positional
 
 const targetPorts = explicitPorts.length > 0 ? explicitPorts : DEFAULT_PORTS;
 
-function checkPort(port) {
-  return new Promise((resolve) => {
-    const server = net.createServer();
-    server.unref();
-    server.on("error", (err) => {
-      if ("code" in err && err.code === "EADDRINUSE") {
-        resolve({ port, free: false, error: null });
-      } else {
-        resolve({ port, free: false, error: err });
-      }
-    });
-    server.listen({ port, host: "127.0.0.1" }, () => {
-      server.close(() => resolve({ port, free: true, error: null }));
-    });
-  });
+async function checkPort(port) {
+  try {
+    const availablePort = await detectPort(port);
+    const free = availablePort === port;
+    return { port, free, error: null };
+  } catch (error) {
+    return { port, free: false, error };
+  }
 }
 
 async function main() {

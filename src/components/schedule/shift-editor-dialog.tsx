@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 // ... other imports
-import { OrgMember, Shift } from "@/lib/types";
+import { OrgMember } from "@/lib/types";
 import {
   Select,
   SelectContent,
@@ -33,13 +33,27 @@ const formSchema = z.object({
   end: z.string(),
   assignedTo: z.array(z.string()).optional(),
   venueId: z.string().optional(),
-  standId: z.string().optional(),
+  zoneId: z.string().optional(),
 });
+
+export interface ShiftLike {
+  id: string;
+  orgId: string;
+  start?: Date;
+  end?: Date;
+  title?: string;
+  assignedTo?: string[];
+  venueId?: string;
+  zoneId?: string;
+  eventId?: string; // temporary until canonical event linkage is enforced
+  positions?: unknown[];
+  status?: string;
+}
 
 interface ShiftEditorDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  shift?: Shift;
+  shift?: ShiftLike;
   orgId: string;
 }
 
@@ -62,7 +76,7 @@ export function ShiftEditorDialog({
       end: shift?.end?.toISOString().substring(0, 16) || "",
       assignedTo: shift?.assignedTo || [],
       venueId: shift?.venueId || "",
-      standId: shift?.standId || "",
+      zoneId: shift?.zoneId || "",
     },
   });
 
@@ -133,11 +147,11 @@ export function ShiftEditorDialog({
           </div>
 
           <div>
-            <Label htmlFor="standId">Stand/Booth/Zone ID (Optional)</Label>
+            <Label htmlFor="zoneId">Zone/Booth/Stand ID (Optional)</Label>
             <Input
-              id="standId"
-              placeholder="e.g., booth-12, zone-a"
-              {...form.register("standId")}
+              id="zoneId"
+              placeholder="e.g., zone-a, booth-12"
+              {...form.register("zoneId")}
             />
           </div>
 

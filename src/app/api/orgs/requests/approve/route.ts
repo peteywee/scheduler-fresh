@@ -1,7 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminInit } from "@/lib/firebase.server";
 import { getFirestore } from "firebase-admin/firestore";
-import { RequestAccessSchema, JoinRequest } from "@/lib/types";
+import { ApproveRequestSchema } from "@/lib/types";
+
+interface JoinRequestShape {
+  id: string;
+  orgId: string;
+  requestedBy: string;
+  requestedByEmail: string;
+  requestedByName: string;
+  message?: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: Date;
+  reviewedAt?: Date;
+  reviewedBy?: string;
+  reviewNotes?: string | null;
+}
+import { addUserToOrg } from "@/lib/auth-utils";
 
 // Lazy initialize to avoid build-time errors
 function getDb() {
@@ -47,7 +62,6 @@ export async function POST(req: NextRequest) {
   try {
     const decoded = await adminAuth().verifySessionCookie(session, true);
     const uid = decoded.uid;
-    const user = await adminAuth().getUser(uid);
     if (decoded.email_verified === false) {
       return NextResponse.json(
         { success: false, error: "Email must be verified to request access" },
@@ -57,7 +71,7 @@ export async function POST(req: NextRequest) {
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
-    const parseResult = RequestAccessSchema.safeParse(body);
+    const parseResult = ApproveRequestSchema.safeParse(body);
 
     if (!parseResult.success) {
       return NextResponse.json(
@@ -66,7 +80,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { orgId, message } = parseResult.data;
+    const { orgId, requestId, approved, role, notes } = parseResult.data;
 
     // Verify organization exists and allows join requests
     const orgDoc = await getDb().doc(`orgs/${orgId}`).get();
@@ -85,57 +99,45 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if user is already a member
-    const memberDoc = await getDb().doc(`orgs/${orgId}/members/${uid}`).get();
-    if (memberDoc.exists) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "You are already a member of this organization",
-        },
-        { status: 400 },
-      );
-    }
-
-    // Check if user already has a pending request
-    const existingRequestQuery = await getDb()
-      .collection(`orgs/${orgId}/joinRequests`)
-      .where("requestedBy", "==", uid)
-      .where("status", "==", "pending")
-      .limit(1)
-      .get();
-
-    if (!existingRequestQuery.empty) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "You already have a pending request for this organization",
-        },
-        { status: 400 },
-      );
-    }
-
-    // Create join request
-    const requestRef = getDb().collection(`orgs/${orgId}/joinRequests`).doc();
-    const now = new Date();
-
-    const joinRequest: JoinRequest = {
-      id: requestRef.id,
-      orgId,
-      requestedBy: uid,
-      requestedByEmail: user.email || "",
-      requestedByName: user.displayName || "",
-      message,
-      status: "pending",
-      createdAt: now,
-    };
-
-    await requestRef.set(joinRequest);
-
-    return NextResponse.json({
-      success: true,
-      requestId: requestRef.id,
+    // Transactionally approve or reject the join request
+    const requestRef = getDb().doc(`orgs/${orgId}/joinRequests/${requestId}`);
+    const result = await getDb().runTransaction(async (tx) => {
+      const snap = await tx.get(requestRef);
+      if (!snap.exists) {
+        return { status: 404 as const };
+      }
+      const data = snap.data() as JoinRequestShape;
+      if (data.status !== "pending") {
+        return { status: 409 as const };
+      }
+      const reviewedAt = new Date();
+      if (approved) {
+        // Add user to org (outside transaction addUserToOrg performs its own writes)
+        await addUserToOrg(data.requestedBy, orgId, role, uid);
+      }
+      tx.update(requestRef, {
+        status: approved ? "approved" : "rejected",
+        reviewedAt,
+        reviewedBy: uid,
+        reviewNotes: notes ?? null,
+      });
+      return { status: 200 as const };
     });
+
+    if (result.status === 404) {
+      return NextResponse.json(
+        { success: false, error: "Join request not found" },
+        { status: 404 },
+      );
+    }
+    if (result.status === 409) {
+      return NextResponse.json(
+        { success: false, error: "Join request already processed" },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error requesting access:", error);
     return NextResponse.json(

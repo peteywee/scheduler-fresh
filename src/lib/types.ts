@@ -1,237 +1,393 @@
 import { z } from "zod";
 
-// User data model
-export const UserSchema = z.object({
-  uid: z.string(),
-  email: z.string().email(),
-  displayName: z.string().optional(),
-  photoURL: z.string().optional(),
-  primaryOrgId: z.string().optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+/**
+ * Canonical Multi-Tenant Domain Schemas
+ * NOTE: All persistence layers must validate with these before writes.
+ * Legacy types moved to types.legacy.ts
+ */
+
+// Reusable primitives
+export const IdSchema = z.string().min(1).brand<"Id">();
+export const OrgIdSchema = IdSchema.brand<"OrgId">();
+export const ParentIdSchema = IdSchema.brand<"ParentId">();
+export const TimestampSchema = z.date();
+export const NonEmptyString = z.string().min(1);
+
+// ISO8601 interval sanity (start < end enforced in refinement helpers externally)
+export const DateTimeSchema = z.date();
+
+// Corporate Account (Parent / Billing Root)
+export const CorporateAccountSchema = z.object({
+  id: ParentIdSchema,
+  displayName: NonEmptyString,
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
+  // minimal PII – avoid storing staff names here
+  orgIds: z.array(OrgIdSchema).default([]),
+  active: z.boolean().default(true),
 });
+export type CorporateAccount = z.infer<typeof CorporateAccountSchema>;
 
-export type User = z.infer<typeof UserSchema>;
-
-// Organization data model
+// Organization (Tenant)
 export const OrganizationSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1, "Organization name is required"),
+  id: OrgIdSchema,
+  parentId: ParentIdSchema.optional(), // optional if standalone
+  name: NonEmptyString,
   description: z.string().optional(),
-  ownerUid: z.string(),
-  isPublic: z.boolean().default(false), // For org directory
+  isPublic: z.boolean().default(false),
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
+  createdBy: IdSchema, // staff uid
   settings: z
     .object({
-      allowPublicJoinRequests: z.boolean().default(true),
-      requireApprovalForJoin: z.boolean().default(true),
+      publicDirectory: z.boolean().default(false),
+      allowStaffSelfJoin: z.boolean().default(false),
+      requireApprovalForAttendance: z.boolean().default(true),
     })
-    .optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  createdBy: z.string(),
+    .default(() => ({
+      publicDirectory: false,
+      allowStaffSelfJoin: false,
+      requireApprovalForAttendance: true,
+    })),
+  status: z.enum(["active", "suspended"]).default("active"),
 });
-
 export type Organization = z.infer<typeof OrganizationSchema>;
 
-// Organization member data model
-export const OrgMemberSchema = z.object({
-  uid: z.string(),
-  orgId: z.string(),
-  role: z.enum(["admin", "manager", "employee"]),
-  joinedAt: z.date(),
-  addedBy: z.string(),
-  displayName: z.string().optional(),
-  email: z.string().email().optional(),
+// Staff (per org) – stored at orgs/{orgId}/staff/{staffId}
+export const StaffSchema = z.object({
+  id: IdSchema, // staff uid (matches auth uid)
+  orgId: OrgIdSchema,
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
+  roles: z.array(z.enum(["admin", "manager", "staff"])).min(1),
+  active: z.boolean().default(true),
+  certifications: z.array(IdSchema).default([]), // references to certifications/{id}
 });
+export type Staff = z.infer<typeof StaffSchema>;
 
-export type OrgMember = z.infer<typeof OrgMemberSchema>;
+// Certification
+export const CertificationSchema = z.object({
+  id: IdSchema,
+  orgId: OrgIdSchema,
+  name: NonEmptyString,
+  description: z.string().optional(),
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
+  expiresAfterDays: z.number().int().positive().optional(),
+});
+export type Certification = z.infer<typeof CertificationSchema>;
 
-// Invite code data model
-export const InviteCodeSchema = z.object({
-  code: z.string(),
-  orgId: z.string(),
-  createdBy: z.string(),
-  createdAt: z.date(),
-  expiresAt: z.date().optional(),
-  maxUses: z.number().optional(), // null for unlimited
-  currentUses: z.number().default(0),
-  isActive: z.boolean().default(true),
-  role: z.enum(["admin", "manager", "employee"]).default("employee"),
+// Venue
+export const VenueSchema = z.object({
+  id: IdSchema,
+  orgId: OrgIdSchema,
+  name: NonEmptyString,
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
+  address: z.string().optional(),
+  description: z.string().optional(),
+});
+export type Venue = z.infer<typeof VenueSchema>;
+
+// Zone (child of venue)
+export const ZoneSchema = z.object({
+  id: IdSchema,
+  orgId: OrgIdSchema,
+  venueId: IdSchema,
+  name: NonEmptyString,
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
+  capacity: z.number().int().positive().optional(),
+});
+export type Zone = z.infer<typeof ZoneSchema>;
+
+// Position (role assignable to a staff member during a shift)
+export const PositionSchema = z.object({
+  id: IdSchema,
+  orgId: OrgIdSchema,
+  name: NonEmptyString,
+  description: z.string().optional(),
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
+  requiredCertificationIds: z.array(IdSchema).default([]),
+});
+export type Position = z.infer<typeof PositionSchema>;
+
+// Event
+export const EventSchema = z.object({
+  id: IdSchema,
+  orgId: OrgIdSchema,
+  name: NonEmptyString,
+  start: DateTimeSchema,
+  end: DateTimeSchema,
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
+  venueId: IdSchema.optional(),
+  status: z.enum(["draft", "published", "archived"]).default("draft"),
+});
+export type Event = z.infer<typeof EventSchema>;
+
+// Shift (under event)
+export const ShiftSchema = z.object({
+  id: IdSchema,
+  orgId: OrgIdSchema,
+  eventId: IdSchema,
+  start: DateTimeSchema,
+  end: DateTimeSchema,
+  positions: z
+    .array(
+      z.object({
+        positionId: IdSchema,
+        required: z.number().int().positive(),
+      }),
+    )
+    .default([]),
+  zoneId: IdSchema.optional(),
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
+  status: z.enum(["open", "locked", "completed", "cancelled"]).default("open"),
+});
+export type Shift = z.infer<typeof ShiftSchema>;
+
+// Attendance (one staff claiming/completing shift)
+export const AttendanceSchema = z.object({
+  id: IdSchema,
+  orgId: OrgIdSchema,
+  shiftId: IdSchema,
+  staffId: IdSchema,
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
+  status: z
+    .enum(["pending", "approved", "rejected", "cancelled"])
+    .default("pending"),
+  approvedAt: TimestampSchema.optional(),
+  approvedBy: IdSchema.optional(),
+  minutesWorked: z.number().int().nonnegative().optional(),
   notes: z.string().optional(),
 });
+export type Attendance = z.infer<typeof AttendanceSchema>;
 
-export type InviteCode = z.infer<typeof InviteCodeSchema>;
-
-// Join request data model
-export const JoinRequestSchema = z.object({
-  id: z.string(),
-  orgId: z.string(),
-  requestedBy: z.string(),
-  requestedByEmail: z.string().email(),
-  requestedByName: z.string().optional(),
-  message: z.string().optional(),
-  status: z.enum(["pending", "approved", "rejected"]).default("pending"),
-  createdAt: z.date(),
-  reviewedAt: z.date().optional(),
-  reviewedBy: z.string().optional(),
-  reviewNotes: z.string().optional(),
+// Tokens (generic base)
+export const BaseTokenSchema = z.object({
+  id: IdSchema,
+  orgId: OrgIdSchema,
+  type: z.enum(["staffJoin", "orgPartner"]),
+  createdAt: TimestampSchema,
+  createdBy: IdSchema,
+  expiresAt: TimestampSchema.optional(),
+  maxUses: z.number().int().positive().optional(),
+  uses: z.number().int().nonnegative().default(0),
+  active: z.boolean().default(true),
 });
-
-export type JoinRequest = z.infer<typeof JoinRequestSchema>;
-
-// Custom claims for Firebase Auth
-export const CustomClaimsSchema = z.object({
-  orgId: z.string().optional(), // Primary org
-  orgIds: z.array(z.string()).optional(), // All orgs user belongs to
-  admin: z.boolean().optional(), // Global admin flag
-  orgRole: z.string().optional(), // Role in primary org
-  orgRoles: z.record(z.string(), z.string()).optional(), // Role per org { orgId: role }
+export const StaffJoinTokenSchema = BaseTokenSchema.extend({
+  type: z.literal("staffJoin"),
+  roles: z
+    .array(z.enum(["admin", "manager", "staff"]).default("staff"))
+    .default(["staff"]),
 });
-
-export type CustomClaims = z.infer<typeof CustomClaimsSchema>;
-
-// API request/response schemas
-export const CreateInviteRequestSchema = z.object({
-  orgId: z.string(),
-  role: z.enum(["admin", "manager", "employee"]).default("employee"),
-  expiresIn: z.number().optional(), // Days from now
-  maxUses: z.number().optional(),
-  notes: z.string().optional(),
+export const OrgPartnerTokenSchema = BaseTokenSchema.extend({
+  type: z.literal("orgPartner"),
+  partnerOrgId: OrgIdSchema,
 });
+export type StaffJoinToken = z.infer<typeof StaffJoinTokenSchema>;
+export type OrgPartnerToken = z.infer<typeof OrgPartnerTokenSchema>;
 
-export const JoinOrgRequestSchema = z.object({
-  inviteCode: z.string().optional(),
-  orgId: z.string().optional(), // For direct join without invite
+// Ledger Line (parent scope) – append-only
+export const LedgerLineSchema = z.object({
+  id: IdSchema,
+  parentId: ParentIdSchema,
+  periodId: IdSchema, // e.g. YYYYMM or custom
+  createdAt: TimestampSchema,
+  orgId: OrgIdSchema,
+  staffRef: IdSchema, // staffId only; no PII
+  attendanceId: IdSchema.optional(),
+  shiftId: IdSchema.optional(),
+  minutes: z.number().int(),
+  rateCents: z.number().int().nonnegative(),
+  amountCents: z.number().int(), // minutes * rate or derived
+  kind: z.enum(["work", "correction", "adjustment"]).default("work"),
+  reversalOf: IdSchema.optional(), // links to previous line if correction
 });
+export type LedgerLine = z.infer<typeof LedgerLineSchema>;
 
-export const RequestAccessSchema = z.object({
-  orgId: z.string(),
-  message: z.string().optional(),
-});
+// Utility: runtime guard for validating arbitrary data before writes
+export function ensureValid<T>(schema: z.ZodType<T>, data: unknown): T {
+  const parsed = schema.safeParse(data);
+  if (!parsed.success) {
+    throw new Error(
+      parsed.error.issues
+        .map((i) => `${i.path.join(".")}: ${i.message}`)
+        .join("; "),
+    );
+  }
+  return parsed.data;
+}
 
-export const ApproveRequestSchema = z.object({
-  requestId: z.string(),
-  approved: z.boolean(),
-  role: z.enum(["admin", "manager", "employee"]).default("employee"),
-  notes: z.string().optional(),
-  orgId: z.string().optional(),
-});
+// Aggregate export for convenience
+export const Schemas = {
+  CorporateAccount: CorporateAccountSchema,
+  Organization: OrganizationSchema,
+  Staff: StaffSchema,
+  Certification: CertificationSchema,
+  Venue: VenueSchema,
+  Zone: ZoneSchema,
+  Position: PositionSchema,
+  Event: EventSchema,
+  Shift: ShiftSchema,
+  Attendance: AttendanceSchema,
+  StaffJoinToken: StaffJoinTokenSchema,
+  OrgPartnerToken: OrgPartnerTokenSchema,
+  LedgerLine: LedgerLineSchema,
+};
 
+// Branded types
+export type Id = z.infer<typeof IdSchema>;
+export type OrgId = z.infer<typeof OrgIdSchema>;
+export type ParentId = z.infer<typeof ParentIdSchema>;
+
+// Utility: sanitize organization ID (lowercase, alphanumeric + hyphen)
+// Re-export sanitizeOrgId (implementation lives in utils.ts for cohesion)
+export { sanitizeOrgId } from "@/lib/utils";
+
+// Schema for switch-org API request
 export const SwitchOrgRequestSchema = z.object({
-  orgId: z.string(),
+  orgId: z.string().min(1),
 });
+export type SwitchOrgRequest = z.infer<typeof SwitchOrgRequestSchema>;
 
-// API response types
-export interface CreateInviteResponse {
-  success: boolean;
-  invite?: {
-    code: string;
-    shortCode: string; // formatted as orgId-code
-    qrCodeUrl: string;
-    expiresAt?: string;
-    maxUses?: number;
-  };
-  error?: string;
+// ------------------------------
+// Auth / Invitation & Access Flows
+// NOTE: These were referenced by API routes; defining here to restore type safety.
+
+// Custom Firebase Auth claims we set on users to represent multi-org membership.
+// Keep properties optional to allow incremental enrichment.
+export interface CustomClaims {
+  orgId?: string; // current primary org
+  orgIds?: string[]; // all orgs user belongs to
+  orgRole?: string; // role in primary org
+  orgRoles?: Record<string, string>; // per-org role map
+  admin?: boolean; // convenience flag for primary org
+  [key: string]: unknown; // forward compatibility
 }
 
-export interface AuthMeResponse {
-  authenticated: boolean;
-  uid?: string;
-  email?: string;
-  emailVerified?: boolean;
-  displayName?: string;
-  photoURL?: string;
-  customClaims?: CustomClaims;
-  primaryOrg?: Organization;
-  organizations?: Organization[];
+// Invite code document (orgs/{orgId}/invites/{code})
+export interface InviteCode {
+  code: string; // raw invite code (hex)
+  orgId: string;
+  createdBy: string; // uid
+  createdAt: Date;
+  expiresAt?: Date;
+  maxUses?: number;
+  currentUses?: number;
+  isActive: boolean;
+  role: "admin" | "manager" | "employee"; // role granted when consumed
+  notes?: string;
+  qrCodeUrl?: string;
+  email?: string; // optional pre-targeted email (bulk invites)
 }
 
+// Helper: short human friendly composite code <orgId>-<code>
+export function generateShortCode(orgId: string, code: string): string {
+  return `${orgId}-${code}`;
+}
+
+// Parse either full invite code or short code format; returns null if invalid
+export function validateInviteCode(
+  raw: string,
+): { orgId: string; inviteCode: string } | null {
+  if (!raw || typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  // Accept raw hex (length >= 8) OR composite orgId-code
+  if (/^[a-f0-9]{8,}$/i.test(trimmed)) {
+    return { orgId: "", inviteCode: trimmed }; // orgId resolved later (must accompany request)
+  }
+  const parts = trimmed.split("-");
+  if (parts.length < 2) return null;
+  const inviteCode = parts.pop();
+  const orgId = parts.join("-");
+  if (!inviteCode || !/^[a-f0-9]{8,}$/i.test(inviteCode)) return null;
+  return { orgId, inviteCode };
+}
+
+// Join Organization (either via inviteCode or bootstrap direct orgId)
+export const JoinOrgRequestSchema = z
+  .object({
+    inviteCode: z.string().min(8).optional(),
+    orgId: z.string().min(1).optional(),
+  })
+  .refine((data) => !!data.inviteCode || !!data.orgId, {
+    message: "Either inviteCode or orgId is required",
+    path: ["inviteCode"],
+  });
+export type JoinOrgRequest = z.infer<typeof JoinOrgRequestSchema>;
 export interface JoinOrgResponse {
   success: boolean;
+  error?: string;
   orgId?: string;
   orgName?: string;
   role?: string;
-  error?: string;
 }
 
-export interface OrgSearchResponse {
+// Create Invite
+export const CreateInviteRequestSchema = z.object({
+  orgId: z.string().min(1),
+  role: z.enum(["admin", "manager", "employee"]).default("employee"),
+  expiresIn: z.number().int().positive().max(30).optional(), // days
+  maxUses: z.number().int().positive().max(100).optional(),
+  notes: z.string().max(500).optional(),
+});
+export type CreateInviteRequest = z.infer<typeof CreateInviteRequestSchema>;
+export interface CreateInviteResponse {
   success: boolean;
-  organizations?: Array<{
-    id: string;
-    name: string;
-    description?: string;
-    memberCount: number;
-    allowsRequests: boolean;
-  }>;
   error?: string;
-}
-
-// Utility functions for validation
-export function validateInviteCode(
-  code: string,
-): { orgId: string; inviteCode: string } | null {
-  const match = code.match(/^([a-zA-Z0-9_-]+)-([a-zA-Z0-9]+)$/);
-  if (!match) return null;
-
-  return {
-    orgId: match[1],
-    inviteCode: match[2],
+  invite?: {
+    code: string;
+    shortCode: string;
+    qrCodeUrl?: string;
+    expiresAt?: string;
+    maxUses?: number;
   };
 }
 
-export function generateShortCode(orgId: string, inviteCode: string): string {
-  return `${orgId}-${inviteCode}`;
+// Request Access (user requests to join an org without invite)
+export const RequestAccessSchema = z.object({
+  orgId: z.string().min(1),
+  message: z.string().max(500).optional(),
+});
+export type RequestAccess = z.infer<typeof RequestAccessSchema>;
+
+// Approve Access Request
+export const ApproveRequestSchema = z.object({
+  orgId: z.string().min(1),
+  requestId: z.string().min(1),
+  approved: z.boolean(),
+  role: z.enum(["admin", "manager", "employee"]).default("employee"),
+  notes: z.string().max(500).optional(),
+});
+export type ApproveRequest = z.infer<typeof ApproveRequestSchema>;
+
+// Org Member (normalized reference for UI; not yet persisted canonical schema)
+export interface OrgMember {
+  uid: string;
+  orgId: string;
+  role: "admin" | "manager" | "employee" | "staff"; // include legacy 'staff'
+  joinedAt?: Date;
+  addedBy?: string;
+  email?: string;
+  displayName?: string;
 }
 
-export function sanitizeOrgId(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .substring(0, 20);
+// JoinRequest (stored under orgs/{orgId}/joinRequests/{requestId})
+export interface JoinRequest {
+  id: string;
+  orgId: string;
+  requestedBy: string;
+  requestedByEmail: string;
+  requestedByName: string;
+  message?: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: Date;
+  reviewedAt?: Date;
+  reviewedBy?: string;
+  reviewNotes?: string | null;
 }
-
-// Shift data model
-export const ShiftSchema = z.object({
-  id: z.string(),
-  orgId: z.string(),
-
-  venueId: z.string().optional(), // Reference to venue where shift takes place
-  standId: z.string().optional(), // Reference to stand/booth/zone within venue
-  start: z.date(),
-  end: z.date(),
-  title: z.string().optional(),
-  assignedTo: z.array(z.string()).optional(), // Array of user UIDs
-  notes: z.string().optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-});
-
-export type Shift = z.infer<typeof ShiftSchema>;
-
-// Venue data model
-export const VenueSchema = z.object({
-  id: z.string(),
-  orgId: z.string(),
-  name: z.string().min(1, "Venue name is required"),
-  description: z.string().optional(),
-  address: z.string().optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-});
-
-export type Venue = z.infer<typeof VenueSchema>;
-
-// Stand/Booth/Zone data model (child of Venue)
-export const StandSchema = z.object({
-  id: z.string(),
-  venueId: z.string(), // Parent venue reference
-  orgId: z.string(),
-  name: z.string().min(1, "Stand name is required"), // e.g., "Booth 12", "Zone A"
-  description: z.string().optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-});
-
-export type Stand = z.infer<typeof StandSchema>;

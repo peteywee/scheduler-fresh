@@ -69,13 +69,15 @@ export async function POST(req: NextRequest) {
     const orgData = {
       name: name.trim(),
       description: description?.trim() || undefined,
-      ownerUid: uid,
       isPublic: Boolean(isPublic),
+      // Map legacy keys to canonical settings accepted by OrganizationSchema
       settings: {
-        allowPublicJoinRequests: Boolean(isPublic),
-        requireApprovalForJoin: true,
+        publicDirectory: Boolean(isPublic),
+        allowStaffSelfJoin: false,
+        requireApprovalForAttendance: true,
       },
-      createdBy: uid,
+      // uid already validated via session; cast to branded Id
+      createdBy: uid as unknown as import("@/lib/types").Organization["createdBy"],
     };
 
     const orgId = await createOrganization(orgData, uid);

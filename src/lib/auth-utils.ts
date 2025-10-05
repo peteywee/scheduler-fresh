@@ -254,30 +254,52 @@ export async function getUserOrgRole(
 }
 
 /**
- * Create a new organization and make user the owner
+ * Input shape for creating a new organization (lighter than full Organization type).
+ * Settings/status are optional; defaults applied here to satisfy OrganizationSchema contract.
+ */
+export interface NewOrganizationInput {
+  name: Organization["name"];
+  description?: Organization["description"];
+  isPublic: Organization["isPublic"];
+  createdBy: Organization["createdBy"]; // uid of creator
+  parentId?: Organization["parentId"];
+  settings?: Partial<Organization["settings"]>;
+  status?: Organization["status"];
+}
+
+/**
+ * Create a new organization and make user the owner/admin (creator becomes admin).
+ * Returns the generated organization id (string / branded runtime value).
  */
 export async function createOrganization(
-  orgData: Omit<Organization, "id" | "createdAt" | "updatedAt">,
+  orgData: NewOrganizationInput,
   ownerUid: string,
 ): Promise<string> {
   const orgRef = getFirestore_().collection("orgs").doc();
   const orgId = orgRef.id;
   const now = new Date();
 
-  const organization: Organization = {
-    ...orgData,
-    id: orgId,
-    ownerUid,
-    createdAt: now,
-    updatedAt: now,
+  const defaults: Organization["settings"] = {
+    publicDirectory: false,
+    allowStaffSelfJoin: false,
+    requireApprovalForAttendance: true,
   };
 
-  // Create organization
+  const organization: Organization = {
+    id: orgId as Organization["id"],
+    parentId: orgData.parentId,
+    name: orgData.name,
+    description: orgData.description,
+    isPublic: orgData.isPublic,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: orgData.createdBy as Organization["createdBy"],
+    settings: { ...defaults, ...orgData.settings },
+    status: orgData.status ?? "active",
+  };
+
   await orgRef.set(organization);
-
-  // Add owner as admin member
   await addUserToOrg(ownerUid, orgId, "admin", ownerUid);
-
   return orgId;
 }
 
