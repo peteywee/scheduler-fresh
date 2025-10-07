@@ -1,8 +1,8 @@
 // src/components/schedule/schedule-calendar.tsx
 
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 // Using a lightweight UI shift type (decoupled from canonical branded types)
 // TODO: Refactor to use domain Shift with proper eventId/positions/status when backend wiring is ready.
 type UIShift = {
@@ -15,20 +15,14 @@ type UIShift = {
   createdAt: Date;
   updatedAt: Date;
 };
-import { ShiftEditorDialog } from "./shift-editor-dialog";
-import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { ShiftEditorDialog } from './shift-editor-dialog';
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
 
-export default function ScheduleCalendar({
-  orgId = "demo",
-}: {
-  orgId?: string;
-}) {
+export default function ScheduleCalendar({ orgId = 'demo' }: { orgId?: string }) {
   const [shifts, setShifts] = useState<UIShift[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedShift, setSelectedShift] = useState<UIShift | undefined>(
-    undefined,
-  );
+  const [selectedShift, setSelectedShift] = useState<UIShift | undefined>(undefined);
 
   // TODO: Fetch shifts from the API in a useEffect hook
   useEffect(() => {
@@ -48,20 +42,13 @@ export default function ScheduleCalendar({
           .map((s) => {
             const rec = s as RawShift & Record<string, unknown>;
             return {
-              id:
-                typeof rec.id === "string"
-                  ? rec.id
-                  : String(Math.random()).slice(2, 8),
-              orgId: typeof rec.orgId === "string" ? rec.orgId : orgId,
-              venueId:
-                typeof rec.venueId === "string" ? rec.venueId : undefined,
-              standId:
-                typeof rec.standId === "string" ? rec.standId : undefined,
-              title: typeof rec.title === "string" ? rec.title : undefined,
-              assignedTo: Array.isArray(rec.assignedTo)
-                ? (rec.assignedTo as string[])
-                : undefined,
-              notes: typeof rec.notes === "string" ? rec.notes : undefined,
+              id: typeof rec.id === 'string' ? rec.id : String(Math.random()).slice(2, 8),
+              orgId: typeof rec.orgId === 'string' ? rec.orgId : orgId,
+              venueId: typeof rec.venueId === 'string' ? rec.venueId : undefined,
+              standId: typeof rec.standId === 'string' ? rec.standId : undefined,
+              title: typeof rec.title === 'string' ? rec.title : undefined,
+              assignedTo: Array.isArray(rec.assignedTo) ? (rec.assignedTo as string[]) : undefined,
+              notes: typeof rec.notes === 'string' ? rec.notes : undefined,
               start: s.start ? new Date(s.start) : new Date(),
               end: s.end ? new Date(s.end) : new Date(),
               createdAt: s.createdAt ? new Date(s.createdAt) : new Date(),
@@ -72,7 +59,7 @@ export default function ScheduleCalendar({
 
         setShifts(parsed as UIShift[]);
       })
-      .catch((e) => console.error("Failed to fetch shifts", e));
+      .catch((e) => console.error('Failed to fetch shifts', e));
   }, [orgId]);
 
   // Demo/helper: populate a few sample shifts to speed up initial setup
@@ -80,22 +67,22 @@ export default function ScheduleCalendar({
     const now = Date.now();
     const sample: UIShift[] = [
       {
-        id: "s1",
-        orgId: "demo",
-        title: "Morning Shift - Alice",
+        id: 's1',
+        orgId: 'demo',
+        title: 'Morning Shift - Alice',
         start: new Date(now + 1000 * 60 * 60 * 9),
         end: new Date(now + 1000 * 60 * 60 * 13),
-        assignedTo: ["alice"],
+        assignedTo: ['alice'],
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
-        id: "s2",
-        orgId: "demo",
-        title: "Lunch Shift - Bob",
+        id: 's2',
+        orgId: 'demo',
+        title: 'Lunch Shift - Bob',
         start: new Date(now + 1000 * 60 * 60 * 12),
         end: new Date(now + 1000 * 60 * 60 * 16),
-        assignedTo: ["bob"],
+        assignedTo: ['bob'],
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -118,9 +105,9 @@ export default function ScheduleCalendar({
   function adaptToShiftLike(s: UIShift) {
     return {
       ...s,
-      eventId: "temp-event",
+      eventId: 'temp-event',
       positions: [] as unknown[],
-      status: "open",
+      status: 'open',
     };
   }
 
@@ -136,10 +123,7 @@ export default function ScheduleCalendar({
           </Button>
         </div>
         <div>
-          <Button
-            variant="outline"
-            onClick={() => console.log("Export schedule (TODO)")}
-          >
+          <Button variant="outline" onClick={() => console.log('Export schedule (TODO)')}>
             Export
           </Button>
         </div>

@@ -8,9 +8,9 @@
  - When tasks finish (success or exhausted retries) the runner exits with summary
 */
 
-import fs from "fs";
-import path from "path";
-import { spawn } from "child_process";
+import fs from 'fs';
+import path from 'path';
+import { spawn } from 'child_process';
 
 type Task = {
   id: string;
@@ -25,14 +25,9 @@ const CONCURRENCY = Number(process.env.CONCURRENCY) || 3;
 const MAX_RETRIES = Number(process.env.MAX_RETRIES) || 3;
 const DISCOVER_PACKAGES = true;
 // Default exclusion regexes (word boundaries). Keep minimal to avoid skipping legitimate tasks.
-const DEFAULT_EXCLUDE_PATTERNS = [
-  "\\bkill\\b",
-  "\\bstop\\b",
-  "\\btask-runner\\b",
-];
-const CONFIG_PATH =
-  process.env.TASK_CONFIG_PATH || path.join(ROOT, "task-runner.config.json");
-const DISABLE_FLAG_FILENAME = ".task-runner.disabled";
+const DEFAULT_EXCLUDE_PATTERNS = ['\\bkill\\b', '\\bstop\\b', '\\btask-runner\\b'];
+const CONFIG_PATH = process.env.TASK_CONFIG_PATH || path.join(ROOT, 'task-runner.config.json');
+const DISABLE_FLAG_FILENAME = '.task-runner.disabled';
 const DISABLE_FLAG_PATH = path.join(ROOT, DISABLE_FLAG_FILENAME);
 
 type TaskPreset = {
@@ -53,7 +48,7 @@ type CompiledFilter = {
 /** Determine if task runner is disabled via env or flag file */
 function getDisableReason(): string | null {
   const envValue = process.env.TASK_RUNNER_DISABLED;
-  if (envValue && envValue !== "0" && envValue.toLowerCase() !== "false") {
+  if (envValue && envValue !== '0' && envValue.toLowerCase() !== 'false') {
     return `Disabled via TASK_RUNNER_DISABLED=${envValue}. Remove or reset the env var to re-enable.`;
   }
 
@@ -66,7 +61,7 @@ function getDisableReason(): string | null {
 
 /** Escape string for literal-safe RegExp */
 function escapeForLiteralRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /** Compile multiple filter patterns */
@@ -82,7 +77,7 @@ function compileFilter(pattern: string): CompiledFilter | null {
   if (!trimmed) return null;
 
   try {
-    const regex = new RegExp(trimmed, "i");
+    const regex = new RegExp(trimmed, 'i');
     return {
       raw: trimmed,
       matcher: (value: string) => regex.test(value),
@@ -92,7 +87,7 @@ function compileFilter(pattern: string): CompiledFilter | null {
       `[FILTER] Invalid regex '${trimmed}'. Falling back to case-insensitive literal match. Please check your regex syntax if you intended a pattern.`,
       err,
     );
-    const escaped = new RegExp(escapeForLiteralRegex(trimmed), "i");
+    const escaped = new RegExp(escapeForLiteralRegex(trimmed), 'i');
     return {
       raw: trimmed,
       matcher: (value: string) => escaped.test(value),
@@ -101,18 +96,18 @@ function compileFilter(pattern: string): CompiledFilter | null {
 }
 
 /** Read comma-separated env var into pattern list */
-function readEnvPatterns(envKey: "TASK_INCLUDE" | "TASK_EXCLUDE"): string[] {
+function readEnvPatterns(envKey: 'TASK_INCLUDE' | 'TASK_EXCLUDE'): string[] {
   const raw = process.env[envKey];
   if (!raw) return [];
   return raw
-    .split(",")
+    .split(',')
     .map((p) => p.trim())
     .filter(Boolean);
 }
 
 /** Default exclude patterns unless ALLOW_DESTRUCTIVE=1 */
 function loadDefaultExcludes(): CompiledFilter[] {
-  if (process.env.ALLOW_DESTRUCTIVE === "1") {
+  if (process.env.ALLOW_DESTRUCTIVE === '1') {
     return [];
   }
   return compileFilterList(DEFAULT_EXCLUDE_PATTERNS);
@@ -125,9 +120,9 @@ function loadConfig(): TaskRunnerConfig {
       return { presets: {} };
     }
 
-    const raw = fs.readFileSync(CONFIG_PATH, "utf8");
+    const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
     const parsed = JSON.parse(raw) as TaskRunnerConfig;
-    if (!parsed || typeof parsed !== "object") {
+    if (!parsed || typeof parsed !== 'object') {
       console.warn(
         `[CONFIG] ${CONFIG_PATH} is not a valid config object. Expected a JSON object with an optional 'presets' property.`,
       );
@@ -182,10 +177,7 @@ function passesFilters(
   excludes: CompiledFilter[],
 ): boolean {
   const surfaces = [task.id, task.cmd, `${task.id} ${task.cmd}`];
-  if (
-    includes.length > 0 &&
-    !includes.some((f) => surfaces.some((value) => f.matcher(value)))
-  ) {
+  if (includes.length > 0 && !includes.some((f) => surfaces.some((value) => f.matcher(value)))) {
     return false;
   }
   return !excludes.some((f) => surfaces.some((value) => f.matcher(value)));
@@ -197,12 +189,8 @@ function findPackageJsonPaths(dir: string): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
-    if (entry.isFile() && entry.name === "package.json") results.push(full);
-    if (
-      entry.isDirectory() &&
-      entry.name !== "node_modules" &&
-      entry.name !== ".git"
-    ) {
+    if (entry.isFile() && entry.name === 'package.json') results.push(full);
+    if (entry.isDirectory() && entry.name !== 'node_modules' && entry.name !== '.git') {
       try {
         results.push(...findPackageJsonPaths(full));
       } catch {
@@ -220,20 +208,17 @@ function discoverTasks(): Task[] {
   // 1) package.json scripts (root + nested)
   const pkgPaths = DISCOVER_PACKAGES
     ? findPackageJsonPaths(ROOT)
-    : [path.join(ROOT, "package.json")];
+    : [path.join(ROOT, 'package.json')];
   for (const p of pkgPaths) {
     try {
-      const pkg = JSON.parse(fs.readFileSync(p, "utf8"));
+      const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
       const scripts = pkg.scripts || {};
       const pkgDir = path.dirname(p);
       for (const [name, _cmd] of Object.entries(scripts)) {
         // Skip lifecycle scripts that are not useful for running here
-        if (
-          ["prepare", "preinstall", "postinstall", "precommit"].includes(name)
-        )
-          continue;
+        if (['prepare', 'preinstall', 'postinstall', 'precommit'].includes(name)) continue;
         tasks.push({
-          id: `${path.relative(ROOT, pkgDir) || "."}:${name}`,
+          id: `${path.relative(ROOT, pkgDir) || '.'}:${name}`,
           cmd: `pnpm run ${name}`,
           cwd: pkgDir,
           attempts: 0,
@@ -246,10 +231,10 @@ function discoverTasks(): Task[] {
   }
 
   // 2) vscode tasks.json if present
-  const vscodeTasks = path.join(ROOT, ".vscode", "tasks.json");
+  const vscodeTasks = path.join(ROOT, '.vscode', 'tasks.json');
   if (fs.existsSync(vscodeTasks)) {
     try {
-      const content = JSON.parse(fs.readFileSync(vscodeTasks, "utf8"));
+      const content = JSON.parse(fs.readFileSync(vscodeTasks, 'utf8'));
       const vsTasks = content.tasks || [];
       for (const t of vsTasks) {
         if (t.command) {
@@ -289,20 +274,20 @@ function runTask(t: Task) {
   const parts = t.cmd.split(/\s+/);
   const child = spawn(parts[0], parts.slice(1), {
     cwd: t.cwd,
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: ['ignore', 'pipe', 'pipe'],
     shell: false,
   });
 
-  child.stdout.on("data", (d) => process.stdout.write(`[${t.id}] ${d}`));
-  child.stderr.on("data", (d) => process.stderr.write(`[${t.id} ERR] ${d}`));
+  child.stdout.on('data', (d) => process.stdout.write(`[${t.id}] ${d}`));
+  child.stderr.on('data', (d) => process.stderr.write(`[${t.id} ERR] ${d}`));
 
   return new Promise<{ success: boolean; code: number | null }>((resolve) => {
-    child.on("exit", (code) => {
+    child.on('exit', (code) => {
       const ok = code === 0;
-      console.log(`[TASK END] ${t.id} -> ${ok ? "SUCCESS" : `FAIL (${code})`}`);
+      console.log(`[TASK END] ${t.id} -> ${ok ? 'SUCCESS' : `FAIL (${code})`}`);
       resolve({ success: ok, code });
     });
-    child.on("error", (err) => {
+    child.on('error', (err) => {
       console.error(`[TASK ERROR] ${t.id}`, err);
       resolve({ success: false, code: null });
     });
@@ -319,32 +304,30 @@ async function main() {
   const disableReason = getDisableReason();
   if (disableReason) {
     console.log(`[TASK RUNNER DISABLED] ${disableReason}`);
-    throw new Error("Task runner is disabled");
+    throw new Error('Task runner is disabled');
   }
 
   const discovered = discoverTasks();
   if (discovered.length === 0) {
-    console.log("No tasks discovered.");
-    throw new Error("No tasks found");
+    console.log('No tasks discovered.');
+    throw new Error('No tasks found');
   }
 
   const config = loadConfig();
-  const presetNames = (process.env.TASK_PRESET || "")
-    .split(",")
+  const presetNames = (process.env.TASK_PRESET || '')
+    .split(',')
     .map((name) => name.trim())
     .filter(Boolean);
 
   if (presetNames.length > 0) {
-    console.log(`Applying TASK_PRESET: ${presetNames.join(", ")}`);
+    console.log(`Applying TASK_PRESET: ${presetNames.join(', ')}`);
   }
 
-  const {
-    includePatterns: presetIncludePatterns,
-    excludePatterns: presetExcludePatterns,
-  } = resolvePresetPatterns(config, presetNames);
+  const { includePatterns: presetIncludePatterns, excludePatterns: presetExcludePatterns } =
+    resolvePresetPatterns(config, presetNames);
 
-  const envIncludePatterns = readEnvPatterns("TASK_INCLUDE");
-  const envExcludePatterns = readEnvPatterns("TASK_EXCLUDE");
+  const envIncludePatterns = readEnvPatterns('TASK_INCLUDE');
+  const envExcludePatterns = readEnvPatterns('TASK_EXCLUDE');
 
   const includeFilters = [
     ...compileFilterList(presetIncludePatterns),
@@ -360,25 +343,21 @@ async function main() {
   ];
 
   if (presetIncludePatterns.length > 0) {
-    console.log(`Preset include filters: ${presetIncludePatterns.join(", ")}`);
+    console.log(`Preset include filters: ${presetIncludePatterns.join(', ')}`);
   }
   if (envIncludePatterns.length > 0) {
-    console.log(
-      `Applying TASK_INCLUDE filters: ${envIncludePatterns.join(", ")}`,
-    );
+    console.log(`Applying TASK_INCLUDE filters: ${envIncludePatterns.join(', ')}`);
   }
   if (defaultExcludeFilters.length > 0) {
     console.log(
-      `Applying default safety filters (set ALLOW_DESTRUCTIVE=1 to bypass): ${defaultExcludeFilters.map((f) => f.raw).join(", ")}`,
+      `Applying default safety filters (set ALLOW_DESTRUCTIVE=1 to bypass): ${defaultExcludeFilters.map((f) => f.raw).join(', ')}`,
     );
   }
   if (presetExcludePatterns.length > 0) {
-    console.log(`Preset exclude filters: ${presetExcludePatterns.join(", ")}`);
+    console.log(`Preset exclude filters: ${presetExcludePatterns.join(', ')}`);
   }
   if (envExcludePatterns.length > 0) {
-    console.log(
-      `Applying TASK_EXCLUDE filters: ${envExcludePatterns.join(", ")}`,
-    );
+    console.log(`Applying TASK_EXCLUDE filters: ${envExcludePatterns.join(', ')}`);
   }
 
   const filtered = discovered.filter((task) =>
@@ -386,20 +365,20 @@ async function main() {
   );
 
   if (filtered.length === 0) {
-    console.log("No tasks remaining after applying filters. Exiting.");
-    throw new Error("No tasks remaining after filtering");
+    console.log('No tasks remaining after applying filters. Exiting.');
+    throw new Error('No tasks remaining after filtering');
   }
 
   console.log(
     `Discovered ${discovered.length} tasks (${filtered.length} after filters), concurrency=${CONCURRENCY}, maxRetries=${MAX_RETRIES}`,
   );
 
-  if (process.env.DRY_RUN === "1") {
-    console.log("DRY_RUN=1 set. Listing tasks without executing:");
+  if (process.env.DRY_RUN === '1') {
+    console.log('DRY_RUN=1 set. Listing tasks without executing:');
     for (const task of filtered) {
       console.log(` - ${task.id} :: ${task.cmd} @ ${task.cwd}`);
     }
-    console.log("Exiting early due to dry-run mode.");
+    console.log('Exiting early due to dry-run mode.');
     return; // Successful dry run
   }
 
@@ -419,13 +398,8 @@ async function main() {
         running--;
         if (!success) {
           if (task.attempts <= task.maxRetries) {
-            console.log(
-              `[TASK RETRY] ${task.id} scheduling retry #${task.attempts}`,
-            );
-            setTimeout(
-              () => queue.push(task),
-              1000 * Math.min(30, task.attempts * 2),
-            );
+            console.log(`[TASK RETRY] ${task.id} scheduling retry #${task.attempts}`);
+            setTimeout(() => queue.push(task), 1000 * Math.min(30, task.attempts * 2));
           } else {
             console.log(`[TASK FAIL] ${task.id} exhausted retries`);
             failed.push({ task, lastCode: code });
@@ -436,14 +410,13 @@ async function main() {
     }
 
     if (running === 0 && (queue.length === 0 || shouldExit)) {
-      console.log("All tasks processed.");
+      console.log('All tasks processed.');
       if (failed.length > 0) {
-        console.log("Summary of failed tasks:");
-        for (const f of failed)
-          console.log(` - ${f.task.id} lastExit=${f.lastCode}`);
+        console.log('Summary of failed tasks:');
+        for (const f of failed) console.log(` - ${f.task.id} lastExit=${f.lastCode}`);
         throw new Error(`${failed.length} tasks failed`);
       } else {
-        console.log("All tasks succeeded.");
+        console.log('All tasks succeeded.');
         return; // Success
       }
     }
@@ -460,8 +433,8 @@ async function main() {
     // The tick function will handle cleanup when running reaches 0
   };
 
-  process.on("SIGINT", () => handleShutdown("SIGINT"));
-  process.on("SIGTERM", () => handleShutdown("SIGTERM"));
+  process.on('SIGINT', () => handleShutdown('SIGINT'));
+  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 
   tick();
 }
@@ -469,8 +442,6 @@ async function main() {
 main().catch((error) => {
   console.error(error);
   // Set exit code based on error type for shell scripts
-  const exitCode = error.message.includes("tasks failed") ? 2 : 1;
-  throw new Error(
-    `Task runner failed with exit code ${exitCode}: ${error.message}`,
-  );
+  const exitCode = error.message.includes('tasks failed') ? 2 : 1;
+  throw new Error(`Task runner failed with exit code ${exitCode}: ${error.message}`);
 });

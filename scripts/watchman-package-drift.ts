@@ -14,9 +14,9 @@
  *  - Excludes known virtual modules (next/image, next/font/*, react/jsx-runtime)
  */
 
-import { readFileSync } from "fs";
-import { existsSync, readdirSync } from "fs";
-import { join, extname } from "path";
+import { readFileSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
+import { join, extname } from 'path';
 
 interface PackageJSON {
   dependencies?: Record<string, string>;
@@ -25,62 +25,57 @@ interface PackageJSON {
 }
 
 const ROOT = process.cwd();
-const PKG_PATH = join(ROOT, "package.json");
+const PKG_PATH = join(ROOT, 'package.json');
 
 function loadPackageJson(): PackageJSON {
-  return JSON.parse(readFileSync(PKG_PATH, "utf8")) as PackageJSON;
+  return JSON.parse(readFileSync(PKG_PATH, 'utf8')) as PackageJSON;
 }
 
-const SOURCE_DIRS = ["src", "functions/src", "scripts"];
-const EXTS = new Set([".ts", ".tsx", ".js", ".mjs", ".cjs"]);
-const IGNORED_IMPORT_PREFIXES = [
-  "next/image",
-  "next/font",
-  "react/jsx-runtime",
-  "@types/",
-];
+const SOURCE_DIRS = ['src', 'functions/src', 'scripts'];
+const EXTS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
+const IGNORED_IMPORT_PREFIXES = ['next/image', 'next/font', 'react/jsx-runtime', '@types/'];
 
 // Node core modules (both legacy and 'node:' scheme) — never require declaration
 const NODE_CORE = new Set([
-  "assert",
-  "buffer",
-  "child_process",
-  "cluster",
-  "console",
-  "constants",
-  "crypto",
-  "dgram",
-  "dns",
-  "domain",
-  "events",
-  "fs",
-  "fs/promises",
-  "http",
-  "http2",
-  "https",
-  "inspector",
-  "module",
-  "net",
-  "os",
-  "path",
-  "perf_hooks",
-  "process",
-  "punycode",
-  "querystring",
-  "readline",
-  "repl",
-  "stream",
-  "stream/promises",
-  "string_decoder",
-  "timers",
-  "tls",
-  "tty",
-  "url",
-  "util",
-  "v8",
-  "vm",
-  "worker_threads",
-  "zlib",
+  'assert',
+  'buffer',
+  'child_process',
+  'cluster',
+  'console',
+  'constants',
+  'crypto',
+  'dgram',
+  'dns',
+  'domain',
+  'events',
+  'fs',
+  'fs/promises',
+  'http',
+  'http2',
+  'https',
+  'inspector',
+  'module',
+  'net',
+  'os',
+  'path',
+  'perf_hooks',
+  'process',
+  'punycode',
+  'querystring',
+  'readline',
+  'repl',
+  'stream',
+  'stream/promises',
+  'string_decoder',
+  'timers',
+  'tls',
+  'tty',
+  'url',
+  'util',
+  'v8',
+  'vm',
+  'worker_threads',
+  'zlib',
 ]);
 
 interface DriftOptions {
@@ -97,9 +92,9 @@ function parseArgs(): DriftOptions {
     json: false,
   };
   for (const a of argv) {
-    if (a === "--no-allow-dev-unused") opts.allowDevUnused = false;
-    else if (a === "--fail-on-unused") opts.failOnUnused = true;
-    else if (a === "--json") opts.json = true;
+    if (a === '--no-allow-dev-unused') opts.allowDevUnused = false;
+    else if (a === '--fail-on-unused') opts.failOnUnused = true;
+    else if (a === '--json') opts.json = true;
   }
   return opts;
 }
@@ -126,34 +121,28 @@ const IMPORT_RE =
   /(?:import\s+(?:type\s+)?[^'";]*?from\s+['"]([^'";]+)['"];?|require\(['"]([^'"]+)['"]\)|export\s+\*\s+from\s+['"]([^'"]+)['"])/g;
 
 function extractImports(file: string): string[] {
-  const content = readFileSync(file, "utf8");
+  const content = readFileSync(file, 'utf8');
   const imports: string[] = [];
   let match: RegExpExecArray | null;
   while ((match = IMPORT_RE.exec(content))) {
     const mod = match[1] || match[2] || match[3];
     if (!mod) continue;
-    if (mod.startsWith(".") || mod.startsWith("@/") || mod.startsWith("~~/"))
-      continue; // local/aliased
+    if (mod.startsWith('.') || mod.startsWith('@/') || mod.startsWith('~~/')) continue; // local/aliased
     if (IGNORED_IMPORT_PREFIXES.some((p) => mod.startsWith(p))) continue;
-    if (mod.startsWith("node:")) continue; // node: scheme
+    if (mod.startsWith('node:')) continue; // node: scheme
     // Scoped package subpath -> root package name
-    const rootName = mod.startsWith("@")
-      ? mod.split("/").slice(0, 2).join("/")
-      : mod.split("/")[0];
+    const rootName = mod.startsWith('@') ? mod.split('/').slice(0, 2).join('/') : mod.split('/')[0];
     if (NODE_CORE.has(rootName)) continue;
     imports.push(rootName);
   }
   return Array.from(new Set(imports));
 }
 
-function classify(
-  dep: string,
-  pkg: PackageJSON,
-): "runtime" | "dev" | "peer" | "unknown" {
-  if (pkg.dependencies && dep in pkg.dependencies) return "runtime";
-  if (pkg.devDependencies && dep in pkg.devDependencies) return "dev";
-  if (pkg.peerDependencies && dep in pkg.peerDependencies) return "peer";
-  return "unknown";
+function classify(dep: string, pkg: PackageJSON): 'runtime' | 'dev' | 'peer' | 'unknown' {
+  if (pkg.dependencies && dep in pkg.dependencies) return 'runtime';
+  if (pkg.devDependencies && dep in pkg.devDependencies) return 'dev';
+  if (pkg.peerDependencies && dep in pkg.peerDependencies) return 'peer';
+  return 'unknown';
 }
 
 function main() {
@@ -182,24 +171,24 @@ function main() {
     // heuristic skip list (framework/types/testing config that may be indirect)
     if (
       [
-        "next",
-        "react",
-        "react-dom",
-        "typescript",
-        "vitest",
-        "@types/node",
-        "eslint",
-        "prettier",
-        "tailwindcss",
-        "postcss",
-        "autoprefixer",
+        'next',
+        'react',
+        'react-dom',
+        'typescript',
+        'vitest',
+        '@types/node',
+        'eslint',
+        'prettier',
+        'tailwindcss',
+        'postcss',
+        'autoprefixer',
       ].includes(dep)
     )
       continue;
     if (!imported.has(dep)) {
       const kind = classify(dep, pkg);
-      if (kind === "runtime") unusedRuntime.push(dep);
-      else if (kind === "dev") unusedDev.push(dep);
+      if (kind === 'runtime') unusedRuntime.push(dep);
+      else if (kind === 'dev') unusedDev.push(dep);
     }
   }
 
@@ -215,7 +204,7 @@ function main() {
   }
 
   if (!hasIssues) {
-    console.log("✅ No package drift detected.");
+    console.log('✅ No package drift detected.');
     // Optionally display counts
     if (unusedDev.length)
       console.log(
@@ -225,16 +214,16 @@ function main() {
   }
 
   if (missing.length) {
-    console.log("\n❌ Missing dependencies (imported but not declared):");
-    for (const m of missing) console.log("  -", m);
+    console.log('\n❌ Missing dependencies (imported but not declared):');
+    for (const m of missing) console.log('  -', m);
   }
   if (unusedRuntime.length) {
-    console.log("\n⚠️  Unused runtime dependencies:");
-    for (const u of unusedRuntime) console.log("  -", u);
+    console.log('\n⚠️  Unused runtime dependencies:');
+    for (const u of unusedRuntime) console.log('  -', u);
   }
   if (!opts.allowDevUnused && unusedDev.length) {
-    console.log("\n⚠️  Unused dev dependencies:");
-    for (const u of unusedDev) console.log("  -", u);
+    console.log('\n⚠️  Unused dev dependencies:');
+    for (const u of unusedDev) console.log('  -', u);
   } else if (unusedDev.length) {
     console.log(
       `\nℹ️  Ignoring ${unusedDev.length} unused dev dependencies (use --no-allow-dev-unused to fail).`,

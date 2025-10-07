@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 /**
  * Canonical Multi-Tenant Domain Schemas
@@ -7,9 +7,9 @@ import { z } from "zod";
  */
 
 // Reusable primitives
-export const IdSchema = z.string().min(1).brand<"Id">();
-export const OrgIdSchema = IdSchema.brand<"OrgId">();
-export const ParentIdSchema = IdSchema.brand<"ParentId">();
+export const IdSchema = z.string().min(1).brand<'Id'>();
+export const OrgIdSchema = IdSchema.brand<'OrgId'>();
+export const ParentIdSchema = IdSchema.brand<'ParentId'>();
 export const TimestampSchema = z.date();
 export const NonEmptyString = z.string().min(1);
 
@@ -49,7 +49,7 @@ export const OrganizationSchema = z.object({
       allowStaffSelfJoin: false,
       requireApprovalForAttendance: true,
     })),
-  status: z.enum(["active", "suspended"]).default("active"),
+  status: z.enum(['active', 'suspended']).default('active'),
 });
 export type Organization = z.infer<typeof OrganizationSchema>;
 
@@ -59,7 +59,7 @@ export const StaffSchema = z.object({
   orgId: OrgIdSchema,
   createdAt: TimestampSchema,
   updatedAt: TimestampSchema,
-  roles: z.array(z.enum(["admin", "manager", "staff"])).min(1),
+  roles: z.array(z.enum(['admin', 'manager', 'staff'])).min(1),
   active: z.boolean().default(true),
   certifications: z.array(IdSchema).default([]), // references to certifications/{id}
 });
@@ -123,7 +123,7 @@ export const EventSchema = z.object({
   createdAt: TimestampSchema,
   updatedAt: TimestampSchema,
   venueId: IdSchema.optional(),
-  status: z.enum(["draft", "published", "archived"]).default("draft"),
+  status: z.enum(['draft', 'published', 'archived']).default('draft'),
 });
 export type Event = z.infer<typeof EventSchema>;
 
@@ -145,7 +145,7 @@ export const ShiftSchema = z.object({
   zoneId: IdSchema.optional(),
   createdAt: TimestampSchema,
   updatedAt: TimestampSchema,
-  status: z.enum(["open", "locked", "completed", "cancelled"]).default("open"),
+  status: z.enum(['open', 'locked', 'completed', 'cancelled']).default('open'),
 });
 export type Shift = z.infer<typeof ShiftSchema>;
 
@@ -157,9 +157,7 @@ export const AttendanceSchema = z.object({
   staffId: IdSchema,
   createdAt: TimestampSchema,
   updatedAt: TimestampSchema,
-  status: z
-    .enum(["pending", "approved", "rejected", "cancelled"])
-    .default("pending"),
+  status: z.enum(['pending', 'approved', 'rejected', 'cancelled']).default('pending'),
   approvedAt: TimestampSchema.optional(),
   approvedBy: IdSchema.optional(),
   minutesWorked: z.number().int().nonnegative().optional(),
@@ -171,7 +169,7 @@ export type Attendance = z.infer<typeof AttendanceSchema>;
 export const BaseTokenSchema = z.object({
   id: IdSchema,
   orgId: OrgIdSchema,
-  type: z.enum(["staffJoin", "orgPartner"]),
+  type: z.enum(['staffJoin', 'orgPartner']),
   createdAt: TimestampSchema,
   createdBy: IdSchema,
   expiresAt: TimestampSchema.optional(),
@@ -180,13 +178,11 @@ export const BaseTokenSchema = z.object({
   active: z.boolean().default(true),
 });
 export const StaffJoinTokenSchema = BaseTokenSchema.extend({
-  type: z.literal("staffJoin"),
-  roles: z
-    .array(z.enum(["admin", "manager", "staff"]).default("staff"))
-    .default(["staff"]),
+  type: z.literal('staffJoin'),
+  roles: z.array(z.enum(['admin', 'manager', 'staff']).default('staff')).default(['staff']),
 });
 export const OrgPartnerTokenSchema = BaseTokenSchema.extend({
-  type: z.literal("orgPartner"),
+  type: z.literal('orgPartner'),
   partnerOrgId: OrgIdSchema,
 });
 export type StaffJoinToken = z.infer<typeof StaffJoinTokenSchema>;
@@ -205,7 +201,7 @@ export const LedgerLineSchema = z.object({
   minutes: z.number().int(),
   rateCents: z.number().int().nonnegative(),
   amountCents: z.number().int(), // minutes * rate or derived
-  kind: z.enum(["work", "correction", "adjustment"]).default("work"),
+  kind: z.enum(['work', 'correction', 'adjustment']).default('work'),
   reversalOf: IdSchema.optional(), // links to previous line if correction
 });
 export type LedgerLine = z.infer<typeof LedgerLineSchema>;
@@ -214,11 +210,7 @@ export type LedgerLine = z.infer<typeof LedgerLineSchema>;
 export function ensureValid<T>(schema: z.ZodType<T>, data: unknown): T {
   const parsed = schema.safeParse(data);
   if (!parsed.success) {
-    throw new Error(
-      parsed.error.issues
-        .map((i) => `${i.path.join(".")}: ${i.message}`)
-        .join("; "),
-    );
+    throw new Error(parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '));
   }
   return parsed.data;
 }
@@ -247,7 +239,7 @@ export type ParentId = z.infer<typeof ParentIdSchema>;
 
 // Utility: sanitize organization ID (lowercase, alphanumeric + hyphen)
 // Re-export sanitizeOrgId (implementation lives in utils.ts for cohesion)
-export { sanitizeOrgId } from "@/lib/utils";
+export { sanitizeOrgId } from '@/lib/utils';
 
 // Schema for switch-org API request
 export const SwitchOrgRequestSchema = z.object({
@@ -280,7 +272,7 @@ export interface InviteCode {
   maxUses?: number;
   currentUses?: number;
   isActive: boolean;
-  role: "admin" | "manager" | "employee"; // role granted when consumed
+  role: 'admin' | 'manager' | 'employee'; // role granted when consumed
   notes?: string;
   qrCodeUrl?: string;
   email?: string; // optional pre-targeted email (bulk invites)
@@ -292,19 +284,17 @@ export function generateShortCode(orgId: string, code: string): string {
 }
 
 // Parse either full invite code or short code format; returns null if invalid
-export function validateInviteCode(
-  raw: string,
-): { orgId: string; inviteCode: string } | null {
-  if (!raw || typeof raw !== "string") return null;
+export function validateInviteCode(raw: string): { orgId: string; inviteCode: string } | null {
+  if (!raw || typeof raw !== 'string') return null;
   const trimmed = raw.trim();
   // Accept raw hex (length >= 8) OR composite orgId-code
   if (/^[a-f0-9]{8,}$/i.test(trimmed)) {
-    return { orgId: "", inviteCode: trimmed }; // orgId resolved later (must accompany request)
+    return { orgId: '', inviteCode: trimmed }; // orgId resolved later (must accompany request)
   }
-  const parts = trimmed.split("-");
+  const parts = trimmed.split('-');
   if (parts.length < 2) return null;
   const inviteCode = parts.pop();
-  const orgId = parts.join("-");
+  const orgId = parts.join('-');
   if (!inviteCode || !/^[a-f0-9]{8,}$/i.test(inviteCode)) return null;
   return { orgId, inviteCode };
 }
@@ -316,8 +306,8 @@ export const JoinOrgRequestSchema = z
     orgId: z.string().min(1).optional(),
   })
   .refine((data) => !!data.inviteCode || !!data.orgId, {
-    message: "Either inviteCode or orgId is required",
-    path: ["inviteCode"],
+    message: 'Either inviteCode or orgId is required',
+    path: ['inviteCode'],
   });
 export type JoinOrgRequest = z.infer<typeof JoinOrgRequestSchema>;
 export interface JoinOrgResponse {
@@ -331,7 +321,7 @@ export interface JoinOrgResponse {
 // Create Invite
 export const CreateInviteRequestSchema = z.object({
   orgId: z.string().min(1),
-  role: z.enum(["admin", "manager", "employee"]).default("employee"),
+  role: z.enum(['admin', 'manager', 'employee']).default('employee'),
   expiresIn: z.number().int().positive().max(30).optional(), // days
   maxUses: z.number().int().positive().max(100).optional(),
   notes: z.string().max(500).optional(),
@@ -361,7 +351,7 @@ export const ApproveRequestSchema = z.object({
   orgId: z.string().min(1),
   requestId: z.string().min(1),
   approved: z.boolean(),
-  role: z.enum(["admin", "manager", "employee"]).default("employee"),
+  role: z.enum(['admin', 'manager', 'employee']).default('employee'),
   notes: z.string().max(500).optional(),
 });
 export type ApproveRequest = z.infer<typeof ApproveRequestSchema>;
@@ -370,7 +360,7 @@ export type ApproveRequest = z.infer<typeof ApproveRequestSchema>;
 export interface OrgMember {
   uid: string;
   orgId: string;
-  role: "admin" | "manager" | "employee" | "staff"; // include legacy 'staff'
+  role: 'admin' | 'manager' | 'employee' | 'staff'; // include legacy 'staff'
   joinedAt?: Date;
   addedBy?: string;
   email?: string;
@@ -385,7 +375,7 @@ export interface JoinRequest {
   requestedByEmail: string;
   requestedByName: string;
   message?: string;
-  status: "pending" | "approved" | "rejected";
+  status: 'pending' | 'approved' | 'rejected';
   createdAt: Date;
   reviewedAt?: Date;
   reviewedBy?: string;

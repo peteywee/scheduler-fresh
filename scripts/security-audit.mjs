@@ -5,13 +5,13 @@
  * Checks for vulnerabilities in dependencies
  */
 
-import { execSync } from "child_process";
-import { existsSync } from "fs";
+import { execSync } from 'child_process';
+import { existsSync } from 'fs';
 
 const ROOT = process.cwd();
 
 function log(...m) {
-  console.log("[security-audit]", ...m);
+  console.log('[security-audit]', ...m);
 }
 
 function runAuditCi() {
@@ -21,14 +21,14 @@ function runAuditCi() {
     process.exit(1);
   }
   try {
-    log("Running security audit with audit-ci...");
-    execSync("npx audit-ci --config audit-ci.json", {
+    log('Running security audit with audit-ci...');
+    execSync('npx audit-ci --config audit-ci.json', {
       cwd: ROOT,
-      stdio: "inherit",
+      stdio: 'inherit',
     });
-    log("✅ Security audit passed");
+    log('✅ Security audit passed');
   } catch (error) {
-    log("❌ Security audit failed");
+    log('❌ Security audit failed');
     log('Run "pnpm audit" for more details');
     process.exit(1);
   }

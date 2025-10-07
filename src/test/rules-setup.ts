@@ -1,30 +1,26 @@
-import { beforeAll, afterAll } from "vitest";
-import {
-  initializeTestEnvironment,
-  RulesTestEnvironment,
-} from "@firebase/rules-unit-testing";
-import { readFileSync } from "fs";
-import { resolve } from "path";
+import { beforeAll, afterAll } from 'vitest';
+import { initializeTestEnvironment, RulesTestEnvironment } from '@firebase/rules-unit-testing';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 
 let testEnvLocal: RulesTestEnvironment;
 
 beforeAll(async () => {
   // Load the actual Firestore rules
-  const rulesPath = resolve(__dirname, "../../firestore.rules");
-  const rulesContent = readFileSync(rulesPath, "utf8");
+  const rulesPath = resolve(__dirname, '../../firestore.rules');
+  const rulesContent = readFileSync(rulesPath, 'utf8');
 
   testEnvLocal = await initializeTestEnvironment({
-    projectId: "demo-test-project",
+    projectId: 'demo-test-project',
     firestore: {
       rules: rulesContent,
-      host: "127.0.0.1",
+      host: '127.0.0.1',
       port: 8080,
     },
   });
 
   // Make the test environment available globally
-  (globalThis as unknown as { testEnv: RulesTestEnvironment }).testEnv =
-    testEnvLocal;
+  (globalThis as unknown as { testEnv: RulesTestEnvironment }).testEnv = testEnvLocal;
 });
 
 afterAll(async () => {

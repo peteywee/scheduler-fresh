@@ -1,34 +1,34 @@
 // src/components/schedule/shift-editor-dialog.tsx
 
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 // ... other imports
-import { OrgMember } from "@/lib/types";
+import { OrgMember } from '@/lib/types';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/select';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { zodResolver } from "@hookform/resolvers/zod";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 // Create a Zod schema for the form
 const formSchema = z.object({
-  title: z.string().min(1, "Title is required"),
+  title: z.string().min(1, 'Title is required'),
   start: z.string(), // Use string for input, convert to Date on submit
   end: z.string(),
   assignedTo: z.array(z.string()).optional(),
@@ -57,12 +57,7 @@ interface ShiftEditorDialogProps {
   orgId: string;
 }
 
-export function ShiftEditorDialog({
-  isOpen,
-  onOpenChange,
-  shift,
-  orgId,
-}: ShiftEditorDialogProps) {
+export function ShiftEditorDialog({ isOpen, onOpenChange, shift, orgId }: ShiftEditorDialogProps) {
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [submitting, setSubmitting] = useState(false);
   // resolver typing mismatch between @hookform/resolvers and this project's zod version;
@@ -71,12 +66,12 @@ export function ShiftEditorDialog({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(formSchema as any),
     defaultValues: {
-      title: shift?.title || "",
-      start: shift?.start?.toISOString().substring(0, 16) || "",
-      end: shift?.end?.toISOString().substring(0, 16) || "",
+      title: shift?.title || '',
+      start: shift?.start?.toISOString().substring(0, 16) || '',
+      end: shift?.end?.toISOString().substring(0, 16) || '',
       assignedTo: shift?.assignedTo || [],
-      venueId: shift?.venueId || "",
-      zoneId: shift?.zoneId || "",
+      venueId: shift?.venueId || '',
+      zoneId: shift?.zoneId || '',
     },
   });
 
@@ -96,7 +91,7 @@ export function ShiftEditorDialog({
       // If the consumer wants full behavior, replace the below with the real call.
       await new Promise((r) => setTimeout(r, 500));
     } catch (err) {
-      console.error("Failed saving shift", err);
+      console.error('Failed saving shift', err);
     } finally {
       setSubmitting(false);
       onOpenChange(false);
@@ -107,12 +102,12 @@ export function ShiftEditorDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{shift ? "Edit Shift" : "Add Shift"}</DialogTitle>
+          <DialogTitle>{shift ? 'Edit Shift' : 'Add Shift'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="title">Title</Label>
-            <Input id="title" {...form.register("title")} />
+            <Input id="title" {...form.register('title')} />
           </div>
 
           <div>
@@ -121,7 +116,7 @@ export function ShiftEditorDialog({
                 you might need a more complex component or checkboxes. */}
             <Select
               aria-label="Assign employee"
-              onValueChange={(value) => form.setValue("assignedTo", [value])}
+              onValueChange={(value) => form.setValue('assignedTo', [value])}
               defaultValue={shift?.assignedTo?.[0]}
             >
               <SelectTrigger>
@@ -139,35 +134,21 @@ export function ShiftEditorDialog({
 
           <div>
             <Label htmlFor="venueId">Venue ID (Optional)</Label>
-            <Input
-              id="venueId"
-              placeholder="e.g., venue-123"
-              {...form.register("venueId")}
-            />
+            <Input id="venueId" placeholder="e.g., venue-123" {...form.register('venueId')} />
           </div>
 
           <div>
             <Label htmlFor="zoneId">Zone/Booth/Stand ID (Optional)</Label>
-            <Input
-              id="zoneId"
-              placeholder="e.g., zone-a, booth-12"
-              {...form.register("zoneId")}
-            />
+            <Input id="zoneId" placeholder="e.g., zone-a, booth-12" {...form.register('zoneId')} />
           </div>
 
           <DialogFooter>
             <div className="flex items-center gap-3">
-              <Button
-                type="submit"
-                disabled={submitting}
-                aria-disabled={submitting}
-              >
-                {submitting ? "Saving…" : "Save"}
+              <Button type="submit" disabled={submitting} aria-disabled={submitting}>
+                {submitting ? 'Saving…' : 'Save'}
               </Button>
               {submitting ? (
-                <span className="text-sm text-muted-foreground">
-                  Saving changes…
-                </span>
+                <span className="text-sm text-muted-foreground">Saving changes…</span>
               ) : null}
             </div>
           </DialogFooter>

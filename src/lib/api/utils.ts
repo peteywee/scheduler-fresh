@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { ZodSchema, ZodError } from "zod";
-import { adminAuth } from "@/lib/firebase.server";
+import { NextRequest, NextResponse } from 'next/server';
+import { ZodSchema, ZodError } from 'zod';
+import { adminAuth } from '@/lib/firebase.server';
 
 // ---- Types -----------------------------------------------------------------
 
@@ -11,7 +11,9 @@ export interface ApiContextBase {
 }
 
 export type MiddlewareResult = ApiContextBase | NextResponse;
-export type Middleware = (req: NextRequest & { context: ApiContextBase }) => Promise<MiddlewareResult> | MiddlewareResult;
+export type Middleware = (
+  req: NextRequest & { context: ApiContextBase },
+) => Promise<MiddlewareResult> | MiddlewareResult;
 
 export type ApiHandler<Body extends Record<string, unknown> = Record<string, unknown>> = (
   req: NextRequest & { context: ApiContextBase },
@@ -29,8 +31,10 @@ type ApiResponseShape<T extends Record<string, unknown>> = ApiSuccessShape<T> | 
 
 // ---- Helpers ----------------------------------------------------------------
 
-const apiResponse = <T extends Record<string, unknown>>(status: number, data: ApiResponseShape<T>) =>
-  NextResponse.json(data, { status });
+const apiResponse = <T extends Record<string, unknown>>(
+  status: number,
+  data: ApiResponseShape<T>,
+) => NextResponse.json(data, { status });
 
 // Higher-order function to create API routes with error handling and middleware
 export const createApiRoute = <T extends Record<string, unknown> = Record<string, unknown>>(
@@ -56,10 +60,10 @@ export const createApiRoute = <T extends Record<string, unknown> = Record<string
       return apiResponse<T>(200, { success: true, ...(body as T) } as ApiSuccessShape<T>);
     } catch (err: unknown) {
       const error = err as { message?: string; statusCode?: number };
-      const errorMessage = error?.message || "An unexpected error occurred.";
+      const errorMessage = error?.message || 'An unexpected error occurred.';
       const statusCode = error?.statusCode || 500;
       // Avoid logging potentially sensitive data
-      console.error("API Error:", errorMessage);
+      console.error('API Error:', errorMessage);
       return apiResponse<T>(statusCode, { success: false, error: errorMessage });
     }
   };
@@ -68,15 +72,15 @@ export const createApiRoute = <T extends Record<string, unknown> = Record<string
 // Middleware to authorize requests based on session cookie
 export const authorize = (): Middleware => {
   return async (req) => {
-    const session = req.cookies.get("__session")?.value;
+    const session = req.cookies.get('__session')?.value;
     if (!session) {
-      return apiResponse(401, { success: false, error: "Authentication required" });
+      return apiResponse(401, { success: false, error: 'Authentication required' });
     }
     try {
       const decoded = await adminAuth().verifySessionCookie(session, true);
       return { uid: decoded.uid };
     } catch {
-      return apiResponse(401, { success: false, error: "Invalid session" });
+      return apiResponse(401, { success: false, error: 'Invalid session' });
     }
   };
 };
@@ -90,9 +94,13 @@ export const validate = <S extends ZodSchema<unknown>>(schema: S): Middleware =>
       return { data };
     } catch (err: unknown) {
       if (err instanceof ZodError) {
-        return apiResponse(400, { success: false, error: "Invalid request data", details: (err as ZodError).issues });
+        return apiResponse(400, {
+          success: false,
+          error: 'Invalid request data',
+          details: (err as ZodError).issues,
+        });
       }
-      return apiResponse(400, { success: false, error: "Invalid JSON format" });
+      return apiResponse(400, { success: false, error: 'Invalid JSON format' });
     }
   };
 };

@@ -5,18 +5,18 @@
  * Uses detect-port library for reliable port detection
  */
 
-import detectPort from "detect-port";
-import process from "node:process";
+import detectPort from 'detect-port';
+import process from 'node:process';
 
 const DEFAULT_PORTS = [3000, 8080, 9099, 9199];
 const argv = process.argv.slice(2);
 
-if (process.env.CHECK_PORTS_DEBUG === "1") {
+if (process.env.CHECK_PORTS_DEBUG === '1') {
   console.log(`[check-ports] argv=${JSON.stringify(argv)}`);
 }
 
 const options = {
-  json: process.env.CHECK_PORTS_JSON === "1" || false,
+  json: process.env.CHECK_PORTS_JSON === '1' || false,
   silent: false,
 };
 
@@ -25,22 +25,20 @@ const positional = [];
 for (const arg of argv) {
   const trimmedArg = arg.trim();
 
-  if (trimmedArg === "--") {
+  if (trimmedArg === '--') {
     continue;
-  } else if (trimmedArg === "--json") {
+  } else if (trimmedArg === '--json') {
     options.json = true;
-  } else if (trimmedArg === "--silent") {
+  } else if (trimmedArg === '--silent') {
     options.silent = true;
-  } else if (trimmedArg.startsWith("--ports=")) {
-    const parts = trimmedArg.split("=");
+  } else if (trimmedArg.startsWith('--ports=')) {
+    const parts = trimmedArg.split('=');
     if (parts.length > 1 && parts[1]) {
-      positional.push(...parts[1].split(","));
+      positional.push(...parts[1].split(','));
     } else {
-      console.warn(
-        `Flag '${trimmedArg}' is missing a value after '=' and was ignored.`,
-      );
+      console.warn(`Flag '${trimmedArg}' is missing a value after '=' and was ignored.`);
     }
-  } else if (trimmedArg.startsWith("--")) {
+  } else if (trimmedArg.startsWith('--')) {
     console.warn(`Unknown flag '${trimmedArg}' ignored.`);
   } else {
     positional.push(trimmedArg);
@@ -79,7 +77,7 @@ async function main() {
     console.log(JSON.stringify(payload, null, 2));
   } else if (!options.silent) {
     busy.forEach(({ port, error }) => {
-      if (error && error.code && error.code !== "EADDRINUSE") {
+      if (error && error.code && error.code !== 'EADDRINUSE') {
         console.warn(`⚠️ Port ${port} could not be checked (${error.code}).`);
       } else {
         console.error(`❌ Port ${port} is busy.`);
@@ -89,11 +87,9 @@ async function main() {
 
   if (busy.length > 0) {
     if (!options.silent && !options.json) {
-      const busyList = busy.map(({ port }) => port).join(", ");
+      const busyList = busy.map(({ port }) => port).join(', ');
       console.error(`\nSome ports are in use: ${busyList}`);
-      console.error(
-        "Try 'pnpm run kill:ports' or stop the conflicting process manually.",
-      );
+      console.error("Try 'pnpm run kill:ports' or stop the conflicting process manually.");
     }
     process.exitCode = 2;
     return;
@@ -103,6 +99,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("Unexpected error while checking ports:", error);
+  console.error('Unexpected error while checking ports:', error);
   process.exit(1);
 });

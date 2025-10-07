@@ -1,4 +1,4 @@
-import { RulesTestEnvironment } from "@firebase/rules-unit-testing";
+import { RulesTestEnvironment } from '@firebase/rules-unit-testing';
 
 interface OrgExtra {
   name?: string;
@@ -44,7 +44,7 @@ export async function seedOrgWithMembers(
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
 
-      await db.doc(`orgs/${orgId}`).set({
+    await db.doc(`orgs/${orgId}`).set({
       orgId,
       name: orgData.name || `Org ${orgId}`,
       ownerUid: adminUid,
@@ -57,7 +57,7 @@ export async function seedOrgWithMembers(
 
     const allMembers = [adminUid, ...memberUids];
     for (const uid of allMembers) {
-      const role = roles[uid] || (uid === adminUid ? "admin" : "member");
+      const role = roles[uid] || (uid === adminUid ? 'admin' : 'member');
 
       if (includeUserDocs) {
         await db.doc(`users/${uid}`).set({ uid, orgId, createdAt: now });

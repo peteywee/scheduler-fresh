@@ -28,25 +28,25 @@
  *   --verbose  : extra logging
  */
 
-import fs from "fs";
-import path from "path";
+import fs from 'fs';
+import path from 'path';
 
 const ROOT = process.cwd();
-const PKG_PATH = path.join(ROOT, "package.json");
+const PKG_PATH = path.join(ROOT, 'package.json');
 const args = process.argv.slice(2);
-const CHECK_MODE = args.includes("--check");
-const VERBOSE = args.includes("--verbose");
-const includeArg = args.find((a) => a.startsWith("--include="));
+const CHECK_MODE = args.includes('--check');
+const VERBOSE = args.includes('--verbose');
+const includeArg = args.find((a) => a.startsWith('--include='));
 const INCLUDE_FILTERS = includeArg
-  ? includeArg.replace("--include=", "").split(",").filter(Boolean)
+  ? includeArg.replace('--include=', '').split(',').filter(Boolean)
   : [];
 
 function log(...m) {
-  if (VERBOSE) console.log("[version-sync]", ...m);
+  if (VERBOSE) console.log('[version-sync]', ...m);
 }
 
 function loadPackageJson() {
-  const raw = fs.readFileSync(PKG_PATH, "utf8");
+  const raw = fs.readFileSync(PKG_PATH, 'utf8');
   return JSON.parse(raw);
 }
 
@@ -63,19 +63,19 @@ function buildVersionMap(pkg) {
 }
 
 function shouldProcess(file) {
-  if (file.includes("node_modules")) return false;
+  if (file.includes('node_modules')) return false;
   if (INCLUDE_FILTERS.length === 0) return true;
   return INCLUDE_FILTERS.some((f) => file.includes(f));
 }
 
 const EXCLUDE_DIRS = new Set([
-  "node_modules",
-  ".git",
-  ".next",
-  "dist",
-  "build",
-  "coverage",
-  "playwright-report",
+  'node_modules',
+  '.git',
+  '.next',
+  'dist',
+  'build',
+  'coverage',
+  'playwright-report',
 ]);
 const MAX_DEPTH = 12; // safety guard
 function walk(dir, depth = 0) {
@@ -104,15 +104,9 @@ function walk(dir, depth = 0) {
 function makePatternsFor(pkg) {
   // Matches pkg@1.2.3, pkg @ 1.2.3, "pkg": "1.2.3", pkg version 1.2.3
   return [
-    new RegExp(
-      `${pkg}[@ ]+(?<version>\\d+\\.\\d+\\.\\d+(?:[-a-zA-Z0-9+.]+)?)`,
-      "g",
-    ),
-    new RegExp(`"${pkg}"\\s*:\\s*"(?<version>[^"\n]+)"`, "g"),
-    new RegExp(
-      `${pkg}\\s+version\\s+(?<version>\\d+\\.\\d+\\.\\d+(?:[-a-zA-Z0-9+.]+)?)`,
-      "g",
-    ),
+    new RegExp(`${pkg}[@ ]+(?<version>\\d+\\.\\d+\\.\\d+(?:[-a-zA-Z0-9+.]+)?)`, 'g'),
+    new RegExp(`"${pkg}"\\s*:\\s*"(?<version>[^"\n]+)"`, 'g'),
+    new RegExp(`${pkg}\\s+version\\s+(?<version>\\d+\\.\\d+\\.\\d+(?:[-a-zA-Z0-9+.]+)?)`, 'g'),
   ];
 }
 
@@ -138,23 +132,16 @@ function replaceVersions(content, pkg, targetVersion, report) {
 function main() {
   const pkg = loadPackageJson();
   const versionMap = buildVersionMap(pkg);
-  const files = walk(ROOT).filter(
-    (f) => shouldProcess(f) && /\.(md|ts|tsx|mjs|js|json)$/.test(f),
-  );
+  const files = walk(ROOT).filter((f) => shouldProcess(f) && /\.(md|ts|tsx|mjs|js|json)$/.test(f));
 
   const mismatches = [];
   const edits = [];
   for (const file of files) {
-    let text = fs.readFileSync(file, "utf8");
+    let text = fs.readFileSync(file, 'utf8');
     let fileChanged = false;
     const localReports = [];
     for (const [dep, ver] of versionMap.entries()) {
-      const { content, changed } = replaceVersions(
-        text,
-        dep,
-        ver,
-        localReports,
-      );
+      const { content, changed } = replaceVersions(text, dep, ver, localReports);
       if (changed) {
         fileChanged = true;
         text = content;
@@ -172,19 +159,19 @@ function main() {
 
   if (CHECK_MODE) {
     if (mismatches.length) {
-      console.error("Version drift detected:");
+      console.error('Version drift detected:');
       for (const m of mismatches) {
         console.error(` - ${m.file}: ${m.pkg} ${m.from} -> ${m.to}`);
       }
       process.exit(1);
     } else {
-      console.log("No version drift detected.");
+      console.log('No version drift detected.');
     }
   } else {
     if (edits.length === 0) {
-      console.log("No changes needed. Versions already in sync.");
+      console.log('No changes needed. Versions already in sync.');
     } else {
-      console.log("Updated version occurrences:");
+      console.log('Updated version occurrences:');
       for (const e of edits) {
         console.log(` - ${e.file}: ${e.pkg} ${e.from} -> ${e.to}`);
       }

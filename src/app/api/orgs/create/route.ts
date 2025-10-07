@@ -1,41 +1,38 @@
-import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase.server";
-import { OrganizationSchema } from "@/lib/types";
-import { createOrganization } from "@/lib/auth-utils";
+import { NextRequest, NextResponse } from 'next/server';
+import { adminAuth } from '@/lib/firebase.server';
+import { OrganizationSchema } from '@/lib/types';
+import { createOrganization } from '@/lib/auth-utils';
 
 function getAllowedOrigins(): string[] {
   const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
-  const defaults = ["http://localhost:3000", "http://127.0.0.1:3000"];
+  const defaults = ['http://localhost:3000', 'http://127.0.0.1:3000'];
   return envOrigin ? [envOrigin, ...defaults] : defaults;
 }
 
 function validateCsrf(req: NextRequest): boolean {
-  const header = req.headers.get("x-csrf-token");
-  const cookie = req.cookies.get("XSRF-TOKEN")?.value;
+  const header = req.headers.get('x-csrf-token');
+  const cookie = req.cookies.get('XSRF-TOKEN')?.value;
   return Boolean(header && cookie && header === cookie);
 }
 
 function allowOrigin(req: NextRequest): boolean {
-  const origin = req.headers.get("origin");
+  const origin = req.headers.get('origin');
   if (!origin) return true;
   return getAllowedOrigins().includes(origin);
 }
 
 export async function POST(req: NextRequest) {
   if (!allowOrigin(req)) {
-    return new NextResponse("Forbidden origin", { status: 403 });
+    return new NextResponse('Forbidden origin', { status: 403 });
   }
   if (!validateCsrf(req)) {
-    return new NextResponse("CSRF validation failed", { status: 403 });
+    return new NextResponse('CSRF validation failed', { status: 403 });
   }
 
   // Verify session
-  const session = req.cookies.get("__session")?.value;
+  const session = req.cookies.get('__session')?.value;
   if (!session) {
-    return NextResponse.json(
-      { success: false, error: "Authentication required" },
-      { status: 401 },
-    );
+    return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
   }
 
   try {
@@ -56,8 +53,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            parseResult.error.issues[0]?.message || "Invalid organization data",
+          error: parseResult.error.issues[0]?.message || 'Invalid organization data',
         },
         { status: 400 },
       );
@@ -77,7 +73,7 @@ export async function POST(req: NextRequest) {
         requireApprovalForAttendance: true,
       },
       // uid already validated via session; cast to branded Id
-      createdBy: uid as unknown as import("@/lib/types").Organization["createdBy"],
+      createdBy: uid as unknown as import('@/lib/types').Organization['createdBy'],
     };
 
     const orgId = await createOrganization(orgData, uid);
@@ -88,9 +84,9 @@ export async function POST(req: NextRequest) {
       orgName: orgData.name,
     });
   } catch (error) {
-    console.error("Error creating organization:", error);
+    console.error('Error creating organization:', error);
     return NextResponse.json(
-      { success: false, error: "Failed to create organization" },
+      { success: false, error: 'Failed to create organization' },
       { status: 500 },
     );
   }

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { adminAuth, adminInit } from "@/lib/firebase.server";
-import { getFirestore } from "firebase-admin/firestore";
-import { ApproveRequestSchema } from "@/lib/types";
+import { NextRequest, NextResponse } from 'next/server';
+import { adminAuth, adminInit } from '@/lib/firebase.server';
+import { getFirestore } from 'firebase-admin/firestore';
+import { ApproveRequestSchema } from '@/lib/types';
 
 interface JoinRequestShape {
   id: string;
@@ -10,13 +10,13 @@ interface JoinRequestShape {
   requestedByEmail: string;
   requestedByName: string;
   message?: string;
-  status: "pending" | "approved" | "rejected";
+  status: 'pending' | 'approved' | 'rejected';
   createdAt: Date;
   reviewedAt?: Date;
   reviewedBy?: string;
   reviewNotes?: string | null;
 }
-import { addUserToOrg } from "@/lib/auth-utils";
+import { addUserToOrg } from '@/lib/auth-utils';
 
 // Lazy initialize to avoid build-time errors
 function getDb() {
@@ -26,37 +26,34 @@ function getDb() {
 
 function getAllowedOrigins(): string[] {
   const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
-  const defaults = ["http://localhost:3000", "http://127.0.0.1:3000"];
+  const defaults = ['http://localhost:3000', 'http://127.0.0.1:3000'];
   return envOrigin ? [envOrigin, ...defaults] : defaults;
 }
 
 function validateCsrf(req: NextRequest): boolean {
-  const header = req.headers.get("x-csrf-token");
-  const cookie = req.cookies.get("XSRF-TOKEN")?.value;
+  const header = req.headers.get('x-csrf-token');
+  const cookie = req.cookies.get('XSRF-TOKEN')?.value;
   return Boolean(header && cookie && header === cookie);
 }
 
 function allowOrigin(req: NextRequest): boolean {
-  const origin = req.headers.get("origin");
+  const origin = req.headers.get('origin');
   if (!origin) return true;
   return getAllowedOrigins().includes(origin);
 }
 
 export async function POST(req: NextRequest) {
   if (!allowOrigin(req)) {
-    return new NextResponse("Forbidden origin", { status: 403 });
+    return new NextResponse('Forbidden origin', { status: 403 });
   }
   if (!validateCsrf(req)) {
-    return new NextResponse("CSRF validation failed", { status: 403 });
+    return new NextResponse('CSRF validation failed', { status: 403 });
   }
 
   // Verify session
-  const session = req.cookies.get("__session")?.value;
+  const session = req.cookies.get('__session')?.value;
   if (!session) {
-    return NextResponse.json(
-      { success: false, error: "Authentication required" },
-      { status: 401 },
-    );
+    return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
   }
 
   try {
@@ -64,7 +61,7 @@ export async function POST(req: NextRequest) {
     const uid = decoded.uid;
     if (decoded.email_verified === false) {
       return NextResponse.json(
-        { success: false, error: "Email must be verified to request access" },
+        { success: false, error: 'Email must be verified to request access' },
         { status: 403 },
       );
     }
@@ -74,10 +71,7 @@ export async function POST(req: NextRequest) {
     const parseResult = ApproveRequestSchema.safeParse(body);
 
     if (!parseResult.success) {
-      return NextResponse.json(
-        { success: false, error: "Invalid request data" },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, error: 'Invalid request data' }, { status: 400 });
     }
 
     const { orgId, requestId, approved, role, notes } = parseResult.data;
@@ -86,7 +80,7 @@ export async function POST(req: NextRequest) {
     const orgDoc = await getDb().doc(`orgs/${orgId}`).get();
     if (!orgDoc.exists) {
       return NextResponse.json(
-        { success: false, error: "Organization not found" },
+        { success: false, error: 'Organization not found' },
         { status: 404 },
       );
     }
@@ -94,7 +88,7 @@ export async function POST(req: NextRequest) {
     const orgData = orgDoc.data();
     if (!orgData?.settings?.allowPublicJoinRequests) {
       return NextResponse.json(
-        { success: false, error: "Organization does not accept join requests" },
+        { success: false, error: 'Organization does not accept join requests' },
         { status: 400 },
       );
     }
@@ -107,7 +101,7 @@ export async function POST(req: NextRequest) {
         return { status: 404 as const };
       }
       const data = snap.data() as JoinRequestShape;
-      if (data.status !== "pending") {
+      if (data.status !== 'pending') {
         return { status: 409 as const };
       }
       const reviewedAt = new Date();
@@ -116,7 +110,7 @@ export async function POST(req: NextRequest) {
         await addUserToOrg(data.requestedBy, orgId, role, uid);
       }
       tx.update(requestRef, {
-        status: approved ? "approved" : "rejected",
+        status: approved ? 'approved' : 'rejected',
         reviewedAt,
         reviewedBy: uid,
         reviewNotes: notes ?? null,
@@ -126,22 +120,22 @@ export async function POST(req: NextRequest) {
 
     if (result.status === 404) {
       return NextResponse.json(
-        { success: false, error: "Join request not found" },
+        { success: false, error: 'Join request not found' },
         { status: 404 },
       );
     }
     if (result.status === 409) {
       return NextResponse.json(
-        { success: false, error: "Join request already processed" },
+        { success: false, error: 'Join request already processed' },
         { status: 409 },
       );
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error requesting access:", error);
+    console.error('Error requesting access:', error);
     return NextResponse.json(
-      { success: false, error: "Failed to request access" },
+      { success: false, error: 'Failed to request access' },
       { status: 500 },
     );
   }

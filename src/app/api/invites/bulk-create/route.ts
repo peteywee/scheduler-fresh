@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { adminDb } from "@/lib/firebase.server";
-import { generateInviteCode } from "@/lib/auth-utils";
-import { generateShortCode } from "@/lib/types";
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { adminDb } from '@/lib/firebase.server';
+import { generateInviteCode } from '@/lib/auth-utils';
+import { generateShortCode } from '@/lib/types';
 
 // Types for bulk invite creation
 interface BulkInviteUserInput {
   email: string;
-  role: "admin" | "manager" | "employee";
+  role: 'admin' | 'manager' | 'employee';
 }
 
 interface BulkInviteRequestBody {
@@ -20,7 +20,7 @@ const bulkCreateSchema = z.object({
   users: z.array(
     z.object({
       email: z.string().email(),
-      role: z.enum(["admin", "manager", "employee"]),
+      role: z.enum(['admin', 'manager', 'employee']),
     }),
   ),
 });
@@ -31,26 +31,18 @@ export async function POST(req: Request): Promise<NextResponse> {
     // const session = await getSession(req);
     const session: { uid: string } | null = null;
     if (!session) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
     const { uid: _uid } = session; // placeholder until auth implemented
 
     const json: unknown = await req.json();
-    const { orgId, users } = bulkCreateSchema.parse(
-      json as BulkInviteRequestBody,
-    );
+    const { orgId, users } = bulkCreateSchema.parse(json as BulkInviteRequestBody);
 
     // TODO: Implement verifyOrgAccess for org-level permissions
     // const allowed = await verifyOrgAccess(session.uid, orgId, ["admin", "manager"]);
     const allowed = false;
     if (!allowed) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden" },
-        { status: 403 },
-      );
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     const db = adminDb();
@@ -81,16 +73,13 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json({ success: true, createdCount });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: error.issues },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, error: error.issues }, { status: 400 });
     }
     // Intentionally minimal logging to avoid leaking PII; include message only.
 
-    console.error("Bulk invite creation error", (error as Error).message);
+    console.error('Bulk invite creation error', (error as Error).message);
     return NextResponse.json(
-      { success: false, error: "An unexpected error occurred." },
+      { success: false, error: 'An unexpected error occurred.' },
       { status: 500 },
     );
   }

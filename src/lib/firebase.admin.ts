@@ -1,6 +1,6 @@
-import { getApps, initializeApp, App } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-import { getFirestore } from "firebase-admin/firestore";
+import { getApps, initializeApp, App } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 
 // Singleton admin initialization with emulator awareness.
 // Uses environment variables already expected for local dev.
