@@ -1,0 +1,63 @@
+## Node
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+.pnp.cjs
+.pnp.loader.mjs
+
+## PNPM store
+.pnpm-store/
+.pnpm/
+
+## Next.js
+.next/
+out/
+build/
+
+## Typescript
+*.tsbuildinfo
+
+## Editor/IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+## Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+*.log
+
+## Env
+.env
+.env.*
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Devcontainer
+.devcontainer/tmp*
+
+## Playwright
+playwright-report/
+
+## Firebase / emulators
+firebase-debug.log
+.firebase/
+
+## Build output
+dist/
+lib/
+
+## Misc
+.cache/
+.idea/
+coverage/
+report/
