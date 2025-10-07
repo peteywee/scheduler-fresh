@@ -1,45 +1,63 @@
-# Node / Next
+## Node
 node_modules/
+pnpm-lock.yaml
+package-lock.json
+.pnp.cjs
+.pnp.loader.mjs
+
+## PNPM store
+.pnpm-store/
+.pnpm/
+
+## Next.js
 .next/
 out/
-.turbo/
-dist/
-coverage/
+build/
 
-# Package manager locks (pnpm is used; if you switch, update accordingly)
-# yarn.lock
-# package-lock.json
+## Typescript
+*.tsbuildinfo
 
-# Env & local config
-.env*
-!.env.example
-
-# Firebase emulator state/logs
-.firebase/
-firebase-debug.log
-firestore-debug.log
-ui-debug.log
-
-# Editors
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+## Editor/IDE
+.vscode/
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 
-# OS junk
+## Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+*.log
+
+## Env
+.env
+.env.*
+
+## OS
 .DS_Store
 Thumbs.db
 
-# Archives & misc
-*.zip
-*.tgz
-*.tar
-*.gz
+## Devcontainer
+.devcontainer/tmp*
 
-# Build artifacts
-tsconfig.tsbuildinfo
-functions/lib/
-functions/package-lock.json
+## Playwright
+playwright-report/
 
+## Firebase / emulators
+firebase-debug.log
+.firebase/
+
+## Build output
+dist/
+lib/
+
+## Misc
+.cache/
+.idea/
+coverage/
+report/

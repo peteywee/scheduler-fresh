@@ -1,0 +1,22 @@
+{
+  "name": "fresh-schedules",
+  "build": { "dockerfile": "Dockerfile", "context": "." },
+  "postCreateCommand": "bash .devcontainer/install-deps.sh",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "lts" },
+    "ghcr.io/devcontainers/features/git:latest": {}
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "typescript.tsserver.maxTsServerMemory": 2048
+      },
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  },
+  "forwardPorts": [3000, 4000, 8080, 9099, 9199, 5001]
+}
