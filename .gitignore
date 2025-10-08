@@ -61,3 +61,27 @@ lib/
 .idea/
 coverage/
 report/
+
+# Explicitly ignore pnpm store and caches that were accidentally added to commits
+.pnpm-store/
+.pnpm/
+
+# Common generated workspace archives and scanner tarballs
+scheduler-fresh.zip
+*.zip
+*.tar.gz
+
+# gitleaks and other security scanning outputs
+gitleaks-report.json
+gitleaks_*.tar.gz
+
+# IDE/editor swap/temp files
+*~
+*.swp
+
+# Node runtime and lock files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
