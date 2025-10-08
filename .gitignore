@@ -48,3 +48,4 @@ functions/package-lock.json
 .pnpm-store/
 *.pnpm/
 
+scheduler-fresh
