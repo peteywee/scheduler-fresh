@@ -1,87 +1,50 @@
-## Node
+# Node / Next
 node_modules/
-pnpm-lock.yaml
-package-lock.json
-.pnp.cjs
-.pnp.loader.mjs
-
-## PNPM store
-.pnpm-store/
-.pnpm/
-
-## Next.js
 .next/
 out/
-build/
+.turbo/
+dist/
+coverage/
 
-## Typescript
-*.tsbuildinfo
+# Package manager locks (pnpm is used; if you switch, update accordingly)
+# yarn.lock
+# package-lock.json
 
-## Editor/IDE
-.vscode/
+# Env & local config
+.env*
+!.env.example
+
+# Firebase emulator state/logs
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Editors
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 .idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
 
-## Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-logs/
-*.log
-
-## Env
-.env
-.env.*
-
-## OS
+# OS junk
 .DS_Store
 Thumbs.db
 
-## Devcontainer
-.devcontainer/tmp*
-
-## Playwright
-playwright-report/
-
-## Firebase / emulators
-firebase-debug.log
-.firebase/
-
-## Build output
-dist/
-lib/
-
-## Misc
-.cache/
-.idea/
-coverage/
-report/
-
-# Explicitly ignore pnpm store and caches that were accidentally added to commits
-.pnpm-store/
-.pnpm/
-
-# Common generated workspace archives and scanner tarballs
-scheduler-fresh.zip
+# Archives & misc
 *.zip
-*.tar.gz
+*.tgz
+*.tar
+*.gz
 
-# gitleaks and other security scanning outputs
-gitleaks-report.json
-gitleaks_*.tar.gz
+# Build artifacts
+tsconfig.tsbuildinfo
+functions/lib/
+functions/package-lock.json
 
-# IDE/editor swap/temp files
-*~
-*.swp
-
-# Node runtime and lock files
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+# pnpm stores and caches
+.pnpm/
+.pnpm-store/
+*.pnpm/
 
