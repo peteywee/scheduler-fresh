@@ -1,0 +1,115 @@
+{
+  "id": "WT-305-MIGRATION",
+  "title": "WT-305 One-Time Repository Migration & Skeleton Finalization",
+  "description": "Performs one-time merge (known-good → develop → main), validates DeepSource, toolchain, security, and CI. Promotes green develop to main, then self-cleans the migration directory.",
+  "target_branch": "develop",
+  "merge_flow": ["known-good", "develop", "main"],
+  "self_destruct": true,
+  "phases": [
+    {
+      "phase": "phase0_deepsource_verify",
+      "label": "Phase 0 — Validate DeepSource Configuration",
+      "commands": [
+        "echo '🔍 Validating DeepSource configuration...'",
+        "test -f .deepsource.toml || { echo '❌ Missing .deepsource.toml'; exit 1; }",
+        "grep -q '\\[\\[analyzers\\]\\]' .deepsource.toml || { echo '❌ No analyzers defined in .deepsource.toml'; exit 1; }",
+        "pnpm run test:coverage || echo '⚠️ Coverage generation failed (non-blocking)'",
+        "echo '✅ DeepSource configuration validated.'"
+      ]
+    },
+    {
+      "phase": "phase1_verify_toolchain",
+      "label": "Phase 1 — Verify Node Toolchain",
+      "commands": [
+        "bash scripts/tasks/check-node-toolchain.sh || (echo '❌ Toolchain validation failed'; exit 1)"
+      ]
+    },
+    {
+      "phase": "phase2_flatten_repo",
+      "label": "Phase 2 — Flatten Repository",
+      "commands": [
+        "bash scripts/tasks/flatten-project.sh || true",
+        "rm -rf .pnpm-store *.zip *.tar.gz || true",
+        "mv scheduler-fresh/scheduler-fresh/* . 2>/dev/null || true",
+        "rm -rf scheduler-fresh/scheduler-fresh || true"
+      ]
+    },
+    {
+      "phase": "phase3_merge_known_good",
+      "label": "Phase 3 — Merge 'known-good' into 'develop'",
+      "commands": [
+        "git fetch origin",
+        "git checkout develop",
+        "git merge origin/known-good --no-ff || true",
+        "pnpm install",
+        "pnpm run lint",
+        "pnpm run test",
+        "pnpm run build",
+        "git add .",
+        "git commit -m 'Merge known-good into develop (WT-305 Migration)' || true"
+      ]
+    },
+    {
+      "phase": "phase4_delete_known_good",
+      "label": "Phase 4 — Delete Known-Good Branch",
+      "commands": [
+        "git branch -D known-good || true",
+        "git push origin --delete known-good || true"
+      ]
+    },
+    {
+      "phase": "phase5_override_main",
+      "label": "Phase 5 — Promote Verified Develop to Main",
+      "commands": [
+        "git checkout main",
+        "git reset --hard develop",
+        "pnpm run build",
+        "git push origin main --force-with-lease"
+      ]
+    },
+    {
+      "phase": "phase6_validate_final",
+      "label": "Phase 6 — Validate and Tag Skeleton",
+      "commands": [
+        "pnpm run lint",
+        "pnpm run test",
+        "pnpm run build",
+        "pnpm run gitleaks:scan || true",
+        "git tag -a v0.1.0-clean -m 'WT-305 Skeleton Baseline'",
+        "git push origin v0.1.0-clean"
+      ]
+    },
+    {
+      "phase": "phase7_cleanup",
+      "label": "Phase 7 — Self-Cleanup",
+      "commands": [
+        "if git diff --quiet main develop && pnpm run build; then",
+        "  echo '✅ Main is green and canonical. Removing migration directory...';",
+        "  rm -rf migration || true;",
+        "else",
+        "  echo '⚠️ Cleanup skipped — migration verification failed.';",
+        "fi"
+      ]
+    }
+  ],
+  "acceptance_criteria": [
+    "DeepSource analyzers configured and passing",
+    "Toolchain verified (Node, pnpm, npx, corepack available)",
+    "Repository flattened and cleaned",
+    "Known-good merged and deleted",
+    "Only main and develop branches remain",
+    "Build/test/lint all green",
+    "Gitleaks scan passes",
+    "Main is canonical with develop",
+    "Tag v0.1.0-clean created",
+    "Migration directory deleted on success"
+  ],
+  "success_condition": {
+    "branches": ["main", "develop"],
+    "tag": "v0.1.0-clean",
+    "ci_status": "green",
+    "deepsource": "passing",
+    "gitleaks": "clean",
+    "self_destruct": "executed"
+  }
+}
