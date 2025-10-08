@@ -26,18 +26,29 @@ export async function POST(req: NextRequest) {
     // Verify session cookie
     const session = req.cookies.get("__session")?.value;
     if (!session) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
 
-    const decoded = await adminAuth().verifySessionCookie(session, true).catch(() => null);
+    const decoded = await adminAuth()
+      .verifySessionCookie(session, true)
+      .catch(() => null);
     if (!decoded?.uid) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
 
     const body = await req.json();
     const parsed = bulkCreateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ success: false, error: parsed.error.issues }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error.issues },
+        { status: 400 },
+      );
     }
 
     const { orgId, users } = parsed.data;
@@ -45,7 +56,10 @@ export async function POST(req: NextRequest) {
     // Verify the requester has org admin access
     const isAdmin = await isUserOrgAdmin(decoded.uid, orgId);
     if (!isAdmin) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      );
     }
 
     const db = getDb();
@@ -76,9 +90,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, createdCount });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ success: false, error: error.issues }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: error.issues },
+        { status: 400 },
+      );
     }
     console.error("Bulk invite creation error:", error);
-    return NextResponse.json({ success: false, error: "An unexpected error occurred." }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "An unexpected error occurred." },
+      { status: 500 },
+    );
   }
 }

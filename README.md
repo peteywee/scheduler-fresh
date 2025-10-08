@@ -23,7 +23,6 @@
 [gitleaks-playground-badge]: https://img.shields.io/badge/gitleaks%20-playground-blue
 [gitleaks-playground]: https://gitleaks.io/playground
 
-
 [![GitHub Action Test][badge-build]][build]
 [![Docker Hub][dockerhub-badge]][dockerhub]
 [![Gitleaks Playground][gitleaks-playground-badge]][gitleaks-playground]
@@ -32,11 +31,9 @@
 [![GoReportCard][go-report-card-badge]][go-report-card]
 [![License][badge-license]][license]
 
-
 ### Join our Discord! [![Discord](https://img.shields.io/discord/1102689410522284044.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/8Hzbrnkr7E)
 
 Gitleaks is a tool for **detecting** secrets like passwords, API keys, and tokens in git repos, files, and whatever else you wanna throw at it via `stdin`. If you wanna learn more about how the detection engine works check out this blog: [Regex is (almost) all you need](https://lookingatcomputer.substack.com/p/regex-is-almost-all-you-need).
-
 
 ```
 ➜  ~/code(master) gitleaks git -v
@@ -235,23 +232,23 @@ your `.git/hooks/` directory.
 The order of precedence is:
 
 1. `--config/-c` option:
-      ```bash
-      gitleaks git --config /home/dev/customgitleaks.toml .
-      ```
+   ```bash
+   gitleaks git --config /home/dev/customgitleaks.toml .
+   ```
 2. Environment variable `GITLEAKS_CONFIG` with the file path:
-      ```bash
-      export GITLEAKS_CONFIG="/home/dev/customgitleaks.toml"
-      gitleaks git .
-      ```
+   ```bash
+   export GITLEAKS_CONFIG="/home/dev/customgitleaks.toml"
+   gitleaks git .
+   ```
 3. Environment variable `GITLEAKS_CONFIG_TOML` with the file content:
-      ```bash
-      export GITLEAKS_CONFIG_TOML=`cat customgitleaks.toml`
-      gitleaks git .
-      ```
+   ```bash
+   export GITLEAKS_CONFIG_TOML=`cat customgitleaks.toml`
+   gitleaks git .
+   ```
 4. A `.gitleaks.toml` file within the target path:
-      ```bash
-      gitleaks git .
-      ```
+   ```bash
+   gitleaks git .
+   ```
 
 If none of the four options are used, then gitleaks will use the default config.
 
@@ -416,12 +413,13 @@ Refer to the default [gitleaks config](https://github.com/gitleaks/gitleaks/blob
 ### Additional Configuration
 
 #### Composite Rules (Multi-part or `required` Rules)
+
 In v8.28.0 Gitleaks introduced composite rules, which are made up of a single "primary" rule and one or more auxiliary or `required` rules. To create a composite rule, add a `[[rules.required]]` table to the primary rule specifying an `id` and optionally `withinLines` and/or `withinColumns` proximity constraints. A fragment is a chunk of content that Gitleaks processes at once (typically a file, part of a file, or git diff), and proximity matching instructs the primary rule to only report a finding if the auxiliary `required` rules also find matches within the specified area of the fragment.
 
 **Proximity matching:** Using the `withinLines` and `withinColumns` fields instructs the primary rule to only report a finding if the auxiliary `required` rules also find matches within the specified proximity. You can set:
 
 - **`withinLines: N`** - required findings must be within N lines (vertically)
-- **`withinColumns: N`** - required findings must be within N characters (horizontally)  
+- **`withinColumns: N`** - required findings must be within N characters (horizontally)
 - **Both** - creates a rectangular search area (both constraints must be satisfied)
 - **Neither** - fragment-level matching (required findings can be anywhere in the same fragment)
 
@@ -433,72 +431,72 @@ a = auxiliary (required) captured secret
 fragment = section of data gitleaks is looking at
 
 
-    *Fragment-level proximity*               
+    *Fragment-level proximity*
     Any required finding in the fragment
-          ┌────────┐                       
-   ┌──────┤fragment├─────┐                 
-   │      └──────┬─┤     │ ┌───────┐       
-   │             │a│◀────┼─│✓ MATCH│       
-   │          ┌─┐└─┘     │ └───────┘       
-   │┌─┐       │p│        │                 
-   ││a│    ┌─┐└─┘        │ ┌───────┐       
-   │└─┘    │a│◀──────────┼─│✓ MATCH│       
-   └─▲─────┴─┴───────────┘ └───────┘       
-     │    ┌───────┐                        
-     └────│✓ MATCH│                        
-          └───────┘                        
-                                           
-                                           
+          ┌────────┐
+   ┌──────┤fragment├─────┐
+   │      └──────┬─┤     │ ┌───────┐
+   │             │a│◀────┼─│✓ MATCH│
+   │          ┌─┐└─┘     │ └───────┘
+   │┌─┐       │p│        │
+   ││a│    ┌─┐└─┘        │ ┌───────┐
+   │└─┘    │a│◀──────────┼─│✓ MATCH│
+   └─▲─────┴─┴───────────┘ └───────┘
+     │    ┌───────┐
+     └────│✓ MATCH│
+          └───────┘
+
+
    *Column bounded proximity*
-   `withinColumns = 3`                    
-          ┌────────┐                       
-   ┌────┬─┤fragment├─┬───┐                 
-   │      └──────┬─┤     │ ┌───────────┐   
-   │    │        │a│◀┼───┼─│+1C ✓ MATCH│   
-   │          ┌─┐└─┘     │ └───────────┘   
-   │┌─┐ │     │p│    │   │                 
-┌──▶│a│  ┌─┐  └─┘        │ ┌───────────┐   
-│  │└─┘ ││a│◀────────┼───┼─│-2C ✓ MATCH│   
-│  │       ┘             │ └───────────┘   
-│  └── -3C ───0C─── +3C ─┘                 
-│  ┌─────────┐                             
-│  │ -4C ✗ NO│                             
-└──│  MATCH  │                             
-   └─────────┘                             
-                                           
-                                           
+   `withinColumns = 3`
+          ┌────────┐
+   ┌────┬─┤fragment├─┬───┐
+   │      └──────┬─┤     │ ┌───────────┐
+   │    │        │a│◀┼───┼─│+1C ✓ MATCH│
+   │          ┌─┐└─┘     │ └───────────┘
+   │┌─┐ │     │p│    │   │
+┌──▶│a│  ┌─┐  └─┘        │ ┌───────────┐
+│  │└─┘ ││a│◀────────┼───┼─│-2C ✓ MATCH│
+│  │       ┘             │ └───────────┘
+│  └── -3C ───0C─── +3C ─┘
+│  ┌─────────┐
+│  │ -4C ✗ NO│
+└──│  MATCH  │
+   └─────────┘
+
+
    *Line bounded proximity*
-   `withinLines = 4`                      
-         ┌────────┐                        
-   ┌─────┤fragment├─────┐                  
-  +4L─ ─ ┴────────┘─ ─ ─│                  
-   │                    │                  
-   │              ┌─┐   │ ┌────────────┐   
-   │         ┌─┐  │a│◀──┼─│+1L ✓ MATCH │   
-   0L  ┌─┐   │p│  └─┘   │ ├────────────┤   
-   │   │a│◀──┴─┴────────┼─│-1L ✓ MATCH │   
-   │   └─┘              │ └────────────┘   
-   │                    │ ┌─────────┐      
-  -4L─ ─ ─ ─ ─ ─ ─ ─┌─┐─│ │-5L ✗ NO │      
-   │                │a│◀┼─│  MATCH  │      
-   └────────────────┴─┴─┘ └─────────┘      
-                                           
-                                           
+   `withinLines = 4`
+         ┌────────┐
+   ┌─────┤fragment├─────┐
+  +4L─ ─ ┴────────┘─ ─ ─│
+   │                    │
+   │              ┌─┐   │ ┌────────────┐
+   │         ┌─┐  │a│◀──┼─│+1L ✓ MATCH │
+   0L  ┌─┐   │p│  └─┘   │ ├────────────┤
+   │   │a│◀──┴─┴────────┼─│-1L ✓ MATCH │
+   │   └─┘              │ └────────────┘
+   │                    │ ┌─────────┐
+  -4L─ ─ ─ ─ ─ ─ ─ ─┌─┐─│ │-5L ✗ NO │
+   │                │a│◀┼─│  MATCH  │
+   └────────────────┴─┴─┘ └─────────┘
+
+
    *Line and column bounded proximity*
-   `withinLines = 4`                      
-   `withinColumns = 3`                    
-         ┌────────┐                        
-   ┌─────┤fragment├─────┐                  
-  +4L   ┌└────────┴ ┐   │                  
+   `withinLines = 4`
+   `withinColumns = 3`
+         ┌────────┐
+   ┌─────┤fragment├─────┐
+  +4L   ┌└────────┴ ┐   │
    │            ┌─┐     │ ┌───────────────┐
    │    │       │a│◀┼───┼─│+2L/+1C ✓ MATCH│
    │         ┌─┐└─┘     │ └───────────────┘
-   0L   │    │p│    │   │                  
-   │         └─┘        │                  
-   │    │           │   │ ┌────────────┐   
-  -4L    ─ ─ ─ ─ ─ ─┌─┐ │ │-5L/+3C ✗ NO│   
-   │                │a│◀┼─│   MATCH    │   
-   └───-3C────0L───+3C┴─┘ └────────────┘   
+   0L   │    │p│    │   │
+   │         └─┘        │
+   │    │           │   │ ┌────────────┐
+  -4L    ─ ─ ─ ─ ─ ─┌─┐ │ │-5L/+3C ✗ NO│
+   │                │a│◀┼─│   MATCH    │
+   └───-3C────0L───+3C┴─┘ └────────────┘
 ```
 
 <details><summary>Some final quick thoughts on composite rules.</summary>This is an experimental feature! It's subject to change so don't go sellin' a new B2B SaaS feature built ontop of this feature. Scan type (git vs dir) based context is interesting. I'm monitoring the situation. Composite rules might not be super useful for git scans because gitleaks only looks at additions in the git history. It could be useful to scan non-additions in git history for `required` rules. Oh, right this is a readme, I'll shut up now.</details>
@@ -526,7 +524,7 @@ encoded text. The flag `--max-decode-depth` enables this feature (the default
 value "0" means the feature is disabled by default).
 
 Recursive decoding is supported since decoded text can also contain encoded
-text.  The flag `--max-decode-depth` sets the recursion limit. Recursion stops
+text. The flag `--max-decode-depth` sets the recursion limit. Recursion stops
 when there are no new segments of encoded text to decode, so setting a really
 high max depth doesn't mean it will make that many passes. It will only make as
 many as it needs to decode the text. Overall, decoding only minimally increases
@@ -593,6 +591,7 @@ Gitleaks has built-in support for several report formats: [`json`](https://githu
 If none of these formats fit your need, you can create your own report format with a [Go `text/template` .tmpl file](https://www.digitalocean.com/community/tutorials/how-to-use-templates-in-go#step-4-writing-a-template) and the `--report-template` flag. The template can use [extended functionality from the `Masterminds/sprig` template library](https://masterminds.github.io/sprig/).
 
 For example, the following template provides a custom JSON output:
+
 ```gotemplate
 # jsonextra.tmpl
 [{{ $lastFinding := (sub (len . ) 1) }}
@@ -623,6 +622,7 @@ For example, the following template provides a custom JSON output:
 ```
 
 Usage:
+
 ```sh
 $ gitleaks dir ~/leaky-repo/ --report-path "report.json" --report-format template --report-template testdata/report/jsonextra.tmpl
 ```
@@ -635,7 +635,6 @@ $ gitleaks dir ~/leaky-repo/ --report-path "report.json" --report-format templat
 		  <img alt="CodeRabbit.ai Sponsorship" src="https://github.com/gitleaks/gitleaks/assets/15034943/76c30a85-887b-47ca-9956-17a8e55c6c41" width=200>
 	  </a>
 </p>
-
 
 ## Exit Codes
 
