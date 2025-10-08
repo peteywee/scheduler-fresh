@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"typescript.tsserver.maxTsServerMemory": 4096,
+		"typescript.disableAutomaticTypeAcquisition": true,
+		"typescript.tsserver.experimental.enableProjectDiagnostics": false,
+		"terminal.integrated.env.linux": {
+			"NODE_OPTIONS": "--max-old-space-size=4096"
+		}
+	}
+}
