@@ -1,4 +1,4 @@
-# Node / Next
+git filter-repo --path-glob '.pnpm-store/**' --invert-paths --force# Node / Next
 node_modules/
 .next/
 out/
